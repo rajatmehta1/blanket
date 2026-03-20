@@ -1,0 +1,351 @@
+# This contains the database used by the mcp server and the admin policy console
+# on postgres
+
+-- ============================================================
+-- Blanket V1 -- PostgreSQL Schema (Neon-compatible)
+-- Target: 5 core components
+--   1. FastMCP Server (reads policies, logs enforcements)
+--   2. Policy Engine (evaluates rules against context)
+--   3. PostgreSQL/Neon (this schema)
+--   4. FastAPI Gateway (CRUD for all entities)
+--   5. Web Dashboard (reads everything, manages projects/policies)
+-- ============================================================
+
+create user blanket with password 'blanket';
+create database blanket owner blanket;
+grant all privileges on database blanket to blanket;
+GRANT ALL ON SCHEMA public TO blanket;
+ALTER USER blanket SUPERUSER;
+
+-- Extensions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";   -- gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "citext";     -- case-insensitive emails
+CREATE EXTENSION IF NOT EXISTS vector; -- pg vector
+
+-- ============================================================
+-- ORGANIZATIONS & TEAMS
+-- ============================================================
+
+CREATE TABLE organizations (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            TEXT NOT NULL,
+    slug            CITEXT NOT NULL UNIQUE,       -- url-friendly identifier
+    plan            TEXT NOT NULL DEFAULT 'free'   -- free | team | enterprise
+                    CHECK (plan IN ('free', 'team', 'enterprise')),
+    stripe_customer_id TEXT,                       -- nullable until they pay
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE users (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    email           CITEXT NOT NULL UNIQUE,
+    name            TEXT NOT NULL,
+    role            TEXT NOT NULL DEFAULT 'member'
+                    CHECK (role IN ('owner', 'admin', 'member')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_users_org ON users(org_id);
+
+-- ============================================================
+-- API KEYS
+-- Used by MCP server connections + CLI auth
+-- ============================================================
+
+CREATE TABLE api_keys (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    created_by      UUID REFERENCES users(id) ON DELETE SET NULL,
+    key_hash        TEXT NOT NULL UNIQUE,          -- sha256 of the actual key
+    key_prefix      TEXT NOT NULL,                 -- first 8 chars for display (grx_ab12...)
+    label           TEXT NOT NULL DEFAULT 'default',
+    is_active       BOOLEAN NOT NULL DEFAULT true,
+    last_used_at    TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_api_keys_org ON api_keys(org_id);
+CREATE INDEX idx_api_keys_hash ON api_keys(key_hash) WHERE is_active = true;
+
+-- ============================================================
+-- PROJECTS
+-- A project = one codebase/repo that has policies applied
+-- ============================================================
+
+CREATE TABLE projects (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    slug            CITEXT NOT NULL,
+    description     TEXT,
+    language        TEXT,                          -- primary language: python, java, typescript, etc.
+    framework       TEXT,                          -- optional: fastapi, spring, nextjs, etc.
+    is_active       BOOLEAN NOT NULL DEFAULT true,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(org_id, slug)
+);
+
+CREATE INDEX idx_projects_org ON projects(org_id);
+
+-- ============================================================
+-- POLICIES
+-- The core of Blanket -- rules that get injected at prompt time
+-- ============================================================
+
+CREATE TYPE policy_severity AS ENUM ('error', 'warning', 'info');
+CREATE TYPE policy_category AS ENUM (
+    'security',       -- no secrets, input validation, auth checks
+    'quality',        -- error handling, logging, naming conventions
+    'compliance',     -- license headers, data residency, PII handling
+    'architecture',   -- import restrictions, layer boundaries, deprecated APIs
+    'custom'          -- user-defined
+);
+
+CREATE TABLE policies (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+
+    -- Identity
+    name            TEXT NOT NULL,                 -- human-readable: "No Hardcoded Secrets"
+    slug            CITEXT NOT NULL,               -- machine-friendly: "no-hardcoded-secrets"
+    description     TEXT,                          -- shown in dashboard + injected as context
+
+    -- Classification
+    category        policy_category NOT NULL DEFAULT 'custom',
+    severity        policy_severity NOT NULL DEFAULT 'warning',
+    tags            TEXT[] DEFAULT '{}',           -- flexible filtering: ['python', 'backend', 'pci']
+
+    -- The actual policy content injected into prompts
+    -- This is the core value -- the text that gets prepended/appended to the LLM prompt
+    prompt_injection_text TEXT NOT NULL,
+
+    -- Targeting: which languages/frameworks this applies to (empty = all)
+    applies_to_languages  TEXT[] DEFAULT '{}',     -- ['python', 'typescript']
+    applies_to_frameworks TEXT[] DEFAULT '{}',     -- ['fastapi', 'nextjs']
+
+    -- Template or custom
+    is_template     BOOLEAN NOT NULL DEFAULT false, -- true = Blanket-provided starter policy
+    template_source TEXT,                           -- if cloned from a template, the original ID
+
+    -- State
+    is_active       BOOLEAN NOT NULL DEFAULT true,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(org_id, slug)
+);
+
+CREATE INDEX idx_policies_org ON policies(org_id);
+CREATE INDEX idx_policies_category ON policies(category);
+CREATE INDEX idx_policies_active ON policies(org_id, is_active) WHERE is_active = true;
+CREATE INDEX idx_policies_tags ON policies USING gin(tags);
+CREATE INDEX idx_policies_languages ON policies USING gin(applies_to_languages);
+
+-- ============================================================
+-- PROJECT <-> POLICY (many-to-many)
+-- Which policies are enabled for which projects
+-- ============================================================
+
+CREATE TABLE project_policies (
+    project_id      UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    policy_id       UUID NOT NULL REFERENCES policies(id) ON DELETE CASCADE,
+    is_enabled      BOOLEAN NOT NULL DEFAULT true,
+    enabled_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    enabled_by      UUID REFERENCES users(id) ON DELETE SET NULL,
+    PRIMARY KEY (project_id, policy_id)
+);
+
+CREATE INDEX idx_pp_project ON project_policies(project_id) WHERE is_enabled = true;
+CREATE INDEX idx_pp_policy ON project_policies(policy_id);
+
+-- ============================================================
+-- ENFORCEMENT LOG
+-- Every time the MCP server processes a prompt, log it here
+-- This powers the dashboard activity feed
+-- ============================================================
+
+CREATE TABLE enforcement_log (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id          UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    project_id      UUID REFERENCES projects(id) ON DELETE SET NULL,
+    api_key_id      UUID REFERENCES api_keys(id) ON DELETE SET NULL,
+
+    -- What happened
+    event_type      TEXT NOT NULL DEFAULT 'policy_injection'
+                    CHECK (event_type IN (
+                        'policy_injection',   -- policies were injected into prompt
+                        'policy_skipped',     -- policy matched but was disabled
+                        'no_match'            -- no policies matched the context
+                    )),
+
+    -- Context from the MCP request
+    source_tool     TEXT,                         -- 'claude_code', 'cursor', 'api'
+    language        TEXT,                         -- detected language from context
+    framework       TEXT,                         -- detected framework from context
+
+    -- Which policies were applied
+    policies_applied UUID[] DEFAULT '{}',         -- array of policy IDs that were injected
+    policies_count  INTEGER NOT NULL DEFAULT 0,
+
+    -- Prompt metadata (never store full prompts -- privacy)
+    prompt_token_count   INTEGER,
+    enriched_token_count INTEGER,
+
+    -- Timing
+    processing_ms   INTEGER,                      -- how long policy evaluation took
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Partition-friendly indexes for time-series queries
+CREATE INDEX idx_enforcement_org_time ON enforcement_log(org_id, created_at DESC);
+CREATE INDEX idx_enforcement_project ON enforcement_log(project_id, created_at DESC);
+CREATE INDEX idx_enforcement_type ON enforcement_log(event_type);
+CREATE INDEX idx_enforcement_policies ON enforcement_log USING gin(policies_applied);
+
+-- ============================================================
+-- SEED DATA: Starter policy templates
+-- These are the 5 hardcoded V1 templates
+-- ============================================================
+
+
+INSERT INTO organizations (id, name, slug, plan) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'Blanket System', 'Blanket-system', 'enterprise');
+
+INSERT INTO policies (org_id, name, slug, description, category, severity, prompt_injection_text, is_template, is_active) VALUES
+
+(
+    '00000000-0000-0000-0000-000000000001',
+    'No Hardcoded Secrets',
+    'no-hardcoded-secrets',
+    'Prevents API keys, passwords, tokens, and connection strings from being hardcoded in generated code.',
+    'security',
+    'error',
+    'CRITICAL POLICY -- No Hardcoded Secrets:\n'  ||
+    '- NEVER include API keys, passwords, tokens, connection strings, or any credentials directly in code.\n' ||
+    '- Always use environment variables (os.environ, process.env) or a secrets manager (AWS Secrets Manager, Vault, etc.).\n' ||
+    '- If an example requires a credential, use a clearly fake placeholder like "YOUR_API_KEY_HERE" and add a comment explaining where to store it.\n' ||
+    '- Flag any existing hardcoded secrets you encounter and suggest migration to env vars.',
+    true, true
+),
+
+(
+    '00000000-0000-0000-0000-000000000001',
+    'Enforce Error Handling',
+    'enforce-error-handling',
+    'Ensures all generated code includes proper error handling, logging, and graceful failure paths.',
+    'quality',
+    'warning',
+    'POLICY -- Enforce Error Handling:\n' ||
+    '- Every function that performs I/O (network, file, database) MUST have try/catch or equivalent error handling.\n' ||
+    '- Catch specific exception types, not bare except/catch-all.\n' ||
+    '- Log errors with context (function name, input parameters, timestamp) before re-raising or returning.\n' ||
+    '- Always provide a meaningful error message to the caller.\n' ||
+    '- For async operations, ensure errors propagate correctly through the chain.',
+    true, true
+),
+
+(
+    '00000000-0000-0000-0000-000000000001',
+    'Require Input Validation',
+    'require-input-validation',
+    'Mandates input validation on all external-facing functions, API endpoints, and data entry points.',
+    'security',
+    'error',
+    'POLICY -- Require Input Validation:\n' ||
+    '- All API endpoint parameters MUST be validated before processing (type, range, length, format).\n' ||
+    '- Use schema validation libraries (Pydantic, Zod, Joi) for complex inputs.\n' ||
+    '- Sanitize string inputs to prevent injection attacks (SQL, XSS, command injection).\n' ||
+    '- Return clear 400-level error responses with human-readable messages for invalid input.\n' ||
+    '- Never trust client-side validation alone -- always validate server-side.',
+    true, true
+),
+
+(
+    '00000000-0000-0000-0000-000000000001',
+    'Block Deprecated API Usage',
+    'block-deprecated-apis',
+    'Prevents generated code from using deprecated libraries, functions, or API patterns.',
+    'architecture',
+    'warning',
+    'POLICY -- Block Deprecated API Usage:\n' ||
+    '- Do NOT use deprecated functions or libraries. Always prefer the modern replacement.\n' ||
+    '- Common deprecations to avoid: datetime.utcnow() -> datetime.now(UTC), pkg_resources -> importlib.resources, urllib2 -> urllib3/requests, componentWillMount -> useEffect.\n' ||
+    '- If a library version is specified in the project context, respect its API surface.\n' ||
+    '- When suggesting dependencies, prefer actively maintained packages with recent releases.\n' ||
+    '- Flag any deprecated patterns you see in existing code context.',
+    true, true
+),
+
+(
+    '00000000-0000-0000-0000-000000000001',
+    'Enforce Naming Conventions',
+    'enforce-naming-conventions',
+    'Ensures generated code follows consistent naming standards appropriate to the language.',
+    'quality',
+    'info',
+    'POLICY -- Enforce Naming Conventions:\n' ||
+    '- Python: snake_case for functions/variables, PascalCase for classes, UPPER_SNAKE for constants.\n' ||
+    '- TypeScript/JavaScript: camelCase for functions/variables, PascalCase for classes/components/types, UPPER_SNAKE for constants.\n' ||
+    '- Java: camelCase for methods/variables, PascalCase for classes, UPPER_SNAKE for constants.\n' ||
+    '- Use descriptive names that convey intent -- no single-letter variables except loop counters.\n' ||
+    '- Boolean variables/functions should read as questions: is_active, has_permission, can_edit.',
+    true, true
+);
+
+-- ============================================================
+-- HELPER VIEWS
+-- ============================================================
+
+-- Dashboard: active policies per project with enforcement counts (last 7 days)
+CREATE VIEW v_project_policy_stats AS
+SELECT
+    p.id AS project_id,
+    p.name AS project_name,
+    p.org_id,
+    COUNT(DISTINCT pp.policy_id) FILTER (WHERE pp.is_enabled) AS active_policy_count,
+    COUNT(DISTINCT el.id) AS enforcements_7d
+FROM projects p
+LEFT JOIN project_policies pp ON pp.project_id = p.id
+LEFT JOIN enforcement_log el ON el.project_id = p.id
+    AND el.created_at > now() - INTERVAL '7 days'
+WHERE p.is_active = true
+GROUP BY p.id, p.name, p.org_id;
+
+-- Dashboard: policy enforcement frequency (which policies fire most)
+CREATE VIEW v_policy_enforcement_freq AS
+SELECT
+    pol.id AS policy_id,
+    pol.name AS policy_name,
+    pol.category,
+    pol.severity,
+    pol.org_id,
+    COUNT(el.id) AS total_enforcements,
+    COUNT(el.id) FILTER (WHERE el.created_at > now() - INTERVAL '24 hours') AS enforcements_24h,
+    COUNT(el.id) FILTER (WHERE el.created_at > now() - INTERVAL '7 days') AS enforcements_7d
+FROM policies pol
+LEFT JOIN enforcement_log el ON pol.id = ANY(el.policies_applied)
+WHERE pol.is_active = true
+GROUP BY pol.id, pol.name, pol.category, pol.severity, pol.org_id;
+
+-- ============================================================
+-- UPDATED_AT TRIGGER
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_organizations_updated
+    BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_projects_updated
+    BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER trg_policies_updated
+    BEFORE UPDATE ON policies FOR EACH ROW EXECUTE FUNCTION update_timestamp();

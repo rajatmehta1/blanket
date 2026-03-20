@@ -1,0 +1,31 @@
+-- In psql or Neon SQL Editor:
+
+-- Create your org
+INSERT INTO organizations (id, name, slug, plan)
+VALUES (gen_random_uuid(), 'My Company', 'my-company', 'team')
+RETURNING id;
+
+-- Create a user (use the org id from above)
+INSERT INTO users (org_id, email, name, role)
+VALUES ('<org_id>', 'you@company.com', 'Volcano', 'owner')
+RETURNING id;
+
+-- Generate an API key (save the raw key — you'll only see it once)
+-- Raw key example: grx_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+INSERT INTO api_keys (org_id, created_by, key_hash, key_prefix, label)
+VALUES (
+    '<org_id>',
+    '<user_id>',
+    encode(sha256('grx_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6'::bytea), 'hex'),
+    'grx_a1b2',
+    'dev-key'
+);
+
+-- Create a project
+INSERT INTO projects (org_id, name, slug, language, framework)
+VALUES ('<org_id>', 'creator-os-script-writer', 'creator-os-script-writer', 'python', 'fastapi')
+RETURNING id;
+
+-- Assign template policies to the project
+INSERT INTO project_policies (project_id, policy_id)
+SELECT '<project_id>', id FROM policies WHERE is_template = true;
