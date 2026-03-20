@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply dark;
+  }
+
+  body {
+    @apply bg-[#0f0f23] text-gray-100 antialiased;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-charcoal;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded-full hover:bg-gray-500;
+  }
+}
+
+/* Tremor dark mode overrides */
+@layer components {
+  .tremor-Card-root {
+    @apply !bg-slate-blue !border-gray-700/50 !ring-0;
+  }
+
+  .tremor-Table-root {
+    @apply !bg-transparent;
+  }
+
+  .tremor-TableHead-root {
+    @apply !border-gray-700;
+  }
+
+  .tremor-TableRow-root {
+    @apply !border-gray-700/50;
+  }
+
+  .tremor-TableCell-root {
+    @apply !text-gray-300;
+  }
+
+  .tremor-TableHeaderCell-root {
+    @apply !text-gray-400;
+  }
+}
