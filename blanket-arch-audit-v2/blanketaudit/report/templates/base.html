@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page { size: A4; margin: 1.5cm; background: #0b0f1a; }
+@page :first { margin-top: 0; }
+@page { @bottom-center { content: "BlanketAudit AI — Page " counter(page); font-family: 'JetBrains Mono', monospace; font-size: 7pt; color: rgba(255,255,255,0.25); } }
+body { font-family: 'Sora', sans-serif; color: #e2e8f0; background: #0b0f1a; font-size: 10pt; line-height: 1.6; margin: 0; }
+h1 { font-size: 22pt; font-weight: 800; color: #fff; margin: 0 0 8px 0; }
+h2 { font-size: 16pt; font-weight: 600; color: #fff; margin: 20px 0 10px 0; }
+h3 { font-size: 12pt; font-weight: 600; color: #e2e8f0; margin: 14px 0 6px 0; }
+p { margin: 6px 0; }
+.section { page-break-before: always; }
+.section:first-child { page-break-before: avoid; }
+.accent { color: #6C5CE7; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-family: 'JetBrains Mono', monospace; font-size: 9pt; font-weight: 700; }
+.severity-critical { background: rgba(239,68,68,0.15); color: #ef4444; }
+.severity-high { background: rgba(249,115,22,0.15); color: #f97316; }
+.severity-medium { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.severity-low { background: rgba(100,116,139,0.15); color: #64748b; }
+.status-pass { background: rgba(52,211,153,0.15); color: #34d399; }
+.status-fail { background: rgba(239,68,68,0.15); color: #ef4444; }
+.status-partial { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.status-review_needed { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.status-gap { background: rgba(249,115,22,0.15); color: #f97316; }
+.status-not_applicable { background: rgba(100,116,139,0.15); color: #64748b; }
+pre.code-snippet { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.03); border-radius: 6px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 9pt; color: #f472b6; white-space: pre-wrap; overflow-wrap: break-word; }
+pre.fix-code { background: rgba(52,211,153,0.04); border-left: 3px solid rgba(52,211,153,0.25); border-radius: 6px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 9pt; color: #34d399; white-space: pre-wrap; }
+.card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 16px; margin: 10px 0; }
+.callout-red { background: rgba(239,68,68,0.06); border-left: 3px solid #ef4444; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 8px 0; }
+.callout-blue { background: rgba(96,165,250,0.06); border-left: 3px solid #60a5fa; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 8px 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 9pt; }
+th { color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; font-size: 8pt; letter-spacing: 0.5px; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.muted { color: rgba(255,255,255,0.4); }
+.small { font-size: 8pt; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 8pt; margin: 2px; background: rgba(108,92,231,0.12); color: #a78bfa; font-family: 'JetBrains Mono', monospace; }
+.stat-card { display: inline-block; width: 30%; text-align: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 14px 8px; margin: 0 1%; vertical-align: top; }
+.stat-value { font-family: 'JetBrains Mono', monospace; font-size: 20pt; font-weight: 800; color: #6C5CE7; }
+.stat-label { font-size: 8pt; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+</style>
+</head>
+<body>
+{% for section in sections %}
+{{ section }}
+{% endfor %}
+</body>
+</html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketing Playbook - BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <div class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="prompts.html">Prompts</a>
+      <a href="callgraph.html">Call Graph</a>
+      <a href="samples.html">Samples</a>
+      <a href="local-setup.html">Local Setup</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="deployment.html">Deployment</a>
+      <a href="marketing.html" class="active">Marketing</a>
+      <a href="customers.html">Customers</a>
+    </div>
+
+    <h1>Marketing Playbook <span class="badge badge-purple">Strategy</span></h1>
+    <p class="tagline">Step-by-step go-to-market plan for BlanketAudit. From positioning to paid channels, everything you need to take this product to market.</p>
+
+    <!-- ============================================================ -->
+    <h2 id="positioning">1. Positioning &amp; Messaging</h2>
+    <!-- ============================================================ -->
+
+    <div class="card">
+      <h3>Product Category</h3>
+      <p><strong>AI-powered code security &amp; compliance audit platform.</strong></p>
+      <p>BlanketAudit sits at the intersection of three established categories: static application security testing (SAST), compliance automation, and AI code analysis. It is not a replacement for any single tool &mdash; it is the layer that unifies them, adds AI reasoning, and produces board-ready compliance reports.</p>
+    </div>
+
+    <div class="card">
+      <h3>Tagline</h3>
+      <p style="font-size: 1.4rem; color: var(--accent); font-weight: 700; text-align: center; padding: 1rem 0;">"From code to compliance in 12 minutes."</p>
+      <p>This tagline communicates three things at once: (1) the input is code, not questionnaires; (2) the output is compliance-ready; (3) the speed is measured in minutes, not weeks. Every piece of marketing content should reinforce this message.</p>
+    </div>
+
+    <div class="card">
+      <h3>Target Buyer Persona</h3>
+      <table>
+        <thead>
+          <tr><th>Attribute</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Title</strong></td><td>CTO, VP Engineering, Head of Security, Head of Compliance</td></tr>
+          <tr><td><strong>Company size</strong></td><td>20&ndash;200 engineers (Series A through Series C startups)</td></tr>
+          <tr><td><strong>Industry</strong></td><td>Healthcare (HIPAA), Fintech (PCI-DSS, SOX), SaaS (SOC2), any regulated vertical</td></tr>
+          <tr><td><strong>Trigger event</strong></td><td>SOC2 audit scheduled in next 6 months, enterprise customer demanding compliance, recent security incident, failed audit</td></tr>
+          <tr><td><strong>Pain statement</strong></td><td>"We need SOC2/HIPAA compliance but don't know where to start, and we can't afford to hire a full security team."</td></tr>
+          <tr><td><strong>Budget</strong></td><td>$3K&ndash;$10K/year for security tooling (already paying for Snyk, SonarQube, or nothing)</td></tr>
+          <tr><td><strong>Decision process</strong></td><td>CTO evaluates tools, VP Eng approves budget, team lead runs the POC</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Key Messages (use in all content)</h3>
+      <ol>
+        <li><strong>"Static analysis finds bugs. BlanketAudit finds compliance gaps."</strong> &mdash; Differentiates from SonarQube/Semgrep.</li>
+        <li><strong>"Every finding has a dollar sign."</strong> &mdash; Highlights the dollar_impact feature that no competitor offers.</li>
+        <li><strong>"Your auditor wants a PDF, not a JSON file."</strong> &mdash; Emphasizes board-ready PDF reports.</li>
+        <li><strong>"One scan. Four agents. 88 policy rules. Zero hallucinations."</strong> &mdash; Communicates comprehensiveness + trust.</li>
+        <li><strong>"Works with your LLM. Or without one."</strong> &mdash; Addresses air-gapped/on-prem concerns.</li>
+      </ol>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2 id="pricing">2. Pricing Strategy</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th>Price</th>
+          <th>Includes</th>
+          <th>Target User</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge" style="background:var(--text-muted);color:#fff;">Free</span></td>
+          <td>$0/month</td>
+          <td>Static-only analysis (Semgrep + Gitleaks + OSV), community policy rules, JSON + SARIF output, 3 repos, CLI only</td>
+          <td>Individual developers, open-source maintainers, evaluation users</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">Pro</span></td>
+          <td>$99/month</td>
+          <td>Full AI analysis (4 agents), PDF + HTML reports, 10 repos, compliance mapping (HIPAA, SOC2, PCI-DSS, GDPR), remediation roadmap, email support</td>
+          <td>Solo founders, small teams, freelance security consultants</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-purple">Team</span></td>
+          <td>$299/month</td>
+          <td>Everything in Pro + unlimited repos, API access, GitHub Action integration, scan history &amp; trend tracking, team sharing, priority support, custom policy rules</td>
+          <td>Startup engineering teams (20&ndash;100 engineers), agencies</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-yellow">Enterprise</span></td>
+          <td>Custom pricing</td>
+          <td>Everything in Team + on-prem deployment (Ollama), custom compliance frameworks (SOX, FedRAMP), SSO/SAML, SLA, dedicated support, audit log, PostgreSQL backend</td>
+          <td>Large organizations, government, healthcare systems</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card">
+      <h3>Pricing Psychology</h3>
+      <ul>
+        <li><strong>Anchor against the alternative:</strong> A SOC2 audit costs $50,000&ndash;$150,000. A security consultant costs $200&ndash;$400/hour. BlanketAudit at $299/month is a rounding error on audit prep costs.</li>
+        <li><strong>Free tier as lead gen:</strong> The free tier deliberately limits output to JSON/SARIF (no pretty PDF). Users who see the raw findings will want the formatted report. This is the natural upgrade trigger.</li>
+        <li><strong>Annual discount:</strong> Offer 20% off annual plans ($79/mo Pro, $239/mo Team). This improves cash flow and reduces churn.</li>
+        <li><strong>14-day trial on Pro:</strong> No credit card required. Scan unlimited repos during trial. After 14 days, downgrade to Free unless they convert.</li>
+      </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2 id="competitive">3. Competitive Landscape</h2>
+    <!-- ============================================================ -->
+
+    <p>BlanketAudit competes in adjacent categories rather than head-to-head with any single tool. The key differentiator is the combination of AI reasoning + compliance mapping + actionable reports that no existing tool provides.</p>
+
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th style="color:var(--accent);">BlanketAudit</th>
+            <th>SonarQube</th>
+            <th>Snyk</th>
+            <th>Semgrep</th>
+            <th>CodeQL</th>
+            <th>Checkmarx</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AI reasoning on findings</td>
+            <td style="color:var(--green);">Yes &mdash; 4 specialized agents</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+          </tr>
+          <tr>
+            <td>Compliance mapping (HIPAA, SOC2, PCI-DSS, GDPR)</td>
+            <td style="color:var(--green);">Full &mdash; clause-level pass/partial/fail</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--yellow);">Partial &mdash; license compliance only</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--yellow);">Partial &mdash; OWASP only</td>
+          </tr>
+          <tr>
+            <td>Dollar impact per finding</td>
+            <td style="color:var(--green);">Yes &mdash; AI-estimated financial risk</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+          </tr>
+          <tr>
+            <td>Call graph blast radius</td>
+            <td style="color:var(--green);">Yes &mdash; method-level with Neo4j</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--yellow);">Partial &mdash; single-repo only</td>
+            <td style="color:var(--yellow);">Partial</td>
+          </tr>
+          <tr>
+            <td>Cross-repo analysis</td>
+            <td style="color:var(--green);">Yes &mdash; HTTP client/endpoint matching</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+          </tr>
+          <tr>
+            <td>Remediation roadmap (30/60/90 day)</td>
+            <td style="color:var(--green);">Yes &mdash; phased plan with effort estimates</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+          </tr>
+          <tr>
+            <td>PDF report (board-ready)</td>
+            <td style="color:var(--green);">Yes &mdash; dark theme, 9 sections</td>
+            <td style="color:var(--red);">No &mdash; web dashboard only</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--red);">No</td>
+            <td style="color:var(--yellow);">Basic PDF export</td>
+          </tr>
+          <tr>
+            <td>Hallucination guardrails</td>
+            <td style="color:var(--green);">4 validation gates</td>
+            <td style="color:var(--text-muted);">N/A (no AI)</td>
+            <td style="color:var(--text-muted);">N/A</td>
+            <td style="color:var(--text-muted);">N/A</td>
+            <td style="color:var(--text-muted);">N/A</td>
+            <td style="color:var(--text-muted);">N/A</td>
+          </tr>
+          <tr>
+            <td>Works offline / air-gapped</td>
+            <td style="color:var(--green);">Yes &mdash; Ollama + local mode</td>
+            <td style="color:var(--green);">Yes &mdash; self-hosted</td>
+            <td style="color:var(--red);">No &mdash; cloud only</td>
+            <td style="color:var(--green);">Yes</td>
+            <td style="color:var(--green);">Yes</td>
+            <td style="color:var(--yellow);">On-prem available</td>
+          </tr>
+          <tr>
+            <td>Price (team tier)</td>
+            <td><strong>$299/mo</strong></td>
+            <td>$150/mo (Developer)</td>
+            <td>$98/mo (Team)</td>
+            <td>Free (OSS), $40/mo (Team)</td>
+            <td>Free (OSS)</td>
+            <td>$$$$ (Enterprise only)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Competitive Positioning Statements</h3>
+      <p><strong>vs. SonarQube:</strong> "SonarQube tells you about code smells. BlanketAudit tells you which code smells will cost you $1.9M in HIPAA fines."</p>
+      <p><strong>vs. Snyk:</strong> "Snyk scans your dependencies. BlanketAudit scans your entire codebase, maps findings to compliance frameworks, and generates the PDF your auditor actually needs."</p>
+      <p><strong>vs. Semgrep:</strong> "We use Semgrep under the hood (it's great at pattern matching). We add AI reasoning, compliance mapping, call graph analysis, and a remediation roadmap on top."</p>
+      <p><strong>vs. CodeQL:</strong> "CodeQL requires writing custom queries in a proprietary language. BlanketAudit ships 88 policy rules and uses AI to reason about findings in plain English."</p>
+      <p><strong>vs. Checkmarx:</strong> "Checkmarx costs $100K+/year and takes months to deploy. BlanketAudit runs in 12 minutes from the CLI for $299/month."</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2 id="gtm">4. Go-to-Market Strategy (8-Week Plan)</h2>
+    <!-- ============================================================ -->
+
+    <!-- Step 1 -->
+    <h3 id="step1">Step 1: Build Social Proof (Week 1&ndash;2)</h3>
+
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Before spending a single dollar on marketing, establish credibility by demonstrating the tool on real, public codebases. Social proof is the single most important asset for a new developer tool.</p>
+    </div>
+
+    <div class="card">
+      <h3>Action Items</h3>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Action</th><th>Owner</th><th>Deadline</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1.1</td><td><strong>Identify 10 popular open-source healthcare/fintech projects</strong> on GitHub with >1K stars. Focus on projects that handle sensitive data (patient records, payment processing, authentication).</td><td>Founder</td><td>Day 1&ndash;2</td></tr>
+          <tr><td>1.2</td><td><strong>Scan all 10 projects</strong> with BlanketAudit. Save full PDF reports. Document the most interesting findings (with code snippets, dollar impact, compliance gaps).</td><td>Founder</td><td>Day 2&ndash;4</td></tr>
+          <tr><td>1.3</td><td><strong>Request permission</strong> from project maintainers to publish results. Offer to share the full report privately first. Frame it as a security contribution, not criticism. If they decline, redact the project name.</td><td>Founder</td><td>Day 3&ndash;5</td></tr>
+          <tr><td>1.4</td><td><strong>Write 3 blog posts</strong> based on the scan results:
+            <ul>
+              <li>"We Found $2M in HIPAA Risk in This Open-Source Healthcare App" &mdash; attention-grabbing case study</li>
+              <li>"State of Healthcare App Security in 2026" &mdash; aggregate findings across all 10 projects</li>
+              <li>"What AI Catches That Static Analysis Misses: 5 Real Examples" &mdash; technical deep-dive</li>
+            </ul>
+          </td><td>Founder</td><td>Day 5&ndash;10</td></tr>
+          <tr><td>1.5</td><td><strong>Post findings on social media:</strong>
+            <ul>
+              <li>X/Twitter: Thread with screenshots of findings, dollar impact callouts, compliance matrix. Tag the project maintainers (positively).</li>
+              <li>LinkedIn: Professional write-up targeting CTOs. Include a redacted version of the PDF cover page.</li>
+              <li>Hacker News: Submit the "State of Healthcare App Security" post.</li>
+            </ul>
+          </td><td>Founder</td><td>Day 10&ndash;14</td></tr>
+          <tr><td>1.6</td><td><strong>Collect testimonials.</strong> If any project maintainer says "this is useful" or fixes issues based on the report, screenshot it. This is gold for the landing page.</td><td>Founder</td><td>Ongoing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Success Metrics for Step 1</h3>
+      <ul>
+        <li>10 open-source projects scanned with full reports saved</li>
+        <li>3 blog posts published and distributed</li>
+        <li>500+ impressions on social media posts</li>
+        <li>At least 1 project maintainer acknowledges the report</li>
+        <li>At least 50 visitors to the landing page from social posts</li>
+      </ul>
+    </div>
+
+    <!-- Step 2 -->
+    <h3 id="step2">Step 2: Content Marketing Engine (Week 2&ndash;4)</h3>
+
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Build a content engine that generates organic inbound leads through SEO-targeted blog posts, a compelling landing page, and video content. Every piece of content should end with a call-to-action: "Scan your repos free."</p>
+    </div>
+
+    <div class="card">
+      <h3>Landing Page (Priority 1)</h3>
+      <p>The landing page is the single most important marketing asset. It should convert visitors to free scan signups at 5%+ rate.</p>
+      <table>
+        <thead>
+          <tr><th>Section</th><th>Content</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Hero</strong></td><td>Tagline: "From code to compliance in 12 minutes." Large CTA button: "Scan Your Repos Free." Below: animated GIF or video of the CLI running a scan.</td></tr>
+          <tr><td><strong>Social proof bar</strong></td><td>Logos of open-source projects scanned (with permission). "Trusted by 50+ engineering teams."</td></tr>
+          <tr><td><strong>Sample report</strong></td><td>Interactive embedded version of the MedPay sample report. Let visitors click through the 9 sections. This is the #1 conversion driver.</td></tr>
+          <tr><td><strong>How it works</strong></td><td>3-step visual: (1) Point at repos, (2) AI scans in 12 min, (3) Get PDF report. Keep it dead simple.</td></tr>
+          <tr><td><strong>Feature grid</strong></td><td>4 cards: Security, Compliance, Architecture, Quality. Each with an icon, 2-sentence description, and screenshot.</td></tr>
+          <tr><td><strong>Comparison table</strong></td><td>Use the competitive comparison table from above. Make BlanketAudit's column visually prominent (green checkmarks).</td></tr>
+          <tr><td><strong>Pricing</strong></td><td>3 columns: Free / Pro / Team. Enterprise as a "Contact us" card. Annual toggle with 20% savings shown.</td></tr>
+          <tr><td><strong>FAQ</strong></td><td>Address the top 5 objections: "Is my code safe?", "Do I need an LLM API key?", "How accurate is the AI?", "Does it work offline?", "What languages are supported?"</td></tr>
+          <tr><td><strong>Footer CTA</strong></td><td>Repeat the hero CTA: "Scan Your Repos Free." Newsletter signup for security/compliance tips.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>SEO Blog Posts (Priority 2)</h3>
+      <p>Target long-tail keywords that your buyer persona is Googling. Every post ends with "Try BlanketAudit free."</p>
+      <table>
+        <thead>
+          <tr><th>Blog Post Title</th><th>Target Keyword</th><th>Word Count</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>"SOC2 Compliance Checklist for Startups in 2026"</td><td>SOC2 compliance checklist</td><td>2,500</td></tr>
+          <tr><td>"How to Prepare for a HIPAA Audit in 90 Days"</td><td>HIPAA audit preparation</td><td>3,000</td></tr>
+          <tr><td>"5 SQL Injection Patterns AI Catches That Static Analysis Misses"</td><td>SQL injection detection AI</td><td>2,000</td></tr>
+          <tr><td>"Why Your SonarQube Report Isn't Enough for SOC2"</td><td>SonarQube SOC2</td><td>1,800</td></tr>
+          <tr><td>"PCI-DSS Code Requirements: A Developer's Guide"</td><td>PCI-DSS code requirements</td><td>2,500</td></tr>
+          <tr><td>"The True Cost of a HIPAA Data Breach in 2026"</td><td>HIPAA data breach cost</td><td>2,000</td></tr>
+          <tr><td>"How to Build a Security-First Culture in Your Engineering Team"</td><td>engineering security culture</td><td>2,200</td></tr>
+          <tr><td>"Static Analysis vs. AI Code Review: What's the Difference?"</td><td>static analysis vs AI code review</td><td>2,000</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Video Content (Priority 3)</h3>
+      <ul>
+        <li><strong>"Scanning a Real Codebase with BlanketAudit (Live Demo)"</strong> &mdash; 10-minute YouTube video. Show the CLI, the scan running, the PDF output. Walk through each finding. This video will be embedded on the landing page and shared on social.</li>
+        <li><strong>"From Code to SOC2 in 12 Minutes"</strong> &mdash; 5-minute video focused on the compliance mapping feature. Target: CTOs evaluating compliance tools.</li>
+        <li><strong>"BlanketAudit vs. SonarQube: Side-by-Side Comparison"</strong> &mdash; 8-minute video. Scan the same repo with both tools. Show what BlanketAudit catches that SonarQube misses.</li>
+        <li><strong>Short clips for social:</strong> 30-second clips of the most dramatic findings (e.g., "$1.9M HIPAA risk" appearing on screen). Optimize for X/Twitter and LinkedIn.</li>
+      </ul>
+    </div>
+
+    <!-- Step 3 -->
+    <h3 id="step3">Step 3: Distribution &amp; Community (Week 3&ndash;6)</h3>
+
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Get BlanketAudit in front of the right audiences through platform launches, developer communities, partnerships, and speaking engagements.</p>
+    </div>
+
+    <div class="card">
+      <h3>Platform Launches</h3>
+      <table>
+        <thead>
+          <tr><th>Platform</th><th>Strategy</th><th>Timing</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Product Hunt</strong></td><td>Launch on a Tuesday. Prepare: compelling tagline, 4 screenshots (cover page, findings, compliance matrix, remediation roadmap), 30-second GIF, maker comment with backstory. Rally your network to upvote in the first 4 hours.</td><td>Week 3, Tuesday</td></tr>
+          <tr><td><strong>Hacker News (Show HN)</strong></td><td>Title: "Show HN: BlanketAudit &ndash; AI scans your code for HIPAA/SOC2 compliance in 12 min." Include a link to the sample report. Be available to answer comments for 6 hours.</td><td>Week 3, Wednesday</td></tr>
+          <tr><td><strong>Reddit</strong></td><td>Post in r/devops, r/netsec, r/programming, r/sysadmin. Frame as "I built this, looking for feedback" not as an ad. Include the sample report link.</td><td>Week 3&ndash;4</td></tr>
+          <tr><td><strong>GitHub</strong></td><td>Make the repo public (or a demo version). Add badges (build status, coverage, license). Write an exceptional README with screenshots. Add topics: sast, security, compliance, hipaa, soc2.</td><td>Week 3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Developer Community Engagement</h3>
+      <ul>
+        <li><strong>GitHub Action tutorial:</strong> Write a step-by-step guide: "Add BlanketAudit to your CI/CD pipeline in 5 minutes." This is the viral loop &mdash; every repo that adds the Action becomes a billboard.</li>
+        <li><strong>Discord/Slack communities:</strong> Join DevSecOps, Cloud Security, and startup-focused communities. Be helpful first (answer questions about HIPAA/SOC2), then mention BlanketAudit when relevant.</li>
+        <li><strong>Stack Overflow:</strong> Answer questions about HIPAA compliance, SOC2 requirements, code security. Link to relevant blog posts (not directly to the product).</li>
+        <li><strong>Open-source contributions:</strong> Contribute Semgrep rules, Tree-sitter grammars, or security-related utilities. Build reputation in the security community.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Partnerships</h3>
+      <table>
+        <thead>
+          <tr><th>Partner Type</th><th>Value Proposition</th><th>How to Find</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>SOC2 audit firms</strong></td><td>"We give your clients a pre-audit scan so they're better prepared. Less back-and-forth for you, happier clients." Offer free Team tier for their clients during audit prep.</td><td>Search "SOC2 auditor" on LinkedIn. Attend AICPA conferences. Ask your network.</td></tr>
+          <tr><td><strong>HIPAA consultants</strong></td><td>"We automate the technical controls assessment. You focus on administrative and physical safeguards." Offer co-branded reports.</td><td>Search "HIPAA consultant" on LinkedIn. Check HHS breach notification list for recent incidents (their clients need help).</td></tr>
+          <tr><td><strong>DevOps tooling companies</strong></td><td>Integration partnerships (e.g., "BlanketAudit + LaunchDarkly: scan feature flags for compliance"). Cross-promote to each other's audiences.</td><td>Reach out to developer tool companies at similar stage.</td></tr>
+          <tr><td><strong>Security-focused VCs</strong></td><td>Some VCs (e.g., Insight Partners, Greylock) have portfolio company programs. Get BlanketAudit recommended to their portfolio companies.</td><td>Apply to VC portfolio tool programs. Attend VC-hosted demo days.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Speaking &amp; Events</h3>
+      <ul>
+        <li><strong>Local meetups:</strong> Present at DevSecOps, Cloud Native, and startup meetups. Title: "How AI Changed Our Approach to Code Compliance." These are low-pressure, high-conversion venues.</li>
+        <li><strong>Conferences:</strong> Apply to speak at BSides, DevSecOps Days, OWASP AppSec, KubeCon (security track). Submit talks about the technology, not the product.</li>
+        <li><strong>Webinars:</strong> Host monthly webinars: "SOC2 Prep for Engineers" or "HIPAA Compliance in 2026." Partner with audit firms to co-host. Capture emails for follow-up.</li>
+        <li><strong>Podcasts:</strong> Pitch yourself as a guest on: Darknet Diaries, Risky Business, Software Engineering Daily, The Changelog. Topic: "Using AI to find compliance gaps in code."</li>
+      </ul>
+    </div>
+
+    <!-- Step 4 -->
+    <h3 id="step4">Step 4: Sales Motion (Week 4&ndash;8)</h3>
+
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Convert inbound interest and outbound outreach into paying customers. The core motion: free scan &rarr; demo call &rarr; paid plan.</p>
+    </div>
+
+    <div class="card">
+      <h3>The "Free Audit" Campaign</h3>
+      <ol>
+        <li><strong>Identify 50 target startups</strong> in healthcare and fintech (see the <a href="customers.html">Customers playbook</a> for detailed prospecting methods).</li>
+        <li><strong>Scan their public repos</strong> (or offer to scan private repos under NDA). Generate a full PDF report for each.</li>
+        <li><strong>Send personalized outreach</strong> with 2&ndash;3 specific findings from their codebase. This is the hook &mdash; you've already done the work for free.</li>
+        <li><strong>Book a 15-minute call</strong> to walk through the report. Focus on dollar impact and compliance gaps.</li>
+        <li><strong>Close to paid:</strong> "$299/month. We re-scan monthly. You get a dashboard showing your score improving over time. Cancel anytime."</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Sales Funnel Metrics (Targets)</h3>
+      <table>
+        <thead>
+          <tr><th>Stage</th><th>Count</th><th>Conversion Rate</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Prospects identified</td><td>50</td><td>&mdash;</td></tr>
+          <tr><td>Outreach sent (email + LinkedIn)</td><td>50</td><td>100%</td></tr>
+          <tr><td>Replied / engaged</td><td>15</td><td>30%</td></tr>
+          <tr><td>Free scan delivered</td><td>12</td><td>80% of engaged</td></tr>
+          <tr><td>Demo call booked</td><td>8</td><td>67% of scanned</td></tr>
+          <tr><td>Paid customer</td><td>4</td><td>50% of demoed</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Follow-Up Cadence</h3>
+      <table>
+        <thead>
+          <tr><th>Day</th><th>Action</th><th>Channel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>0</td><td>Initial outreach with 2&ndash;3 findings from their code</td><td>Email + LinkedIn DM</td></tr>
+          <tr><td>3</td><td>Follow-up: "Here's the full PDF report. 15 min to walk through?"</td><td>Email</td></tr>
+          <tr><td>7</td><td>"Your top 3 compliance gaps and estimated dollar impact"</td><td>Email</td></tr>
+          <tr><td>14</td><td>"Last chance for free detailed audit &mdash; happy to help either way"</td><td>Email</td></tr>
+          <tr><td>30</td><td>Add to nurture sequence (monthly newsletter with tips)</td><td>Email</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Step 5 -->
+    <h3 id="step5">Step 5: Paid Channels (Week 6+)</h3>
+
+    <div class="card">
+      <h3>Objective</h3>
+      <p>Once organic channels are producing results and the conversion funnel is proven, invest in paid acquisition to accelerate growth. Do NOT start paid ads before you have at least 3 paying customers and a proven conversion process.</p>
+    </div>
+
+    <div class="card">
+      <h3>Google Ads</h3>
+      <table>
+        <thead>
+          <tr><th>Campaign</th><th>Keywords</th><th>Budget</th><th>Expected CPC</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Compliance tools</td><td>"SOC2 compliance tool", "HIPAA compliance software", "compliance automation"</td><td>$500/month</td><td>$5&ndash;$15</td></tr>
+          <tr><td>Code security</td><td>"code security audit", "SAST tool", "application security testing"</td><td>$300/month</td><td>$3&ndash;$8</td></tr>
+          <tr><td>Competitor</td><td>"SonarQube alternative", "Snyk alternative", "Checkmarx alternative"</td><td>$200/month</td><td>$4&ndash;$10</td></tr>
+        </tbody>
+      </table>
+      <p><strong>Landing pages:</strong> Create dedicated landing pages for each campaign (e.g., /soc2-compliance-tool, /hipaa-code-audit). Each page should speak directly to that keyword's intent and include a relevant sample finding.</p>
+    </div>
+
+    <div class="card">
+      <h3>LinkedIn Ads</h3>
+      <table>
+        <thead>
+          <tr><th>Audience</th><th>Targeting</th><th>Budget</th><th>Ad Format</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Healthcare CTOs</td><td>Title: CTO/VP Eng + Industry: Healthcare + Company size: 50&ndash;500</td><td>$400/month</td><td>Sponsored content with sample report screenshot</td></tr>
+          <tr><td>Fintech CTOs</td><td>Title: CTO/VP Eng + Industry: Financial Services + Raised funding</td><td>$400/month</td><td>Sponsored content with PCI-DSS compliance matrix</td></tr>
+          <tr><td>Security leaders</td><td>Title: CISO/Head of Security + Company size: 100&ndash;1000</td><td>$200/month</td><td>Thought leadership post about AI + security</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Newsletter Sponsorships</h3>
+      <ul>
+        <li><strong>tl;dr sec</strong> &mdash; Weekly security newsletter. $500&ndash;$1,000 per placement. Highly targeted audience.</li>
+        <li><strong>DevOps Weekly</strong> &mdash; Broad DevOps audience. $300&ndash;$600 per placement.</li>
+        <li><strong>TLDR Newsletter</strong> &mdash; Large tech audience. $2,000&ndash;$5,000. Good for awareness.</li>
+        <li><strong>Console.dev</strong> &mdash; Developer tools newsletter. $400&ndash;$800. Very relevant audience.</li>
+      </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2 id="content-calendar">5. Content Calendar (First 8 Weeks)</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <thead>
+        <tr><th>Week</th><th>Blog Post</th><th>Social Media</th><th>Other</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td>Scan 10 OSS projects (internal)</td>
+          <td>Tease findings on X/Twitter</td>
+          <td>Build landing page</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td>"We Found $2M in HIPAA Risk..."</td>
+          <td>Thread: top 5 findings from OSS scans</td>
+          <td>Publish landing page</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td>"State of Healthcare App Security 2026"</td>
+          <td>Product Hunt launch + Show HN</td>
+          <td>Reddit posts in r/devops, r/netsec</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td>"SOC2 Compliance Checklist for Startups"</td>
+          <td>LinkedIn article targeting CTOs</td>
+          <td>YouTube: live demo video</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td>"5 SQL Injection Patterns AI Catches..."</td>
+          <td>Technical thread on X/Twitter</td>
+          <td>GitHub Action tutorial published</td>
+        </tr>
+        <tr>
+          <td><strong>6</strong></td>
+          <td>"How to Prepare for HIPAA Audit in 90 Days"</td>
+          <td>Case study from first customer</td>
+          <td>Start Google Ads campaigns</td>
+        </tr>
+        <tr>
+          <td><strong>7</strong></td>
+          <td>"Why SonarQube Isn't Enough for SOC2"</td>
+          <td>Comparison video clips (30s)</td>
+          <td>Start LinkedIn Ads campaigns</td>
+        </tr>
+        <tr>
+          <td><strong>8</strong></td>
+          <td>"PCI-DSS Code Requirements: Developer Guide"</td>
+          <td>Customer testimonial post</td>
+          <td>First webinar: "SOC2 Prep for Engineers"</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <h2 id="messaging">6. Messaging Framework</h2>
+    <!-- ============================================================ -->
+
+    <div class="card">
+      <h3>Elevator Pitch (30 seconds)</h3>
+      <p>"BlanketAudit scans your codebase and produces a compliance-ready security report in 12 minutes. It uses AI to map every finding to HIPAA, SOC2, and PCI-DSS controls, estimates the dollar impact, and gives you a 90-day remediation roadmap. Think of it as your automated security auditor."</p>
+    </div>
+
+    <div class="card">
+      <h3>For CTOs</h3>
+      <p>"You're preparing for SOC2 and your auditor is asking questions your team can't answer. BlanketAudit scans your repos, maps code issues to SOC2 controls, and generates the PDF your auditor needs. It saves you 3&ndash;6 months of manual audit prep."</p>
+    </div>
+
+    <div class="card">
+      <h3>For Security Engineers</h3>
+      <p>"BlanketAudit runs Semgrep, Gitleaks, and OSV under the hood, then uses 4 AI agents to filter false positives, trace blast radius through the call graph, and map findings to compliance controls. You get one report instead of juggling 5 tools."</p>
+    </div>
+
+    <div class="card">
+      <h3>For Compliance Officers</h3>
+      <p>"BlanketAudit produces a compliance matrix that shows PASS/PARTIAL/FAIL for every control in HIPAA, SOC2, PCI-DSS, and GDPR. Each gap includes the specific code location, a fix recommendation, and a dollar impact estimate. Your auditors will love it."</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2 id="metrics">7. Metrics to Track</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Definition</th><th>Target (Month 3)</th><th>Target (Month 6)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Website visitors</strong></td><td>Unique visitors to landing page</td><td>2,000/month</td><td>10,000/month</td></tr>
+        <tr><td><strong>Free scan signups</strong></td><td>Users who run at least 1 free scan</td><td>200/month</td><td>1,000/month</td></tr>
+        <tr><td><strong>Free &rarr; Pro conversion</strong></td><td>% of free users who upgrade to Pro</td><td>5%</td><td>10%</td></tr>
+        <tr><td><strong>Pro &rarr; Team conversion</strong></td><td>% of Pro users who upgrade to Team</td><td>15%</td><td>25%</td></tr>
+        <tr><td><strong>Monthly Recurring Revenue</strong></td><td>Total monthly subscription revenue</td><td>$3,000</td><td>$15,000</td></tr>
+        <tr><td><strong>Customer Acquisition Cost</strong></td><td>Total marketing spend / new customers</td><td>$200</td><td>$150</td></tr>
+        <tr><td><strong>Net Promoter Score</strong></td><td>"Would you recommend?" (0&ndash;10)</td><td>40+</td><td>50+</td></tr>
+        <tr><td><strong>Churn rate</strong></td><td>% of paid customers who cancel/month</td><td>&lt;8%</td><td>&lt;5%</td></tr>
+        <tr><td><strong>Time to value</strong></td><td>Minutes from signup to first report</td><td>&lt;15 min</td><td>&lt;12 min</td></tr>
+        <tr><td><strong>Scans per customer/month</strong></td><td>Average scans run per paying user</td><td>3</td><td>8 (weekly)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <h2 id="brand">8. Brand Guidelines</h2>
+    <!-- ============================================================ -->
+
+    <div class="card">
+      <h3>Visual Identity</h3>
+      <table>
+        <thead>
+          <tr><th>Element</th><th>Specification</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Primary color</strong></td><td><code>#6C5CE7</code> (purple) &mdash; used in CTAs, headings, accents</td></tr>
+          <tr><td><strong>Background</strong></td><td><code>#0b0f1a</code> (dark navy) &mdash; consistent with the PDF report theme</td></tr>
+          <tr><td><strong>Text</strong></td><td><code>#e2e8f0</code> (light gray) &mdash; high contrast on dark background</td></tr>
+          <tr><td><strong>Severity colors</strong></td><td>Critical: <code>#ef4444</code>, High: <code>#f97316</code>, Medium: <code>#fbbf24</code>, Low: <code>#64748b</code></td></tr>
+          <tr><td><strong>Heading font</strong></td><td>Sora (Google Fonts) &mdash; modern, geometric</td></tr>
+          <tr><td><strong>Code font</strong></td><td>JetBrains Mono &mdash; for code blocks, data, badges</td></tr>
+          <tr><td><strong>Logo</strong></td><td>Wordmark "BlanketAudit" in Sora Bold + shield icon with scan lines</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Tone of Voice</h3>
+      <ul>
+        <li><strong>Technical but accessible:</strong> Write for engineers who are smart but don't have time to read documentation. Be precise. Avoid buzzwords.</li>
+        <li><strong>Confident but not arrogant:</strong> "We found $2M in risk" not "We're the best tool ever." Let the results speak.</li>
+        <li><strong>Urgent but not fear-mongering:</strong> "Your SOC2 audit is in 6 months. Here's what to fix first." Not "YOU WILL BE HACKED."</li>
+        <li><strong>Helpful first, selling second:</strong> Every piece of content should teach something useful even if the reader never buys BlanketAudit.</li>
+      </ul>
+    </div>
+
+    <!-- ============================================================ -->
+    <h2 id="budget">9. Marketing Budget (First 6 Months)</h2>
+    <!-- ============================================================ -->
+
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Monthly</th><th>6-Month Total</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Google Ads</td><td>$1,000</td><td>$6,000</td><td>Start Month 2</td></tr>
+        <tr><td>LinkedIn Ads</td><td>$1,000</td><td>$6,000</td><td>Start Month 2</td></tr>
+        <tr><td>Newsletter sponsorships</td><td>$500</td><td>$3,000</td><td>1&ndash;2 placements/month</td></tr>
+        <tr><td>Design (landing page, ads)</td><td>$300</td><td>$1,800</td><td>Freelance designer</td></tr>
+        <tr><td>Video production</td><td>$200</td><td>$1,200</td><td>Screen recordings + editing</td></tr>
+        <tr><td>Conference sponsorship</td><td>$400</td><td>$2,400</td><td>1 conference per quarter</td></tr>
+        <tr><td>Tools (analytics, email, CRM)</td><td>$200</td><td>$1,200</td><td>PostHog, Resend, HubSpot Free</td></tr>
+        <tr><td><strong>Total</strong></td><td><strong>$3,600</strong></td><td><strong>$21,600</strong></td><td></td></tr>
+      </tbody>
+    </table>
+
+    <blockquote>
+      <strong>ROI target:</strong> With a $299/month Team plan and $21,600 in marketing spend over 6 months, you need 12 Team customers to break even on marketing. With the organic + outbound strategy above, this is achievable by Month 4&ndash;5.
+    </blockquote>
+
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; Marketing Playbook &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

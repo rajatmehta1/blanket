@@ -1,0 +1,38 @@
+# BlanketAudit configuration file
+# Copy to audit.yaml and adjust for your project.
+
+scan:
+  repos:
+    - url: github.com/org/api-service
+      branch: main
+    - url: github.com/org/payment-service
+      branch: main
+  paths: []  # Empty = scan all. For monorepos: [services/payments/, libs/crypto/]
+
+frameworks: [hipaa, soc2]
+domain: healthcare
+
+agents:
+  security: {enabled: true}
+  compliance: {enabled: true}
+  architecture: {enabled: true}
+  quality: {enabled: true}
+
+llm:
+  provider: anthropic  # or openai, ollama, groq, google, azure, none
+  model: ""  # Empty = auto per provider
+  compliance_model: ""  # Override: use higher model for compliance
+
+cost:
+  max_scan_cost_usd: 15.00
+  require_dry_run: false
+  per_agent_token_budget: 500000
+
+output:
+  formats: [pdf, json]
+  path: ./audit-report
+  min_severity: low
+
+cache:
+  enabled: true
+  ttl_hours: 24

@@ -1,0 +1,27 @@
+id: SEC-002
+name: SQL Injection via String Concatenation
+category: security
+severity: critical
+description: Detects string concatenation used to build SQL queries with user input.
+frameworks: [hipaa, soc2, pci-dss, gdpr]
+
+static_checks:
+  - tool: regex
+    regex: "(?:execute|query|cursor\\.execute)\\s*\\(\\s*[\"'](SELECT|INSERT|UPDATE|DELETE)\\b.*[\"']\\s*\\+"
+  - tool: semgrep
+    rule: python.lang.security.audit.string-concat-in-sql-query
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential SQL injection via string concatenation. Consider:
+    - Is the concatenated value from user input or a trusted source?
+    - Are there any input validation or escaping steps upstream?
+    - Is this code reachable from an HTTP endpoint?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Replace string concatenation with parameterized queries.
+  Use query placeholders (%s, ?, :param) instead of string building.
+effort_hours: 2

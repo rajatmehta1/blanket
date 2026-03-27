@@ -1,0 +1,39 @@
+<!-- Section 8: Remediation roadmap -->
+<div class="section">
+  <h2><span class="accent">08</span> Remediation Roadmap</h2>
+
+  {% for phase in report.remediation_phases | default([]) %}
+  <div class="card" style="page-break-inside: avoid;">
+    <h3 style="margin-top: 0;">{{ phase.title }}</h3>
+    <div class="mono small muted" style="margin-bottom: 10px;">{{ phase.date_range | default('') }}</div>
+
+    <table>
+      <tr>
+        <th>Task</th>
+        <th style="width: 60px;">Effort</th>
+        <th style="width: 70px;">Finding</th>
+        <th style="width: 60px;">Impact</th>
+      </tr>
+      {% for item in phase['items'] | default([]) %}
+      <tr>
+        <td>{{ item.task }}</td>
+        <td class="mono">{{ item.effort | default('--') }}</td>
+        <td class="mono">{{ item.finding_id | default('') }}</td>
+        <td class="mono accent">{{ item.score_impact | default('') }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <div style="margin-top: 10px; text-align: right;">
+      <span class="mono small muted">Total effort: {{ phase.total_effort | default('--') }}</span>
+      {% if phase.score_target | default('') %}
+      <span class="mono small" style="margin-left: 16px; color: #6C5CE7;">Score: {{ phase.score_target }}</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not report.remediation_phases | default([]) %}
+  <p class="muted">No remediation phases generated.</p>
+  {% endif %}
+</div>

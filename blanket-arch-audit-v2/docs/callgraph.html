@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Graph &amp; AST Explained &mdash; BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .graph-box { background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.5rem; margin: 1rem 0 1.5rem; font-family: var(--mono); font-size: 0.85rem;
+      line-height: 1.6; overflow-x: auto; }
+    .graph-box .node { color: var(--blue); }
+    .graph-box .edge { color: var(--text-muted); }
+    .graph-box .vuln { color: var(--red); }
+    .graph-box .entry { color: var(--green); }
+    .entity-table td:first-child { font-weight: 600; color: var(--accent); white-space: nowrap; }
+    .collection-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.2rem 1.5rem; margin-bottom: 1rem; }
+    .collection-card h4 { color: var(--accent); margin-bottom: 0.5rem; font-size: 1rem; }
+    .step-num { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center;
+      background: var(--accent-dim); color: var(--accent); border-radius: 50%; font-family: var(--mono);
+      font-size: 0.8rem; font-weight: 700; margin-right: 0.5rem; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0 1.5rem; }
+    @media (max-width: 768px) { .compare-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <nav class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="prompts.html">LLM Prompts</a>
+      <a href="callgraph.html" class="active">Call Graph</a>
+      <a href="samples.html">Sample Reports</a>
+    </nav>
+
+    <h1>Call Graph &amp; AST Explained <span class="badge badge-blue">Deep Dive</span></h1>
+    <p class="text-muted">
+      How BlanketAudit uses Tree-sitter parsing, file-level dependency graphs, and
+      method-level call graphs to power blast radius analysis, taint tracking, and
+      cross-repo vulnerability detection.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- WHAT IS A CALL GRAPH                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="what-is-callgraph">What is a Call Graph?</h2>
+
+    <p>
+      A <strong>call graph</strong> is a directed graph where each node represents a
+      function or method, and each edge represents a call from one function to another.
+      If function <code>A()</code> calls function <code>B()</code>, there is an edge
+      <code>A &rarr; B</code>. Call graphs answer the question:
+      <em>"If a vulnerability exists in function X, which entry points can reach it?"</em>
+    </p>
+
+    <blockquote>
+      Call graphs are the backbone of security analysis. Without them, you can find
+      a vulnerability but cannot measure its real-world impact. With them, you know
+      exactly how many API endpoints, users, and daily requests flow through the
+      vulnerable code.
+    </blockquote>
+
+    <h3 id="dep-vs-call">File-Level Dependency Graph vs. Method-Level Call Graph</h3>
+
+    <p>
+      BlanketAudit builds <strong>two separate graphs</strong> at different stages of
+      the pipeline. They serve different purposes and are constructed differently:
+    </p>
+
+    <div class="compare-grid">
+      <div class="card">
+        <h3><span class="badge badge-yellow">File-Level</span> Dependency Graph</h3>
+        <p><strong>Built in:</strong> Tier 2 (Ingestion)</p>
+        <p><strong>Construction:</strong> Parse <code>import</code> / <code>require</code> / <code>from</code> statements. No deep AST walk needed.</p>
+        <p><strong>Storage:</strong> NetworkX DiGraph in memory</p>
+        <p><strong>Answers:</strong> "Which files are related?"</p>
+        <p><strong>Used by:</strong></p>
+        <ul>
+          <li>Triage scorer (import count = importance)</li>
+          <li>Incremental scanner (reverse-dependency closure)</li>
+          <li>Architecture agent (coupling, layer violations)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-purple">Method-Level</span> Call Graph</h3>
+        <p><strong>Built in:</strong> Tier 2.5 (Entity Extraction)</p>
+        <p><strong>Construction:</strong> Full AST walk + symbol resolution + cross-file import mapping.</p>
+        <p><strong>Storage:</strong> Neo4j as <code>(:Method)-[:CALLS_DIRECTLY]-&gt;(:Method)</code></p>
+        <p><strong>Answers:</strong> "Which methods call which methods?"</p>
+        <p><strong>Used by:</strong></p>
+        <ul>
+          <li>Security agent (blast radius, taint paths)</li>
+          <li>Architecture agent (method coupling, dead code)</li>
+          <li>Scoring (blast radius multiplier on findings)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Why Both?</h3>
+    <p>
+      The dependency graph is <strong>fast</strong> (built during ingestion from import
+      statements alone) and is used for quick triage decisions. The call graph is
+      <strong>expensive</strong> (requires full AST walking with symbol resolution) but
+      gives precise method-to-method edges needed for blast radius computation and
+      taint tracking. They are complementary, not redundant.
+    </p>
+
+    <h3>Why It Matters for Security</h3>
+    <ul>
+      <li><strong>Blast radius:</strong> Given a vulnerability at <code>db.query()</code>, reverse-BFS through the call graph finds every entry point that can trigger it, how many repos are affected, and estimated daily invocations.</li>
+      <li><strong>Taint paths:</strong> Track untrusted user input from an HTTP parameter through method calls to a dangerous sink (SQL query, file write, shell exec). Each step in the chain is a <code>CallChainStep</code>.</li>
+      <li><strong>Dead code:</strong> Methods with zero incoming edges in the call graph are unreachable. BlanketAudit reports these as dead code with total line counts.</li>
+      <li><strong>Single points of failure:</strong> Methods on critical paths (entry point &rarr; data store) with no fallback or redundancy are flagged as SPOFs.</li>
+    </ul>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SAMPLE AST OUTPUT                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="ast-output">Sample AST Output</h2>
+
+    <p>
+      BlanketAudit uses <strong>Tree-sitter</strong> to parse source files into ASTs,
+      then walks the AST to extract structured entities. Here is a Python file and the
+      entities BlanketAudit extracts from it:
+    </p>
+
+    <h3>Input File: <code>patient_service.py</code></h3>
+<pre><code><span class="kw">class</span> <span class="fn">PatientService</span>:
+    <span class="kw">def</span> <span class="fn">search</span>(self, query: <span class="fn">str</span>) -> <span class="fn">list</span>:
+        <span class="kw">return</span> self.db.<span class="fn">execute</span>(<span class="vulnerable">f"SELECT * FROM patients WHERE name='{query}'"</span>)
+
+    <span class="kw">def</span> <span class="fn">get_by_id</span>(self, patient_id: <span class="fn">int</span>) -> <span class="fn">dict</span>:
+        <span class="kw">return</span> self.db.<span class="fn">execute</span>(<span class="str">"SELECT * FROM patients WHERE id = ?"</span>, (patient_id,))</code></pre>
+
+    <h3>Extracted Entities</h3>
+
+    <table class="entity-table">
+      <thead>
+        <tr><th>Entity Type</th><th>Field</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="4">ClassInfo</td>
+          <td>name</td>
+          <td><code>PatientService</code></td>
+        </tr>
+        <tr><td>methods</td><td><code>[search, get_by_id]</code></td></tr>
+        <tr><td>line_start</td><td><code>1</code></td></tr>
+        <tr><td>line_end</td><td><code>7</code></td></tr>
+
+        <tr>
+          <td rowspan="5">MethodInfo (search)</td>
+          <td>name</td>
+          <td><code>search</code></td>
+        </tr>
+        <tr><td>qualified_name</td><td><code>PatientService.search</code></td></tr>
+        <tr><td>complexity</td><td><code>1</code></td></tr>
+        <tr><td>parameters</td><td><code>[self, query: str]</code></td></tr>
+        <tr><td>return_type</td><td><code>list</code></td></tr>
+
+        <tr>
+          <td rowspan="5">MethodInfo (get_by_id)</td>
+          <td>name</td>
+          <td><code>get_by_id</code></td>
+        </tr>
+        <tr><td>qualified_name</td><td><code>PatientService.get_by_id</code></td></tr>
+        <tr><td>complexity</td><td><code>1</code></td></tr>
+        <tr><td>parameters</td><td><code>[self, patient_id: int]</code></td></tr>
+        <tr><td>return_type</td><td><code>dict</code></td></tr>
+
+        <tr>
+          <td rowspan="4">CallInfo</td>
+          <td>caller</td>
+          <td><code>PatientService.search</code></td>
+        </tr>
+        <tr><td>callee</td><td><code>self.db.execute</code></td></tr>
+        <tr><td>call_type</td><td><code>method</code></td></tr>
+        <tr><td>line</td><td><code>3</code></td></tr>
+
+        <tr>
+          <td rowspan="4">CallInfo</td>
+          <td>caller</td>
+          <td><code>PatientService.get_by_id</code></td>
+        </tr>
+        <tr><td>callee</td><td><code>self.db.execute</code></td></tr>
+        <tr><td>call_type</td><td><code>method</code></td></tr>
+        <tr><td>line</td><td><code>6</code></td></tr>
+
+        <tr>
+          <td>ImportInfo</td>
+          <td colspan="2"><em>(none in this file)</em></td>
+        </tr>
+
+        <tr>
+          <td>EntryPointInfo</td>
+          <td colspan="2"><em>(none &mdash; would need <code>@app.route</code> decorator)</em></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="text-muted">
+      Tree-sitter supports Python, TypeScript/JS, Java, Go, Rust, and C#. Each language
+      has a dedicated extractor in <code>codeaudit/ingestion/extractors/</code> that knows
+      the AST node types for that language's classes, methods, calls, and imports.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SAMPLE CALL GRAPH                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="sample-callgraph">Sample Call Graph</h2>
+
+    <p>
+      Given a multi-file project, BlanketAudit resolves cross-file calls using the
+      symbol table and import map to build a complete method-level call graph.
+      Consider these four files:
+    </p>
+
+<pre><code><span class="comment"># routes.py</span>
+<span class="kw">from</span> services <span class="kw">import</span> PatientService
+
+<span class="kw">@app.get</span>(<span class="str">"/api/patients/search"</span>)
+<span class="kw">def</span> <span class="fn">get_patient_endpoint</span>(query: <span class="fn">str</span>):
+    <span class="kw">return</span> PatientService().<span class="fn">search</span>(query)
+
+<span class="comment"># services.py</span>
+<span class="kw">from</span> repositories <span class="kw">import</span> PatientRepo
+
+<span class="kw">class</span> <span class="fn">PatientService</span>:
+    <span class="kw">def</span> <span class="fn">search</span>(self, query: <span class="fn">str</span>):
+        <span class="kw">return</span> PatientRepo().<span class="fn">execute</span>(query)
+
+<span class="comment"># repositories.py</span>
+<span class="kw">from</span> db <span class="kw">import</span> Database
+
+<span class="kw">class</span> <span class="fn">PatientRepo</span>:
+    <span class="kw">def</span> <span class="fn">execute</span>(self, query: <span class="fn">str</span>):
+        <span class="kw">return</span> Database().<span class="fn">query</span>(<span class="vulnerable">f"SELECT * FROM patients WHERE name='{query}'"</span>)
+
+<span class="comment"># db.py</span>
+<span class="kw">class</span> <span class="fn">Database</span>:
+    <span class="kw">def</span> <span class="fn">query</span>(self, sql: <span class="fn">str</span>):
+        <span class="kw">return</span> self.conn.<span class="fn">execute</span>(sql)</code></pre>
+
+    <h3>ASCII Call Graph</h3>
+
+    <div class="graph-box">
+<span class="entry">GET /api/patients/search</span>
+<span class="edge">  |</span>
+<span class="edge">  v</span>
+<span class="node">routes.py :: get_patient_endpoint(query)</span>
+<span class="edge">  |</span>
+<span class="edge">  v</span>
+<span class="node">services.py :: PatientService.search(query)</span>
+<span class="edge">  |</span>
+<span class="edge">  v</span>
+<span class="node">repositories.py :: PatientRepo.execute(query)</span>
+<span class="edge">  |</span>
+<span class="edge">  v</span>
+<span class="vuln">db.py :: Database.query(sql)  [SINK: SQL INJECTION]</span>
+    </div>
+
+    <h3>Call Graph Data Structure</h3>
+    <p>Internally, this is stored as an adjacency list / edge list:</p>
+
+<pre><code><span class="comment"># Edge list representation</span>
+edges = [
+    (<span class="str">"routes::get_patient_endpoint"</span>, <span class="str">"services::PatientService.search"</span>),
+    (<span class="str">"services::PatientService.search"</span>, <span class="str">"repositories::PatientRepo.execute"</span>),
+    (<span class="str">"repositories::PatientRepo.execute"</span>, <span class="str">"db::Database.query"</span>),
+]
+
+<span class="comment"># Adjacency list representation</span>
+adjacency = {
+    <span class="str">"routes::get_patient_endpoint"</span>: [<span class="str">"services::PatientService.search"</span>],
+    <span class="str">"services::PatientService.search"</span>: [<span class="str">"repositories::PatientRepo.execute"</span>],
+    <span class="str">"repositories::PatientRepo.execute"</span>: [<span class="str">"db::Database.query"</span>],
+    <span class="str">"db::Database.query"</span>: [],
+}
+
+<span class="comment"># Neo4j storage (Cypher)</span>
+<span class="kw">CREATE</span> (a:Method {name: <span class="str">"get_patient_endpoint"</span>, file: <span class="str">"routes.py"</span>, repo: <span class="str">"patient-api"</span>})
+<span class="kw">CREATE</span> (b:Method {name: <span class="str">"PatientService.search"</span>, file: <span class="str">"services.py"</span>, repo: <span class="str">"patient-api"</span>})
+<span class="kw">CREATE</span> (a)-[:CALLS_DIRECTLY {line: 5}]->(b)</code></pre>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- BLAST RADIUS                                                -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="blast-radius">Blast Radius Computation</h2>
+
+    <p>
+      When a vulnerability is found at a specific method (the <em>sink</em>), BlanketAudit
+      computes its <strong>blast radius</strong> by reverse-traversing the call graph to find
+      every entry point that can reach it. Here is the step-by-step process:
+    </p>
+
+    <p>
+      <span class="step-num">1</span>
+      <strong>Identify the sink.</strong> The vulnerable method is <code>db.py::Database.query()</code>,
+      which executes an unsanitized SQL string.
+    </p>
+
+    <p>
+      <span class="step-num">2</span>
+      <strong>Reverse BFS.</strong> Starting from <code>Database.query()</code>, follow incoming
+      edges (callers) backwards through the graph:
+    </p>
+
+    <div class="graph-box">
+<span class="vuln">Database.query()</span>          <span class="comment">&larr; SINK (start here)</span>
+<span class="edge">  ^</span>
+<span class="edge">  |</span>
+<span class="node">PatientRepo.execute()</span>     <span class="comment">&larr; depth 1</span>
+<span class="edge">  ^</span>
+<span class="edge">  |</span>
+<span class="node">PatientService.search()</span>   <span class="comment">&larr; depth 2</span>
+<span class="edge">  ^       ^</span>
+<span class="edge">  |       |</span>
+<span class="entry">GET /patients/search</span>   <span class="entry">POST /patients/bulk</span>   <span class="comment">&larr; depth 3 (entry points)</span>
+<span class="edge">  ^</span>
+<span class="edge">  |</span>
+<span class="entry">GET /reports/patient-list</span>  <span class="comment">&larr; depth 4 (cross-repo entry)</span>
+    </div>
+
+    <p>
+      <span class="step-num">3</span>
+      <strong>Count entry points.</strong> Every node in the reverse BFS that is marked as an
+      entry point (has an HTTP route / queue listener / cron trigger) contributes to the count.
+    </p>
+
+    <p>
+      <span class="step-num">4</span>
+      <strong>Count repos.</strong> Check the <code>repo</code> field on each traversed node.
+      If the BFS crosses into a different repository (via a cross-repo edge), increment
+      <code>repos_affected</code>.
+    </p>
+
+    <p>
+      <span class="step-num">5</span>
+      <strong>Estimate daily calls.</strong> Sum the estimated request rates of each entry
+      point. This is derived from HTTP access logs (if available) or heuristic estimates
+      based on route type.
+    </p>
+
+    <h3>BlastRadius Output</h3>
+
+<pre><code><span class="fn">BlastRadius</span>(
+    entry_points=<span class="str">3</span>,           <span class="comment"># 3 HTTP endpoints reach this sink</span>
+    repos_affected=<span class="str">2</span>,         <span class="comment"># patient-api + reporting-service</span>
+    daily_calls=<span class="str">"~5,000"</span>,      <span class="comment"># Combined traffic to these endpoints</span>
+    affected_users=<span class="str">"All patients with search access"</span>
+)</code></pre>
+
+    <blockquote>
+      The blast radius is attached to every finding in the report and is used as a
+      <strong>score multiplier</strong>. A SQL injection reachable from 1 internal-only
+      endpoint scores much lower than the same vulnerability reachable from 8
+      public-facing endpoints across 3 repos.
+    </blockquote>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- CALL CHAIN TRACING                                          -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="call-chain">Call Chain Tracing</h2>
+
+    <p>
+      A <strong>call chain</strong> is the specific path from an entry point down to
+      the vulnerability. It is built by selecting the most relevant forward path from
+      each entry point to the sink. Each step is a <code>CallChainStep</code> with a
+      <code>step_type</code> that determines how it is rendered in the report:
+    </p>
+
+<pre><code>[
+    <span class="fn">CallChainStep</span>(
+        method=<span class="str">"GET /api/patients/search"</span>,
+        step_type=<span class="str">"entry"</span>,            <span class="comment"># HTTP endpoint (green in report)</span>
+        repo=<span class="str">"patient-api"</span>
+    ),
+    <span class="fn">CallChainStep</span>(
+        method=<span class="str">"PatientService.search(query)"</span>,
+        step_type=<span class="str">"method"</span>,           <span class="comment"># Internal method call (blue)</span>
+        repo=<span class="str">"patient-api"</span>
+    ),
+    <span class="fn">CallChainStep</span>(
+        method=<span class="str">"PatientRepo.execute(query)"</span>,
+        step_type=<span class="str">"taint"</span>,            <span class="comment"># Tainted data flows through (orange)</span>
+        repo=<span class="str">"patient-api"</span>
+    ),
+    <span class="fn">CallChainStep</span>(
+        method=<span class="str">"db.execute(f'SELECT * FROM patients WHERE name={query}')"</span>,
+        step_type=<span class="str">"sink"</span>,             <span class="comment"># Vulnerable sink (red in report)</span>
+        repo=<span class="str">"patient-api"</span>
+    ),
+]</code></pre>
+
+    <h3>Step Types</h3>
+    <table>
+      <thead>
+        <tr><th>step_type</th><th>Meaning</th><th>Report Color</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>entry</code></td><td>HTTP route, queue listener, cron trigger</td><td><span class="badge badge-green">green</span></td></tr>
+        <tr><td><code>method</code></td><td>Normal internal method call</td><td><span class="badge badge-blue">blue</span></td></tr>
+        <tr><td><code>cross_repo</code></td><td>Call crosses repository boundary (HTTP/gRPC)</td><td><span class="badge badge-purple">purple</span></td></tr>
+        <tr><td><code>taint</code></td><td>Untrusted data flows through this method</td><td><span class="badge badge-yellow">orange</span></td></tr>
+        <tr><td><code>sink</code></td><td>Dangerous operation (SQL exec, file write, shell)</td><td><span class="badge badge-red">red</span></td></tr>
+        <tr><td><code>external</code></td><td>Call to external service / third-party API</td><td><span style="color:var(--text-muted)">gray</span></td></tr>
+        <tr><td><code>propagation</code></td><td>Data transformation that preserves taint</td><td><span class="badge badge-yellow">yellow</span></td></tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- CROSS-REPO MATCHING                                         -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="cross-repo">Cross-Repo Matching</h2>
+
+    <p>
+      When scanning multiple repositories, BlanketAudit detects HTTP client calls in
+      one repo that correspond to endpoint handlers in another repo. This creates
+      <code>cross_repo</code> edges in the call graph, enabling blast radius analysis
+      that spans service boundaries.
+    </p>
+
+    <h3>How It Works</h3>
+
+    <p>
+      <span class="step-num">1</span>
+      <strong>Extract HTTP clients.</strong> Find all outbound HTTP calls:
+    </p>
+<pre><code><span class="comment"># In patient-api/services/claim_service.py</span>
+response = requests.<span class="fn">post</span>(
+    <span class="str">"http://payment-engine/api/payments/charge"</span>,
+    json={<span class="str">"amount"</span>: claim.total, <span class="str">"patient_id"</span>: claim.patient_id}
+)</code></pre>
+
+    <p>
+      <span class="step-num">2</span>
+      <strong>Extract HTTP handlers.</strong> Find all endpoint definitions:
+    </p>
+<pre><code><span class="comment">// In payment-engine/src/main/java/PaymentController.java</span>
+<span class="kw">@PostMapping</span>(<span class="str">"/api/payments/charge"</span>)
+<span class="kw">public</span> ResponseEntity&lt;PaymentResult&gt; <span class="fn">charge</span>(<span class="kw">@RequestBody</span> ChargeRequest req) {
+    <span class="kw">return</span> paymentService.<span class="fn">processCharge</span>(req);
+}</code></pre>
+
+    <p>
+      <span class="step-num">3</span>
+      <strong>Normalize and match paths.</strong> Path parameters are normalized to a
+      canonical form for matching:
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Framework Syntax</th><th>Example</th><th>Normalized</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>FastAPI / Spring</td><td><code>/api/patients/{id}</code></td><td><code>/api/patients/{param}</code></td></tr>
+        <tr><td>Express.js</td><td><code>/api/patients/:id</code></td><td><code>/api/patients/{param}</code></td></tr>
+        <tr><td>Go (gorilla/mux)</td><td><code>/api/patients/{id:[0-9]+}</code></td><td><code>/api/patients/{param}</code></td></tr>
+        <tr><td>Client call</td><td><code>/api/patients/123</code></td><td><code>/api/patients/{param}</code></td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      <span class="step-num">4</span>
+      <strong>Create cross-repo edges.</strong> When a client call's normalized path +
+      HTTP method matches a handler's normalized path + HTTP method, a
+      <code>CrossRepoEdge</code> is created:
+    </p>
+
+<pre><code><span class="fn">CrossRepoEdge</span>(
+    from_method=<span class="str">"patient-api::ClaimService.submit_claim()"</span>,
+    to_method=<span class="str">"payment-engine::PaymentController.charge()"</span>,
+    via=<span class="str">"POST /api/payments/charge"</span>
+)</code></pre>
+
+    <p>
+      These edges allow the blast radius of a vulnerability in
+      <code>payment-engine</code> to include entry points in <code>patient-api</code>,
+      and vice versa. The call graph becomes a unified multi-repo graph.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- VECTOR DB STORAGE                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="vector-db">Sample Vector DB Storage</h2>
+
+    <p>
+      BlanketAudit uses <strong>Milvus</strong> as a vector database for three purposes:
+      semantic code search, compliance clause retrieval (RAG), and vulnerability pattern
+      matching. Each purpose uses a separate collection with its own schema.
+    </p>
+
+    <div class="collection-card">
+      <h4>Collection 1: <code>code_chunks</code></h4>
+      <p>Code snippets embedded for semantic search. Used by agents to find similar patterns across the codebase.</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>int64 (PK)</td><td><code>4821</code></td></tr>
+          <tr><td><code>repo</code></td><td>varchar</td><td><code>"patient-api"</code></td></tr>
+          <tr><td><code>file_path</code></td><td>varchar</td><td><code>"services/patient_service.py"</code></td></tr>
+          <tr><td><code>line_start</code></td><td>int32</td><td><code>12</code></td></tr>
+          <tr><td><code>line_end</code></td><td>int32</td><td><code>28</code></td></tr>
+          <tr><td><code>language</code></td><td>varchar</td><td><code>"python"</code></td></tr>
+          <tr><td><code>chunk_text</code></td><td>varchar</td><td><code>"def search(self, query: str)..."</code></td></tr>
+          <tr><td><code>embedding</code></td><td>float_vector[1536]</td><td><code>[0.0123, -0.0456, ...]</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="collection-card">
+      <h4>Collection 2: <code>compliance_clauses</code></h4>
+      <p>Regulatory text embedded for RAG. When the compliance agent analyzes a finding, it retrieves the most relevant clauses.</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>int64 (PK)</td><td><code>101</code></td></tr>
+          <tr><td><code>framework</code></td><td>varchar</td><td><code>"HIPAA"</code></td></tr>
+          <tr><td><code>clause</code></td><td>varchar</td><td><code>"&sect;164.312(a)(1)"</code></td></tr>
+          <tr><td><code>title</code></td><td>varchar</td><td><code>"Access Control"</code></td></tr>
+          <tr><td><code>full_text</code></td><td>varchar</td><td><code>"Implement technical policies and procedures for electronic information systems that maintain ePHI to allow access only to authorized persons..."</code></td></tr>
+          <tr><td><code>embedding</code></td><td>float_vector[1536]</td><td><code>[-0.0234, 0.0567, ...]</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="collection-card">
+      <h4>Collection 3: <code>vuln_patterns</code></h4>
+      <p>Known vulnerability patterns embedded for similarity matching. Used to find code that resembles known vulnerability classes.</p>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>id</code></td><td>int64 (PK)</td><td><code>42</code></td></tr>
+          <tr><td><code>vuln_class</code></td><td>varchar</td><td><code>"sql_injection"</code></td></tr>
+          <tr><td><code>pattern_desc</code></td><td>varchar</td><td><code>"SQL injection via f-string interpolation in Python"</code></td></tr>
+          <tr><td><code>example_code</code></td><td>varchar</td><td><code>"db.execute(f\"SELECT * FROM {table} WHERE id={user_input}\")"</code></td></tr>
+          <tr><td><code>severity</code></td><td>varchar</td><td><code>"critical"</code></td></tr>
+          <tr><td><code>embedding</code></td><td>float_vector[1536]</td><td><code>[0.0789, -0.0321, ...]</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>How Search Works</h3>
+
+    <p>
+      When an agent needs to find relevant information, it embeds the query and performs
+      an approximate nearest neighbor (ANN) search:
+    </p>
+
+<pre><code><span class="comment"># Compliance agent: find clauses relevant to "logging patient SSN"</span>
+query = <span class="str">"logging personally identifiable health information in plaintext"</span>
+query_embedding = <span class="fn">get_embeddings</span>().<span class="fn">embed_query</span>(query)
+
+results = milvus_client.<span class="fn">search</span>(
+    collection_name=<span class="str">"compliance_clauses"</span>,
+    data=[query_embedding],
+    limit=<span class="str">5</span>,
+    output_fields=[<span class="str">"framework"</span>, <span class="str">"clause"</span>, <span class="str">"title"</span>, <span class="str">"full_text"</span>]
+)
+
+<span class="comment"># Returns (ranked by cosine similarity):</span>
+<span class="comment"># 1. HIPAA &sect;164.312(a)(1) — Access Control (0.92)</span>
+<span class="comment"># 2. HIPAA &sect;164.530(c) — Administrative Safeguards (0.87)</span>
+<span class="comment"># 3. SOC2 CC6.1 — Logical Access Controls (0.84)</span>
+<span class="comment"># 4. GDPR Art. 32 — Security of Processing (0.81)</span>
+<span class="comment"># 5. PCI-DSS Req 3.4 — Render PAN Unreadable (0.78)</span></code></pre>
+
+    <p>
+      The retrieved clauses are injected into the agent's prompt as context, enabling
+      the LLM to make accurate compliance mappings grounded in the actual regulatory text
+      rather than relying on its training data alone.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- FOOTER                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; AI-Powered Architecture Governance &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

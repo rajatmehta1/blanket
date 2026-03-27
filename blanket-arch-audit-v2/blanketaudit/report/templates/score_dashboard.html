@@ -1,0 +1,32 @@
+<!-- Section 3: Score dashboard -->
+<div class="section">
+  <h2><span class="accent">03</span> Score Dashboard</h2>
+
+  <div style="text-align: center; margin: 20px 0 30px 0;">
+    {{ svg.score_gauge(report.health_score.overall, 180, "Overall Health") }}
+  </div>
+
+  <h3>Category Scores</h3>
+  <div style="margin: 10px 0;">
+    {{ svg.category_bars(report.health_score.categories | default([])) }}
+  </div>
+
+  <!-- Severity summary -->
+  {% if report.health_score.severity_counts %}
+  <h3>Finding Distribution</h3>
+  <table style="width: 60%;">
+    <tr>
+      <th>Severity</th>
+      <th>Count</th>
+    </tr>
+    {% for sev in ['critical', 'high', 'medium', 'low'] %}
+    {% if report.health_score.severity_counts.get(sev, 0) > 0 %}
+    <tr>
+      <td><span class="badge severity-{{ sev }}">{{ sev }}</span></td>
+      <td class="mono">{{ report.health_score.severity_counts[sev] }}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </table>
+  {% endif %}
+</div>

@@ -1,0 +1,27 @@
+id: SEC-017
+name: Debug Mode Enabled in Production
+category: security
+severity: medium
+description: Detects DEBUG=True or verbose error pages that may leak sensitive information.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:DEBUG\s*=\s*True|app\.debug\s*=\s*True|app\.run\s*\(.*debug\s*=\s*True)'
+  - tool: semgrep
+    rule: python.django.security.audit.debug-enabled
+
+ai_analysis:
+  prompt_template: |
+    Analyze this debug mode configuration. Consider:
+    - Is this in a settings file used in production or only development?
+    - Is DEBUG toggled via environment variable at deployment time?
+    - Could debug mode expose stack traces or secrets to end users?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Set DEBUG from an environment variable: DEBUG = os.environ.get("DEBUG", "False") == "True".
+  Ensure production deployments always set DEBUG=False.
+effort_hours: 1

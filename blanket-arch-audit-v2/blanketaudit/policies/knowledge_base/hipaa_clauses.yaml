@@ -1,0 +1,306 @@
+# HIPAA Security Rule & Privacy Rule - Clauses Relevant to Code Audits
+# Regulatory text is paraphrased from 45 CFR Parts 160, 162, and 164
+# Source: U.S. Department of Health and Human Services
+
+clauses:
+  - id: "HIPAA-164.312-a-1"
+    framework: "HIPAA"
+    clause: "§164.312(a)(1)"
+    title: "Access Control"
+    text: >
+      Implement technical policies and procedures for electronic information
+      systems that maintain electronic protected health information (ePHI) to
+      allow access only to those persons or software programs that have been
+      granted access rights as specified in §164.308(a)(4).
+    technical_requirements:
+      - Authentication required on all endpoints accessing ePHI
+      - Role-based access control (RBAC) enforced at application layer
+      - Session management with configurable timeout
+      - Unique user identification per §164.312(a)(2)(i)
+      - Default-deny access policy for ePHI resources
+    code_indicators:
+      - "authentication middleware on patient/PHI endpoints"
+      - "RBAC or permission checks before ePHI access"
+      - "session timeout configuration"
+      - "@login_required or @authenticated decorator on PHI routes"
+      - "403/401 response for unauthorized ePHI access"
+
+  - id: "HIPAA-164.312-a-2-i"
+    framework: "HIPAA"
+    clause: "§164.312(a)(2)(i)"
+    title: "Unique User Identification"
+    text: >
+      Assign a unique name and/or number for identifying and tracking
+      user identity. Each workforce member who accesses ePHI must be
+      uniquely identifiable so that their actions can be attributed
+      and audited.
+    technical_requirements:
+      - Each user has a unique identifier in the system
+      - No shared accounts or generic credentials for ePHI access
+      - User identity tracked and recorded in audit logs
+      - Service accounts uniquely identified for system-to-system access
+    code_indicators:
+      - "unique user ID in authentication tokens"
+      - "no shared credentials or generic accounts"
+      - "user_id field in audit log entries"
+      - "service account identification in API calls"
+
+  - id: "HIPAA-164.312-a-2-ii"
+    framework: "HIPAA"
+    clause: "§164.312(a)(2)(ii)"
+    title: "Emergency Access Procedure"
+    text: >
+      Establish and implement as needed procedures for obtaining necessary
+      electronic protected health information during an emergency. Systems
+      must provide a mechanism for authorized access to ePHI when normal
+      access controls may be unavailable.
+    technical_requirements:
+      - Break-glass access mechanism for emergency situations
+      - Emergency access logged with enhanced audit detail
+      - Post-emergency access review procedures
+      - Time-limited emergency credentials
+    code_indicators:
+      - "break-glass or emergency access endpoint"
+      - "emergency access audit logging"
+      - "elevated privilege with time limit"
+      - "emergency override flag with mandatory justification"
+
+  - id: "HIPAA-164.312-a-2-iii"
+    framework: "HIPAA"
+    clause: "§164.312(a)(2)(iii)"
+    title: "Automatic Logoff"
+    text: >
+      Implement electronic procedures that terminate an electronic session
+      after a predetermined time of inactivity. This safeguard prevents
+      unauthorized users from accessing ePHI on an unattended workstation
+      or device.
+    technical_requirements:
+      - Session timeout after configurable inactivity period
+      - Token expiration with maximum lifetime
+      - Idle session detection and termination
+      - Re-authentication required after timeout
+    code_indicators:
+      - "session timeout configuration"
+      - "token expiration settings (exp claim in JWT)"
+      - "idle timeout middleware"
+      - "SESSION_TIMEOUT or TOKEN_LIFETIME constant"
+
+  - id: "HIPAA-164.312-a-2-iv"
+    framework: "HIPAA"
+    clause: "§164.312(a)(2)(iv)"
+    title: "Encryption and Decryption"
+    text: >
+      Implement a mechanism to encrypt and decrypt electronic protected
+      health information. This addressable specification requires covered
+      entities to assess whether encryption is reasonable and appropriate
+      to protect ePHI at rest.
+    technical_requirements:
+      - ePHI encrypted at rest using AES-256 or equivalent
+      - Encryption key management with rotation schedule
+      - Database-level or field-level encryption for PHI columns
+      - Encrypted backups of ePHI data
+    code_indicators:
+      - "AES encryption on PHI storage"
+      - "encryption key rotation configuration"
+      - "encrypted database columns for PHI"
+      - "Fernet, AES-GCM, or equivalent cipher usage"
+
+  - id: "HIPAA-164.312-b"
+    framework: "HIPAA"
+    clause: "§164.312(b)"
+    title: "Audit Controls"
+    text: >
+      Implement hardware, software, and/or procedural mechanisms that record
+      and examine activity in information systems that contain or use
+      electronic protected health information. Audit controls provide the
+      means to associate system activity with specific users.
+    technical_requirements:
+      - Audit logging on all ePHI create, read, update, delete operations
+      - Log tamper protection (append-only or cryptographic chaining)
+      - Log retention period compliant with organizational policy
+      - Logs must include user identity, timestamp, action, and resource
+    code_indicators:
+      - "audit log on patient data access"
+      - "immutable or append-only log storage"
+      - "structured audit event with user_id, action, resource, timestamp"
+      - "audit trail middleware on PHI endpoints"
+
+  - id: "HIPAA-164.312-c-1"
+    framework: "HIPAA"
+    clause: "§164.312(c)(1)"
+    title: "Integrity Controls"
+    text: >
+      Implement policies and procedures to protect electronic protected
+      health information from improper alteration or destruction. Technical
+      mechanisms must be in place to ensure ePHI has not been altered or
+      destroyed in an unauthorized manner.
+    technical_requirements:
+      - Data integrity checks (checksums, hashes) on ePHI records
+      - Input validation on all PHI data entry points
+      - Database constraints preventing invalid PHI states
+      - Version history or change tracking on PHI records
+    code_indicators:
+      - "input validation on PHI fields"
+      - "checksums or hashes on ePHI records"
+      - "database constraints (NOT NULL, CHECK, FOREIGN KEY) on PHI tables"
+      - "optimistic locking or versioning on patient records"
+
+  - id: "HIPAA-164.312-c-2"
+    framework: "HIPAA"
+    clause: "§164.312(c)(2)"
+    title: "Mechanism to Authenticate ePHI"
+    text: >
+      Implement electronic mechanisms to corroborate that electronic
+      protected health information has not been altered or destroyed in
+      an unauthorized manner. This addressable specification supports
+      data integrity verification.
+    technical_requirements:
+      - Digital signatures or HMAC on critical ePHI records
+      - Integrity verification on data retrieval
+      - Tamper detection on stored ePHI
+    code_indicators:
+      - "HMAC or digital signature on PHI records"
+      - "integrity check on data retrieval"
+      - "hash verification before processing PHI"
+
+  - id: "HIPAA-164.312-d"
+    framework: "HIPAA"
+    clause: "§164.312(d)"
+    title: "Person or Entity Authentication"
+    text: >
+      Implement procedures to verify that a person or entity seeking access
+      to electronic protected health information is the one claimed. The
+      standard requires verification of identity before granting access
+      to ePHI.
+    technical_requirements:
+      - Multi-factor authentication for ePHI access
+      - Strong password policies (length, complexity, rotation)
+      - Identity verification for password resets
+      - Certificate-based authentication for system-to-system access
+    code_indicators:
+      - "MFA implementation or enforcement"
+      - "password complexity requirements"
+      - "bcrypt, argon2, or PBKDF2 password hashing"
+      - "mutual TLS for service-to-service authentication"
+
+  - id: "HIPAA-164.312-e-1"
+    framework: "HIPAA"
+    clause: "§164.312(e)(1)"
+    title: "Transmission Security"
+    text: >
+      Implement technical security measures to guard against unauthorized
+      access to electronic protected health information that is being
+      transmitted over an electronic communications network. This standard
+      applies to all forms of electronic transmission including internet,
+      extranet, leased lines, and dial-up.
+    technical_requirements:
+      - TLS 1.2 or higher for all ePHI transmission
+      - No unencrypted HTTP for ePHI endpoints
+      - Certificate validation on all TLS connections
+      - Secure configuration of TLS (no weak ciphers)
+    code_indicators:
+      - "TLS/HTTPS enforcement on PHI routes"
+      - "certificate pinning or validation"
+      - "HSTS header configuration"
+      - "redirect HTTP to HTTPS"
+
+  - id: "HIPAA-164.312-e-2-ii"
+    framework: "HIPAA"
+    clause: "§164.312(e)(2)(ii)"
+    title: "Encryption in Transit"
+    text: >
+      Implement a mechanism to encrypt electronic protected health
+      information whenever deemed appropriate. This addressable specification
+      requires encryption of ePHI during electronic transmission when the
+      entity determines it is reasonable and appropriate.
+    technical_requirements:
+      - End-to-end encryption for PHI API communications
+      - No plaintext PHI in network transit
+      - Encrypted message queues for PHI data
+      - VPN or encrypted tunnel for cross-network PHI transfer
+    code_indicators:
+      - "HTTPS-only endpoints serving PHI"
+      - "encrypted message queue configuration"
+      - "SSL/TLS context in client connections"
+      - "no plaintext PHI in HTTP responses over non-TLS"
+
+  - id: "HIPAA-164.308-a-1-ii-D"
+    framework: "HIPAA"
+    clause: "§164.308(a)(1)(ii)(D)"
+    title: "Information System Activity Review"
+    text: >
+      Implement procedures to regularly review records of information system
+      activity, such as audit logs, access reports, and security incident
+      tracking reports. This is a required implementation specification
+      under the Security Management Process standard.
+    technical_requirements:
+      - Automated log review and analysis
+      - Anomaly detection on access patterns
+      - Security incident alerting and escalation
+      - Regular review schedule with documented process
+    code_indicators:
+      - "log monitoring or aggregation setup"
+      - "alert on anomalous access patterns"
+      - "security event correlation rules"
+      - "automated log analysis pipeline"
+
+  - id: "HIPAA-164.502-a"
+    framework: "HIPAA"
+    clause: "§164.502(a)"
+    title: "Minimum Necessary Standard"
+    text: >
+      When using or disclosing protected health information or when requesting
+      protected health information from another covered entity or business
+      associate, a covered entity or business associate must make reasonable
+      efforts to limit protected health information to the minimum necessary
+      to accomplish the intended purpose of the use, disclosure, or request.
+    technical_requirements:
+      - API responses return only the PHI fields needed for the operation
+      - No SELECT * on tables containing PHI
+      - Field-level access control on PHI attributes
+      - Data filtering at the query layer, not just the presentation layer
+    code_indicators:
+      - "specific field selection in PHI queries"
+      - "field-level permissions or projections"
+      - "DTO or serializer limiting exposed PHI fields"
+      - "column-level access control"
+
+  - id: "HIPAA-164.530-c"
+    framework: "HIPAA"
+    clause: "§164.530(c)"
+    title: "Safeguards"
+    text: >
+      A covered entity must reasonably safeguard protected health information
+      from any intentional or unintentional use or disclosure that is in
+      violation of its policies and procedures. This includes administrative,
+      technical, and physical safeguards appropriate to the size and
+      complexity of the covered entity.
+    technical_requirements:
+      - PHI not logged in plaintext in application logs
+      - PHI masked or redacted in error messages and stack traces
+      - PHI not included in URLs or query string parameters
+      - PHI not stored in browser local storage or cookies
+    code_indicators:
+      - "PHI masking or redaction in log statements"
+      - "no PHI in URL parameters or query strings"
+      - "sanitized error responses that strip PHI"
+      - "PHI scrubbing in exception handlers"
+
+  - id: "HIPAA-164.308-a-5-ii-C"
+    framework: "HIPAA"
+    clause: "§164.308(a)(5)(ii)(C)"
+    title: "Log-in Monitoring"
+    text: >
+      Procedures for monitoring log-in attempts and reporting discrepancies.
+      This addressable specification supports detection of unauthorized
+      access attempts to systems containing ePHI.
+    technical_requirements:
+      - Failed login attempt tracking and rate limiting
+      - Account lockout after configurable threshold
+      - Alerting on suspicious login patterns
+      - Login attempt logging with source IP and timestamp
+    code_indicators:
+      - "failed login counter or rate limiter"
+      - "account lockout mechanism"
+      - "login attempt audit logging"
+      - "brute force detection"

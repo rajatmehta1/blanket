@@ -1,0 +1,33 @@
+<!-- Section 1: Cover page -->
+<div class="section" style="text-align: center; padding-top: 100px;">
+  <div style="color: rgba(255,255,255,0.3); font-size: 10pt; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 10px;">Architecture Audit Report</div>
+  <h1 style="font-size: 36pt; margin: 20px 0 5px 0;">{{ report.project_name }}</h1>
+  <div style="color: rgba(255,255,255,0.5); font-size: 12pt;">{{ report.project_tagline | default('') }}</div>
+  {% if report.domain %}
+  <div style="margin-top: 6px;"><span class="chip" style="font-size: 9pt;">{{ report.domain }}</span></div>
+  {% endif %}
+
+  <div style="margin: 30px auto;">{{ svg.score_gauge(report.health_score.overall, 200) }}</div>
+  <div style="margin: 20px 0;">{{ svg.severity_badges(report.health_score.severity_counts) }}</div>
+
+  <!-- Repo chips -->
+  {% if report.repos %}
+  <div style="margin: 16px 0;">
+    {% for repo in report.repos %}
+    <span class="chip">{{ repo.name | default('repo') }}{% if repo.lang %} ({{ repo.lang }}){% endif %}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Scan metadata -->
+  <table style="width: 56%; margin: 24px auto; text-align: left;">
+    <tr><td class="muted">Scan Date</td><td class="mono">{{ report.scan_date }}</td></tr>
+    <tr><td class="muted">Duration</td><td class="mono">{{ report.scan_duration | default('--') }}</td></tr>
+    <tr><td class="muted">Files Scanned</td><td class="mono">{{ report.total_files }}</td></tr>
+    <tr><td class="muted">Lines of Code</td><td class="mono">{{ report.total_lines }}</td></tr>
+    <tr><td class="muted">Methods Analyzed</td><td class="mono">{{ report.total_methods | default(0) }}</td></tr>
+    <tr><td class="muted">Entry Points</td><td class="mono">{{ report.entry_point_count | default(0) }}</td></tr>
+    <tr><td class="muted">Cross-Repo Edges</td><td class="mono">{{ report.cross_repo_edge_count | default(0) }}</td></tr>
+    <tr><td class="muted">Max Call Depth</td><td class="mono">{{ report.max_call_depth | default(0) }}</td></tr>
+  </table>
+</div>

@@ -1,0 +1,27 @@
+id: SEC-018
+name: Server-Side Request Forgery (SSRF)
+category: security
+severity: high
+description: Detects HTTP requests made with user-controlled URLs without validation.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:requests\.(?:get|post|put|delete|head)\s*\(.*(?:request\.|params\[|input\()|urllib\.request\.urlopen\s*\(.*(?:request\.|params\[))'
+  - tool: semgrep
+    rule: python.lang.security.audit.ssrf
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential SSRF vulnerability. Consider:
+    - Is the URL derived from user input or a trusted configuration?
+    - Is there an allowlist of permitted hosts or URL schemes?
+    - Could an attacker reach internal services (169.254.169.254, localhost)?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Validate URLs against an allowlist of permitted hosts and schemes.
+  Block requests to private IP ranges (10.x, 172.16.x, 192.168.x, 169.254.x, localhost).
+effort_hours: 3

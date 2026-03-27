@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture &amp; Design &mdash; BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <nav class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html" class="active">Architecture</a>
+      <a href="prompts.html">LLM Prompts</a>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- HEADER                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h1>Architecture &amp; Design <span class="badge badge-purple">v2.0</span></h1>
+    <p class="text-muted">
+      Complete technical reference for BlanketAudit's seven-tier pipeline,
+      dual-layer analysis engine, and the design principles that govern every
+      module.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 1: SCOPE                                            -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="scope">What BlanketAudit Does</h2>
+
+    <p>
+      BlanketAudit is an <strong>AI-powered architecture governance platform</strong>.
+      It accepts one or more Git repositories&mdash;hosted on GitHub, GitLab,
+      Bitbucket, or stored locally&mdash;and produces a comprehensive audit
+      report covering security vulnerabilities, compliance posture,
+      architectural health, and code quality.
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3><span class="badge badge-red">Multi-Repo</span></h3>
+        <p>Scan multiple repositories in a single run. Cross-repo HTTP call
+        detection links microservice boundaries automatically.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-blue">6 Languages</span></h3>
+        <p>Tree-sitter AST parsing for Python, TypeScript/JS, Java, Go, Rust,
+        and C#. Infrastructure files (Dockerfile, K8s YAML, Terraform,
+        CI/CD) are also parsed.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-yellow">4 Compliance Frameworks</span></h3>
+        <p>HIPAA, SOC 2, PCI-DSS, and GDPR. Each finding is mapped to
+        specific clauses. A compliance matrix shows pass/partial/fail per
+        control.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-green">4 Output Formats</span></h3>
+        <p>PDF (dark-theme, WeasyPrint), interactive HTML, machine-readable
+        JSON, and SARIF for IDE/GitHub integration.</p>
+      </div>
+    </div>
+
+    <h3>Interfaces</h3>
+    <table>
+      <thead>
+        <tr><th>Interface</th><th>Technology</th><th>Use Case</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>CLI</code></td>
+          <td>Typer + Rich</td>
+          <td>Developer workstation, CI/CD pipelines</td>
+        </tr>
+        <tr>
+          <td><code>API</code></td>
+          <td>FastAPI (async, Pydantic v2)</td>
+          <td>Programmatic access, SaaS mode</td>
+        </tr>
+        <tr>
+          <td><code>Web</code></td>
+          <td>Next.js (optional frontend)</td>
+          <td>Non-technical stakeholders, dashboards</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>CLI Quick Start</h3>
+<pre><code><span class="comment"># Scan two repos against HIPAA + SOC2</span>
+$ blanket scan \
+    --repo https://github.com/acme/patient-api \
+    --repo https://github.com/acme/payment-engine \
+    --frameworks hipaa,soc2 \
+    --output report.pdf
+
+<span class="comment"># Dry-run: see estimated cost before spending tokens</span>
+$ blanket scan --repo ./local-project --dry-run
+
+<span class="comment"># JSON output for CI integration</span>
+$ blanket scan --repo ./app --format json --output results.json
+</code></pre>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 2: 6 IMMUTABLE DESIGN PRINCIPLES                   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="principles">6 Immutable Design Principles</h2>
+
+    <p>
+      These principles are non-negotiable. Every module, every pull request,
+      every line of code must satisfy all six. They exist to prevent the
+      failure modes that plague AI-based analysis tools: hallucinated
+      findings, runaway costs, and non-reproducible results.
+    </p>
+
+    <!-- Principle 1 -->
+    <h3>1. Dual-Layer Analysis</h3>
+    <blockquote>
+      <strong>Static scanners produce CANDIDATES. AI agents apply contextual
+      reasoning.</strong> Static ALWAYS runs first. AI NEVER runs alone.
+    </blockquote>
+    <p>
+      Every finding begins life as a candidate from a deterministic tool
+      (Semgrep, Gitleaks, OSV, AST queries). The AI layer then reasons
+      about context&mdash;is this a true positive? What compliance controls
+      does it violate? What is the blast radius? This two-phase approach
+      means the system never hallucinates findings from thin air.
+    </p>
+<pre><code><span class="comment"># The dual-layer flow inside every agent:</span>
+
+<span class="comment"># Phase 1: Static (deterministic, fast, no LLM)</span>
+semgrep_results  = run_semgrep(files, rules="p/security-audit")
+gitleaks_results = run_gitleaks(repo_path)
+osv_results      = run_osv_scanner(manifest_files)
+
+<span class="comment"># Phase 2: AI (contextual, LLM-powered, optional)</span>
+llm = get_llm_for_agent("security")
+<span class="kw">if</span> llm:
+    enriched = llm.invoke(prompt.format(
+        candidates=semgrep_results,
+        code_context=surrounding_code,
+        call_chain=graph_analyzer.trace_to_entry(file, line)
+    ))
+<span class="kw">else</span>:
+    <span class="comment"># Graceful degradation: return static-only findings</span>
+    enriched = static_fallback(semgrep_results)
+</code></pre>
+
+    <!-- Principle 2 -->
+    <h3>2. Graceful Degradation</h3>
+    <blockquote>
+      <strong>One agent failure never kills a scan.</strong> If LLM API is
+      unavailable, every agent falls back to static-only analysis.
+    </blockquote>
+    <p>
+      The system is designed for partial failure. If the Anthropic API
+      returns 503, the security agent still produces findings from Semgrep.
+      If Neo4j is down, call graph analysis is skipped but the scan
+      completes. If Milvus is unavailable, semantic search falls back to
+      keyword matching. Every external dependency has an explicit fallback
+      path.
+    </p>
+<pre><code><span class="comment"># Fallback hierarchy for each external dependency:</span>
+
+LLM Provider:
+  anthropic/openai/groq  &rarr;  ollama (local)  &rarr;  none (static-only)
+
+Knowledge Graph:
+  Neo4j                  &rarr;  in-memory networkx DiGraph
+
+Vector Database:
+  Milvus                 &rarr;  in-memory FAISS  &rarr;  keyword search
+
+Relational DB:
+  PostgreSQL             &rarr;  SQLite (CLI mode)
+
+<span class="comment"># Circuit breaker pattern:</span>
+5 failures in 60s  &rarr;  OPEN (stop calling)  &rarr;  static fallback
+After 120s         &rarr;  HALF-OPEN (try one call)
+Success            &rarr;  CLOSED (resume normal)
+</code></pre>
+
+    <!-- Principle 3 -->
+    <h3>3. Cost-Aware Execution</h3>
+    <blockquote>
+      <strong>Every scan begins with a dry-run cost estimate.</strong>
+      Token budgets are enforced per-agent with hard abort thresholds.
+    </blockquote>
+    <p>
+      Before any LLM call, the system estimates total token usage and
+      projected cost. The <code>--dry-run</code> flag shows this estimate
+      without spending any tokens. During execution, each agent has a token
+      budget (default 500K tokens). At 80% consumption, remaining files are
+      demoted to static-only. At 100%, LLM calls stop entirely.
+    </p>
+<pre><code><span class="comment"># Cost estimation output:</span>
+$ blanket scan --repo ./patient-api --dry-run
+
+  Estimated Scan Cost
+  ────────────────────────────────────────
+  Files to analyze:     247
+  Tier 1 (full AI):      38 files
+  Tier 2 (light AI):     94 files
+  Tier 3 (static only): 115 files
+
+  Token estimate:
+    Security agent:    ~120,000 tokens   $0.36
+    Compliance agent:  ~180,000 tokens   $0.54
+    Architecture:       ~85,000 tokens   $0.26
+    Quality:            ~60,000 tokens   $0.18
+    ──────────────────────────────────────
+    Total:             ~445,000 tokens   $1.34
+
+  Budget remaining: $8.66 / $10.00
+  Proceed? [Y/n]
+</code></pre>
+
+    <!-- Principle 4 -->
+    <h3>4. Reproducible Audits</h3>
+    <blockquote>
+      <strong>Every scan records a ScanManifest.</strong> Past scans can be
+      replayed deterministically.
+    </blockquote>
+    <p>
+      The ScanManifest captures every variable that could affect output:
+      policy YAML versions, prompt template hashes, LLM model IDs,
+      static tool versions, and exact repo commit SHAs. Two runs with the
+      same manifest produce identical results. This is critical for
+      compliance audits where you must prove what was scanned and when.
+    </p>
+<pre><code><span class="comment"># ScanManifest stored with every scan:</span>
+{
+  "<span class="str">scan_id</span>": "scan_20260321_143022_a7b3c",
+  "<span class="str">timestamp</span>": "2026-03-21T14:30:22Z",
+  "<span class="str">policy_versions</span>": {
+    "SEC-001": "v2.1.0",
+    "HIPAA-PHI-001": "v1.4.0"
+  },
+  "<span class="str">prompt_versions</span>": {
+    "security_system": "sha256:a3f8c1...",
+    "compliance_system": "sha256:9d2b7e..."
+  },
+  "<span class="str">model_ids</span>": {
+    "security": "claude-sonnet-4-20250514",
+    "compliance": "claude-opus-4-20250514"
+  },
+  "<span class="str">tool_versions</span>": {
+    "semgrep": "1.56.0",
+    "gitleaks": "8.18.0",
+    "osv-scanner": "1.5.0"
+  },
+  "<span class="str">repo_commits</span>": {
+    "patient-api": "a7b3c1d",
+    "payment-engine": "e4f5a2b"
+  },
+  "<span class="str">config_hash</span>": "sha256:7c4d2a..."
+}
+</code></pre>
+
+    <!-- Principle 5 -->
+    <h3>5. Hallucination Guardrails (4 Gates)</h3>
+    <blockquote>
+      <strong>4 validation gates prevent AI-generated findings from reaching
+      the report without verification.</strong> NO finding enters the report
+      without passing all 4 gates.
+    </blockquote>
+    <p>
+      This is the most critical design principle. LLMs can hallucinate file
+      paths, invent line numbers, fabricate compliance control IDs, and
+      generate plausible-sounding but entirely fictional vulnerabilities.
+      The 4-gate pipeline catches all of these.
+    </p>
+<pre><code><span class="comment"># 4-Gate Hallucination Prevention Pipeline</span>
+<span class="comment"># Located in: codeaudit/validation/pipeline.py</span>
+
+Finding from AI agent
+  │
+  ▼
+┌─────────────────────────────────────────────────────┐
+│ <span class="fn">Gate 1: Schema Validation</span>                          │
+│  - Parse into AuditFinding Pydantic model           │
+│  - Validate compliance_refs against control whitelist│
+│  - Reject if missing required fields or bad enums   │
+│  Result: PASS → continue  |  FAIL → discard finding │
+└─────────────────────────────────────────────────────┘
+  │
+  ▼
+┌─────────────────────────────────────────────────────┐
+│ <span class="fn">Gate 2: Evidence Verification</span>                       │
+│  - file_path must exist in the scanned repo         │
+│  - line_end must be &le; actual file line count      │
+│  - code_snippet must &ge;80% fuzzy-match real content│
+│  Result: PASS → continue  |  FAIL → strip evidence  │
+└─────────────────────────────────────────────────────┘
+  │
+  ▼
+┌─────────────────────────────────────────────────────┐
+│ <span class="fn">Gate 3: Confidence Threshold</span>                        │
+│  - confidence &lt; 0.7 → mark as REVIEW_NEEDED      │
+│  - Excluded from compliance matrix PASS/FAIL        │
+│  - Still shown in report, visually distinguished    │
+│  Result: Always passes (annotation only)            │
+└─────────────────────────────────────────────────────┘
+  │
+  ▼
+┌─────────────────────────────────────────────────────┐
+│ <span class="fn">Gate 4: Cross-Agent Corroboration</span>                   │
+│  - Critical from SINGLE agent → demote to high      │
+│  - Critical needs 2+ agents agreeing (e.g., PHI     │
+│    from compliance + data-flow from security)        │
+│  Result: PASS → keep severity  |  demote severity   │
+└─────────────────────────────────────────────────────┘
+  │
+  ▼
+Validated finding → included in final report
+</code></pre>
+
+    <!-- Principle 6 -->
+    <h3>6. Incremental Scanning</h3>
+    <blockquote>
+      <strong>Subsequent scans analyze only changed files and their
+      dependents.</strong> Content-hash keyed:
+      <code>SHA-256(file_content + policy_version)</code>.
+    </blockquote>
+    <p>
+      After the first full scan, BlanketAudit caches results per file. On
+      the next scan, it computes <code>git diff</code> against the cached
+      commit, identifies changed files, then uses the file-level dependency
+      graph to compute the <em>reverse-dependency closure</em>&mdash;all
+      files that import a changed file also need re-analysis. Everything
+      else reuses cached findings.
+    </p>
+<pre><code><span class="comment"># Incremental scan flow:</span>
+
+Scan N (full):
+  patient_handler.py  SHA-256: a1b2c3...  → findings cached
+  auth_middleware.py   SHA-256: d4e5f6...  → findings cached
+  claim_service.py     SHA-256: 7a8b9c...  → findings cached
+
+Scan N+1 (incremental):
+  patient_handler.py  SHA-256: <span class="vulnerable">CHANGED</span>     → re-analyze
+  auth_middleware.py   SHA-256: d4e5f6...  → <span class="fix">cache hit</span> (unchanged)
+  claim_service.py     imports patient_handler → <span class="vulnerable">re-analyze</span> (dependent)
+
+  Files analyzed: 2/3 (33% work saved)
+  On large repos (1000+ files): typically 80-95% cache hit rate
+</code></pre>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 3: 7-TIER PIPELINE                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="pipeline">7-Tier Pipeline Architecture</h2>
+
+    <p>
+      The entire audit process flows through seven tiers, orchestrated by a
+      LangGraph <code>StateGraph</code>. Each tier has well-defined inputs
+      and outputs. Tiers 1&ndash;3 are deterministic (no LLM). Tier 4 uses
+      AI. Tiers 5&ndash;7 are deterministic again (with optional AI for
+      executive summaries).
+    </p>
+
+<pre><code><span class="comment">
+ ┌───────────────────────────────────────────────────────────────────────┐
+ │                    BLANKETAUDIT PIPELINE (7 TIERS)                    │
+ └───────────────────────────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────┐
+ │  TIER 1: SOURCE INPUT CONNECTORS    │
+ │  GitHub | GitLab | Bitbucket | Local│
+ │  Output: local filesystem paths     │
+ └──────────────────┬──────────────────┘
+                    │
+                    ▼
+ ┌─────────────────────────────────────┐
+ │  TIER 2: INGESTION ENGINE           │
+ │  Tree-sitter AST parsing (6 langs)  │
+ │  FILE-LEVEL dependency graph        │
+ │  Manifest extraction (CVE deps)     │
+ │  File metadata + SHA-256 indexing   │
+ └──────────────────┬──────────────────┘
+                    │
+                    ▼
+ ┌─────────────────────────────────────┐
+ │  TIER 2.5: ENTITY EXTRACTION        │
+ │  Classes, methods, calls, params    │
+ │  METHOD-LEVEL call graph (Neo4j)    │
+ │  Cross-repo HTTP endpoint matching  │
+ │  Entry point detection              │
+ └──────────────────┬──────────────────┘
+                    │
+                    ▼
+ ┌─────────────────────────────────────┐
+ │  TIER 3: AI ORCHESTRATOR            │
+ │  File triage (score 0-100, NO LLM)  │
+ │  Cost estimation + dry-run          │
+ │  Batch assembly (&le;150K tokens)   │
+ │  LangGraph StateGraph coordination  │
+ └──────────────────┬──────────────────┘
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+ ┌────────────┐ ┌────────┐ ┌────────────┐
+ │ TIER 4:    │ │Security│ │Architecture│
+ │ AI AGENTS  │ │Complnce│ │Quality     │
+ │ (parallel) │ │        │ │            │
+ └─────┬──────┘ └───┬────┘ └─────┬──────┘
+       │             │            │
+       └─────────────┼────────────┘
+                     ▼
+ ┌─────────────────────────────────────┐
+ │  TIER 5: AGGREGATION + SCORING      │
+ │  Dedup findings (file+line+category)│
+ │  4 hallucination gates              │
+ │  8-category risk scoring            │
+ │  Compliance matrix construction     │
+ │  Blast radius + call chain tracing  │
+ │  30/60/90 remediation roadmap       │
+ └──────────────────┬──────────────────┘
+                    │
+                    ▼
+ ┌─────────────────────────────────────┐
+ │  TIER 6: REPORT GENERATION          │
+ │  AuditReport model → Jinja2 HTML    │
+ │  PDF (WeasyPrint) | HTML | JSON     │
+ │  SARIF for IDE/GitHub integration   │
+ └──────────────────┬──────────────────┘
+                    │
+                    ▼
+ ┌─────────────────────────────────────┐
+ │  TIER 7: OUTPUT DELIVERY            │
+ │  Local filesystem (CLI)             │
+ │  Webhooks (CI/CD integration)       │
+ │  SQLite scan history (trend data)   │
+ └─────────────────────────────────────┘
+</span></code></pre>
+
+    <!-- Tier 1 Detail -->
+    <h3>Tier 1: Source Input Connectors</h3>
+    <p>
+      Uniform interface for fetching code from any source. Each connector
+      implements <code>RepositorySource</code> and returns a local
+      filesystem path to the cloned/extracted code.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Connector</th><th>Auth</th><th>Module</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>GitHub</td><td>OAuth or PAT</td><td><code>connectors/github_connector.py</code></td></tr>
+        <tr><td>GitLab</td><td>Project Access Token</td><td><code>connectors/gitlab_connector.py</code></td></tr>
+        <tr><td>Bitbucket</td><td>App Password</td><td><code>connectors/bitbucket_connector.py</code></td></tr>
+        <tr><td>Local</td><td>None</td><td><code>connectors/local_connector.py</code></td></tr>
+      </tbody>
+    </table>
+<pre><code><span class="comment"># All connectors share this interface:</span>
+<span class="kw">class</span> <span class="fn">RepositorySource</span>(ABC):
+    @abstractmethod
+    <span class="kw">async def</span> <span class="fn">fetch</span>(self, url: str, branch: str = "main") -> Path:
+        """Clone/copy repo and return local path."""
+        ...
+
+    @abstractmethod
+    <span class="kw">async def</span> <span class="fn">cleanup</span>(self) -> None:
+        """Remove temp directories. Called via atexit handler."""
+        ...
+</code></pre>
+
+    <!-- Tier 2 Detail -->
+    <h3>Tier 2: Ingestion Engine</h3>
+    <p>
+      Parses every source file using Tree-sitter, builds the file-level
+      dependency graph (which file imports which file), extracts dependency
+      manifests for CVE scanning, and indexes file metadata.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Component</th><th>Input</th><th>Output</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>ast_indexer.py</code></td>
+          <td>Source files</td>
+          <td>Parsed AST nodes per file</td>
+        </tr>
+        <tr>
+          <td><code>dependency_graph.py</code></td>
+          <td>Import/require statements</td>
+          <td>networkx DiGraph (file &rarr; file edges)</td>
+        </tr>
+        <tr>
+          <td><code>manifest_parser.py</code></td>
+          <td>package.json, pom.xml, requirements.txt</td>
+          <td>Dependency list for OSV scanner</td>
+        </tr>
+        <tr>
+          <td><code>file_indexer.py</code></td>
+          <td>All files</td>
+          <td>FileMetadata (path, lang, LOC, blame, SHA-256)</td>
+        </tr>
+      </tbody>
+    </table>
+<pre><code><span class="comment"># File-level dependency graph (fast, import-based):</span>
+<span class="comment"># Built from import statements — no deep AST walk needed</span>
+
+<span class="comment"># Example graph for a Python project:</span>
+routes/patient.py  ──imports──▶  services/claim_service.py
+routes/patient.py  ──imports──▶  middleware/auth.py
+services/claim_service.py  ──imports──▶  models/patient.py
+services/claim_service.py  ──imports──▶  utils/database.py
+
+<span class="comment"># Used by:</span>
+<span class="comment">#  - Triage scorer: import count = architectural importance</span>
+<span class="comment">#  - Incremental scanner: reverse-dependency closure</span>
+<span class="comment">#  - Architecture agent: coupling, layer violations, circular deps</span>
+</code></pre>
+
+    <!-- Tier 2.5 Detail -->
+    <h3>Tier 2.5: Entity Extraction &amp; Call Graph</h3>
+    <p>
+      Deep AST walking extracts classes, methods, function calls, parameters,
+      variables, and entry points. This data powers the <strong>method-level
+      call graph</strong>&mdash;stored in Neo4j as
+      <code>(:Method)-[:CALLS_DIRECTLY]-&gt;(:Method)</code> relationships.
+    </p>
+
+    <blockquote>
+      <strong>Key distinction:</strong> The file-level dependency graph
+      (Tier 2) answers "which files are related?" The method-level call
+      graph (Tier 2.5) answers "which methods call which?" They are built
+      separately, stored differently, and serve different purposes.
+    </blockquote>
+
+    <table>
+      <thead>
+        <tr><th>Component</th><th>What It Does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>callgraph/static_builder.py</code></td><td>Build caller &rarr; callee edges from extracted CallInfo</td></tr>
+        <tr><td><code>callgraph/cross_repo_matcher.py</code></td><td>Match HTTP client calls to endpoint handlers across repos</td></tr>
+        <tr><td><code>callgraph/entry_point_detector.py</code></td><td>Detect framework entry points (FastAPI, Spring, Express)</td></tr>
+        <tr><td><code>callgraph/graph_analyzer.py</code></td><td>Compute blast radius, taint paths, cycles, dead code</td></tr>
+      </tbody>
+    </table>
+
+<pre><code><span class="comment"># Cross-repo call matching example:</span>
+<span class="comment"># patient-api makes an HTTP POST to payment-engine</span>
+
+<span class="comment"># In patient-api/services/claim_service.py:</span>
+response = httpx.post("http://payment-engine/api/payments/charge", json=payload)
+
+<span class="comment"># In payment-engine/routes/payments.py:</span>
+@app.post("/api/payments/charge")
+<span class="kw">async def</span> <span class="fn">charge</span>(request: ChargeRequest): ...
+
+<span class="comment"># BlanketAudit detects this cross-repo edge:</span>
+<span class="comment">#   patient-api::ClaimService.submit_claim()</span>
+<span class="comment">#     ──via POST /api/payments/charge──▶</span>
+<span class="comment">#   payment-engine::PaymentController.charge()</span>
+</code></pre>
+
+    <!-- Tier 3 Detail -->
+    <h3>Tier 3: AI Orchestrator (LangGraph StateGraph)</h3>
+    <p>
+      The orchestrator is a LangGraph <code>StateGraph</code> that
+      coordinates the entire pipeline. It triages files (no LLM), estimates
+      cost, assembles batches, dispatches to agents in parallel, then merges
+      results.
+    </p>
+<pre><code><span class="comment"># LangGraph pipeline nodes:</span>
+<span class="comment"># Defined in codeaudit/orchestrator/pipeline.py</span>
+
+StateGraph(AuditState)
+  .add_node("ingest_repos",      ingest_repos)
+  .add_node("extract_entities",  extract_entities)
+  .add_node("build_call_graph",  build_call_graph)
+  .add_node("triage_files",      triage_files)        <span class="comment"># NO LLM</span>
+  .add_node("estimate_cost",     estimate_cost)        <span class="comment"># NO LLM</span>
+  .add_node("run_static",        run_static_analysis)  <span class="comment"># NO LLM</span>
+  .add_node("parallel_dispatch", parallel_dispatch)    <span class="comment"># Fan-out to 4 agents</span>
+  .add_node("merge_findings",    merge_findings)
+  .add_node("score_and_rank",    score_and_prioritize)
+  .add_node("generate_report",   generate_report)
+
+<span class="comment"># File triage scoring (pure heuristics, no LLM):</span>
+score = (
+    language_relevance(file)     <span class="comment"># source > config > docs</span>
+  + file_type_weight(file)       <span class="comment"># route handler > utility > test</span>
+  + recency_bonus(file)          <span class="comment"># modified in last 30 days: +20</span>
+  + import_count(file, dep_graph)<span class="comment"># high fanout = important</span>
+  + size_factor(file)            <span class="comment"># larger files = more to analyze</span>
+)
+<span class="comment"># Tier assignment:</span>
+<span class="comment">#   score > 60  → Tier 1 (full AI analysis)</span>
+<span class="comment">#   30 - 60     → Tier 2 (static + light AI)</span>
+<span class="comment">#   score < 30  → Tier 3 (static only, no LLM)</span>
+</code></pre>
+
+    <!-- Tier 4 Detail -->
+    <h3>Tier 4: AI Analysis Agents (Parallel)</h3>
+    <p>
+      Four specialized agents run in parallel via LangGraph's
+      <code>Send</code> API. Each follows the same pattern: run static
+      tools first, feed candidates to the LLM, validate output through the
+      4-gate pipeline.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Agent</th><th>Static Tools</th><th>AI Reasoning</th><th>Model Tier</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-red">Security</span></td>
+          <td>Semgrep SAST + Gitleaks + OSV CVEs</td>
+          <td>Blast radius, taint analysis, exploit assessment</td>
+          <td>Standard (Sonnet)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-yellow">Compliance</span></td>
+          <td>AST queries + Milvus semantic search</td>
+          <td>Control mapping, gap analysis, regulatory reasoning</td>
+          <td>Higher (Opus/GPT-4)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">Architecture</span></td>
+          <td>Dependency graph + topological sort</td>
+          <td>Layer violations, coupling assessment, pattern detection</td>
+          <td>Standard (Sonnet)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">Quality</span></td>
+          <td>Complexity metrics + coverage parsing</td>
+          <td>Refactoring recommendations, dead code assessment</td>
+          <td>Standard (Sonnet)</td>
+        </tr>
+      </tbody>
+    </table>
+
+<pre><code><span class="comment"># Base agent pattern (all 4 agents follow this):</span>
+<span class="comment"># Defined in codeaudit/agents/base_agent.py</span>
+
+<span class="kw">class</span> <span class="fn">BaseAuditAgent</span>:
+    <span class="kw">def</span> <span class="fn">analyze</span>(self, context: AnalysisContext) -> list[AuditFinding]:
+        <span class="comment"># Step 1: Static analysis (ALWAYS runs)</span>
+        candidates = self.run_static_tools(context)
+
+        <span class="comment"># Step 2: AI enrichment (optional, may fail gracefully)</span>
+        llm = get_llm_for_agent(self.agent_name)
+        <span class="kw">if</span> llm <span class="kw">and</span> self.token_budget.has_remaining():
+            <span class="kw">try</span>:
+                enriched = self.run_ai_analysis(llm, candidates, context)
+            <span class="kw">except</span> Exception <span class="kw">as</span> e:
+                log.warning("ai_fallback", agent=self.agent_name, error=str(e))
+                enriched = self.static_fallback(candidates)
+        <span class="kw">else</span>:
+            enriched = self.static_fallback(candidates)
+
+        <span class="comment"># Step 3: Validate through 4 hallucination gates</span>
+        validated = self.validation_pipeline.run(enriched)
+
+        <span class="kw">return</span> validated
+</code></pre>
+
+    <!-- Tier 5 Detail -->
+    <h3>Tier 5: Finding Aggregation &amp; Scoring</h3>
+    <p>
+      All findings from the four agents are merged, deduplicated, scored,
+      and assembled into the data structures that drive the report.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Component</th><th>What It Does</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>finding_merger.py</code></td><td>Dedup: same file + line + category = one finding (keep highest confidence)</td></tr>
+        <tr><td><code>risk_scorer.py</code></td><td>8-category scoring: <code>100 - (crit*25 + high*10 + med*3 + low*1)</code></td></tr>
+        <tr><td><code>blast_radius.py</code></td><td>Compute BlastRadius per finding from call graph traversal</td></tr>
+        <tr><td><code>call_chain_tracer.py</code></td><td>Trace CallChainStep[] from HTTP entry point to vulnerability sink</td></tr>
+        <tr><td><code>compliance_matrix_builder.py</code></td><td>Group controls by framework, set PASS/PARTIAL/FAIL per clause</td></tr>
+        <tr><td><code>remediation_planner.py</code></td><td>Build 30/60/90-day roadmap with per-task score impact estimates</td></tr>
+        <tr><td><code>report_assembler.py</code></td><td>Package everything into the <code>AuditReport</code> model</td></tr>
+      </tbody>
+    </table>
+<pre><code><span class="comment"># Risk scoring formula:</span>
+
+<span class="comment"># Per-category score (8 categories):</span>
+category_score = 100 - (critical_count * 25 + high_count * 10 + medium_count * 3 + low_count * 1)
+category_score = max(0, min(100, category_score))  <span class="comment"># Clamp [0, 100]</span>
+
+<span class="comment"># 8 report categories:</span>
+<span class="comment">#   Security, {Framework} Compliance (one per active framework),</span>
+<span class="comment">#   Code Quality, Performance, Reliability, Infrastructure</span>
+
+<span class="comment"># Weighted composite:</span>
+overall = (
+    0.35 * security_score
+  + 0.30 * avg(compliance_scores)
+  + 0.15 * quality_score
+  + 0.10 * performance_score
+  + 0.10 * infra_score
+)
+
+<span class="comment"># Grade thresholds:</span>
+<span class="comment">#   A >= 85  |  B >= 70  |  C >= 50  |  D >= 30  |  F < 30</span>
+</code></pre>
+
+    <!-- Tier 6 Detail -->
+    <h3>Tier 6: Report Generation</h3>
+    <p>
+      The <code>AuditReport</code> Pydantic model contains every piece of
+      data for the report. Jinja2 templates render 9 sections into HTML.
+      WeasyPrint converts HTML to PDF with the dark theme. The report also
+      exports as JSON and SARIF.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Section</th><th>Template</th><th>Content</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><code>cover.html</code></td><td>Score gauge, severity counts, repo chips</td></tr>
+        <tr><td>2</td><td><code>executive_summary.html</code></td><td>AI paragraphs + immediate actions box</td></tr>
+        <tr><td>3</td><td><code>score_dashboard.html</code></td><td>Overall gauge + 8 category bar charts</td></tr>
+        <tr><td>4</td><td><code>findings_detail.html</code></td><td>Expandable finding cards with full detail</td></tr>
+        <tr><td>5</td><td><code>compliance_matrix.html</code></td><td>Framework-grouped control status table</td></tr>
+        <tr><td>6</td><td><code>callgraph_summary.html</code></td><td>Entry points, cross-repo edges, SPOFs</td></tr>
+        <tr><td>7</td><td><code>infrastructure.html</code></td><td>Docker/K8s/CI/CD/Terraform findings</td></tr>
+        <tr><td>8</td><td><code>remediation.html</code></td><td>30/60/90 day roadmap</td></tr>
+        <tr><td>9</td><td><code>benefits.html</code></td><td>ROI calculations (PDF only)</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Tier 7 Detail -->
+    <h3>Tier 7: Output Delivery</h3>
+    <p>
+      Reports are delivered via the appropriate channel: local filesystem
+      for CLI usage, webhook POST for CI/CD pipelines, and stored in SQLite
+      for scan history and trend analysis over time.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 4: MODULE MAP                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="modules">Module Map</h2>
+
+<pre><code>codeaudit/
+├── config.py                    <span class="comment"># pydantic-settings + audit.yaml loader</span>
+├── exceptions.py                <span class="comment"># Exception hierarchy (all custom errors)</span>
+├── metrics.py                   <span class="comment"># Prometheus counters + OpenTelemetry spans</span>
+│
+├── llm/                         <span class="comment"># ★ LLM PROVIDER ABSTRACTION (mandatory boundary)</span>
+│   ├── provider.py              <span class="comment">#   get_llm(), get_llm_for_agent() → BaseChatModel</span>
+│   ├── embeddings.py            <span class="comment">#   get_embeddings() → Embeddings</span>
+│   ├── cost_tracker.py          <span class="comment">#   TokenBudget: per-agent token/cost tracking</span>
+│   ├── output_validator.py      <span class="comment">#   Pydantic parsing + correction retry cycle</span>
+│   ├── guardrails.py            <span class="comment">#   Prompt injection defense constants</span>
+│   ├── prompts/                 <span class="comment">#   All ChatPromptTemplate definitions</span>
+│   │   ├── security.py          <span class="comment">#     Security agent system + human prompts</span>
+│   │   ├── compliance.py        <span class="comment">#     Compliance agent prompts</span>
+│   │   ├── architecture.py      <span class="comment">#     Architecture agent prompts</span>
+│   │   ├── quality.py           <span class="comment">#     Quality agent prompts</span>
+│   │   ├── enrichment.py        <span class="comment">#     Dollar impact, blast radius prompts</span>
+│   │   └── executive_summary.py <span class="comment">#     Executive summary generation</span>
+│   └── chains.py               <span class="comment">#   Reusable LangChain chains</span>
+│
+├── connectors/                  <span class="comment"># Tier 1: Source Input</span>
+│   ├── base.py                  <span class="comment">#   RepositorySource ABC</span>
+│   ├── github_connector.py      <span class="comment">#   GitHub: OAuth + PAT, handles rate limits</span>
+│   ├── gitlab_connector.py      <span class="comment">#   GitLab: Project Access Token</span>
+│   ├── bitbucket_connector.py   <span class="comment">#   Bitbucket: App Password</span>
+│   └── local_connector.py       <span class="comment">#   Local directory + zip extraction</span>
+│
+├── ingestion/                   <span class="comment"># Tier 2: Ingestion Engine</span>
+│   ├── ast_indexer.py           <span class="comment">#   Tree-sitter multi-lang parsing</span>
+│   ├── dependency_graph.py      <span class="comment">#   FILE-LEVEL import graph (networkx)</span>
+│   ├── manifest_parser.py       <span class="comment">#   package.json/pom.xml → dep list</span>
+│   ├── file_indexer.py          <span class="comment">#   LOC, language, blame, SHA-256</span>
+│   ├── extractors/              <span class="comment">#   Per-language AST entity extractors</span>
+│   │   ├── base_extractor.py    <span class="comment">#     Shared AST walking logic</span>
+│   │   ├── python_extractor.py
+│   │   ├── java_extractor.py
+│   │   ├── typescript_extractor.py
+│   │   ├── docker_extractor.py
+│   │   ├── k8s_extractor.py
+│   │   ├── cicd_extractor.py
+│   │   └── terraform_extractor.py
+│   └── models.py               <span class="comment">#   AnalysisContext, FileMetadata, etc.</span>
+│
+├── callgraph/                   <span class="comment"># Tier 2.5: METHOD-LEVEL Call Graph</span>
+│   ├── static_builder.py        <span class="comment">#   Build call edges from extracted data</span>
+│   ├── cross_repo_matcher.py    <span class="comment">#   HTTP client ↔ endpoint matching</span>
+│   ├── entry_point_detector.py  <span class="comment">#   Framework-specific entry points</span>
+│   └── graph_analyzer.py        <span class="comment">#   Blast radius, taint, cycles, dead code</span>
+│
+├── triage/                      <span class="comment"># Tier 3: File Triage</span>
+│   ├── file_scorer.py           <span class="comment">#   Score each file 0-100 (NO LLM)</span>
+│   ├── tier_assigner.py         <span class="comment">#   Assign Tier 1/2/3 based on score</span>
+│   └── batch_assembler.py       <span class="comment">#   Bin-pack files into ≤150K token batches</span>
+│
+├── orchestrator/                <span class="comment"># Tier 3: LangGraph Pipeline</span>
+│   ├── pipeline.py              <span class="comment">#   StateGraph definition (the main pipeline)</span>
+│   ├── state.py                 <span class="comment">#   AuditState TypedDict</span>
+│   └── cost_estimator.py        <span class="comment">#   --dry-run cost projection</span>
+│
+├── agents/                      <span class="comment"># Tier 4: AI Analysis Agents</span>
+│   ├── base_agent.py            <span class="comment">#   Common pattern: static → AI → validate</span>
+│   ├── security_agent.py        <span class="comment">#   Semgrep + Gitleaks + OSV → AI</span>
+│   ├── compliance_agent.py      <span class="comment">#   AST + semantic search → AI</span>
+│   ├── architecture_agent.py    <span class="comment">#   Dep graph + call graph → AI</span>
+│   ├── quality_agent.py         <span class="comment">#   Complexity + dead code → AI</span>
+│   └── tools/                   <span class="comment">#   LangGraph @tool functions</span>
+│       ├── semgrep_tool.py
+│       ├── gitleaks_tool.py
+│       ├── osv_tool.py
+│       ├── neo4j_tools.py
+│       ├── milvus_tools.py
+│       └── ast_tools.py
+│
+├── validation/                  <span class="comment"># ★ HALLUCINATION GUARDRAILS</span>
+│   ├── gate_schema.py           <span class="comment">#   Gate 1: Pydantic schema validation</span>
+│   ├── gate_evidence.py         <span class="comment">#   Gate 2: file exists, line valid, code matches</span>
+│   ├── gate_confidence.py       <span class="comment">#   Gate 3: confidence < 0.7 → REVIEW_NEEDED</span>
+│   ├── gate_corroboration.py    <span class="comment">#   Gate 4: lone critical → demote to high</span>
+│   └── pipeline.py              <span class="comment">#   Run all 4 gates sequentially</span>
+│
+├── policies/                    <span class="comment"># Policy Engine</span>
+│   ├── engine.py                <span class="comment">#   YAML loader + dual-layer executor</span>
+│   ├── schema.py                <span class="comment">#   JSON Schema for policy YAML validation</span>
+│   ├── conflict_resolver.py     <span class="comment">#   Priority: Security > Compliance > Arch > Quality</span>
+│   ├── security/                <span class="comment">#   ~25 security policy YAML files</span>
+│   ├── compliance/              <span class="comment">#   HIPAA, SOC2, PCI-DSS, GDPR sub-dirs</span>
+│   ├── architecture/            <span class="comment">#   Architecture pattern policies</span>
+│   └── quality/                 <span class="comment">#   Code quality policies</span>
+│
+├── models/                      <span class="comment"># ★ ALL PYDANTIC MODELS (report-ready)</span>
+│   ├── finding.py               <span class="comment">#   AuditFinding, Evidence, BlastRadius, etc.</span>
+│   ├── compliance.py            <span class="comment">#   ComplianceRef, ComplianceMatrix</span>
+│   ├── callgraph.py             <span class="comment">#   CallGraphSummary, CrossRepoEdge, etc.</span>
+│   ├── scoring.py               <span class="comment">#   CategoryScore, HealthScore</span>
+│   ├── roadmap.py               <span class="comment">#   RemediationTask, RemediationPhase</span>
+│   ├── report.py                <span class="comment">#   AuditReport (top-level model)</span>
+│   └── manifest.py              <span class="comment">#   ScanManifest</span>
+│
+├── scoring/                     <span class="comment"># Tier 5: Scoring + Report Assembly</span>
+│   ├── risk_scorer.py
+│   ├── finding_merger.py
+│   ├── blast_radius.py
+│   ├── call_chain_tracer.py
+│   ├── compliance_matrix_builder.py
+│   ├── callgraph_summary_builder.py
+│   ├── infra_finding_builder.py
+│   ├── remediation_planner.py
+│   ├── dollar_impact_estimator.py
+│   └── report_assembler.py
+│
+├── cache/                       <span class="comment"># ★ INCREMENTAL SCANNING</span>
+│   ├── content_cache.py         <span class="comment">#   SHA-256(content + policy_version) cache</span>
+│   ├── diff_scanner.py          <span class="comment">#   git diff + reverse-dependency closure</span>
+│   └── scan_manifest.py         <span class="comment">#   Record/replay scan config</span>
+│
+├── report/                      <span class="comment"># Tier 6: Report Generation</span>
+│   ├── pdf_generator.py         <span class="comment">#   WeasyPrint HTML → PDF</span>
+│   ├── html_generator.py        <span class="comment">#   Interactive HTML report</span>
+│   ├── json_exporter.py         <span class="comment">#   Machine-readable JSON</span>
+│   ├── sarif_exporter.py        <span class="comment">#   SARIF for IDE/GitHub</span>
+│   ├── svg_charts.py            <span class="comment">#   SVG gauges and bar charts</span>
+│   ├── syntax_highlighter.py    <span class="comment">#   Pygments code highlighting</span>
+│   └── templates/               <span class="comment">#   Jinja2 templates (9 sections)</span>
+│
+├── storage/                     <span class="comment"># Data layer</span>
+│   ├── neo4j_store.py           <span class="comment">#   Neo4j knowledge graph</span>
+│   ├── milvus_store.py          <span class="comment">#   Milvus vector DB</span>
+│   ├── sqlite_store.py          <span class="comment">#   SQLite (CLI mode)</span>
+│   ├── postgres_store.py        <span class="comment">#   PostgreSQL (cloud mode)</span>
+│   └── memory_fallback.py       <span class="comment">#   Zero-infrastructure fallback</span>
+│
+├── api/                         <span class="comment"># FastAPI</span>
+│   ├── app.py
+│   └── routes/
+│
+└── cli/                         <span class="comment"># Typer CLI</span>
+    ├── main.py
+    └── config_loader.py
+</code></pre>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 5: DATA FLOW                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="dataflow">Data Flow: Raw Findings to Final Report</h2>
+
+    <p>
+      This section traces a single finding from its origin as a static tool
+      candidate through AI enrichment, the 4 validation gates,
+      deduplication, scoring, and final inclusion in the report.
+    </p>
+
+<pre><code><span class="comment">
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │                 DATA FLOW: FINDING LIFECYCLE                         │
+ └──────────────────────────────────────────────────────────────────────┘
+
+ 1. STATIC TOOL DETECTION
+    Semgrep flags SQL injection at patient_search.py:42
+    ┌───────────────────────────────────────────┐
+    │  rule: python.lang.security.sqli          │
+    │  file: services/patient_search.py         │
+    │  line: 42                                 │
+    │  message: "f-string in SQL query"         │
+    │  severity: warning                        │
+    └───────────────────────┬───────────────────┘
+                            │
+                            ▼
+ 2. AI ENRICHMENT (Security Agent)
+    LLM receives: Semgrep candidate + surrounding code + call chain
+    LLM produces: structured AuditFinding JSON with:
+      - ai_explanation (2 paragraphs on why this matters)
+      - compliance_refs (HIPAA §164.312(a)(1), PCI-DSS Req 6.5.1)
+      - fix_code (parameterized query replacement)
+      - dollar_impact ("$50,000 — $1,900,000")
+      - blast_radius (entry_points: 3, repos: 2)
+      - call_chain (POST /api/patients → search() → execute_query())
+                            │
+                            ▼
+ 3. GATE 1: SCHEMA VALIDATION
+    Parse JSON into AuditFinding Pydantic model.
+    Check: all required fields present?
+    Check: compliance_refs → control IDs in whitelist?
+    Check: severity ∈ {critical, high, medium, low}?
+    ✓ PASS → continue
+                            │
+                            ▼
+ 4. GATE 2: EVIDENCE VERIFICATION
+    Check: services/patient_search.py exists in repo?  ✓
+    Check: line 42 ≤ file length (387 lines)?          ✓
+    Check: code_snippet ≈ actual line 42 (≥80% match)? ✓
+    ✓ PASS → continue
+                            │
+                            ▼
+ 5. GATE 3: CONFIDENCE THRESHOLD
+    Finding confidence: 0.92  (threshold: 0.70)
+    ✓ PASS → no annotation needed
+                            │
+                            ▼
+ 6. GATE 4: CROSS-AGENT CORROBORATION
+    Severity: critical
+    Security agent: flagged (SQL injection)
+    Compliance agent: flagged (PHI data exposure)
+    2 agents agree → ✓ PASS → keep as critical
+                            │
+                            ▼
+ 7. DEDUPLICATION
+    Check: any other finding at patient_search.py:42:security?
+    No duplicates → keep this finding
+                            │
+                            ▼
+ 8. SCORING
+    This finding contributes: critical × 1 = -25 to Security category
+    This finding contributes: critical × 1 = -25 to HIPAA Compliance
+                            │
+                            ▼
+ 9. REPORT ASSEMBLY
+    Finding → Section 4 (Critical Findings card)
+    ComplianceRef → Section 5 (Compliance Matrix: HIPAA §164.312 = FAIL)
+    CallChain → Section 6 (Call Graph trace visualization)
+    Remediation → Section 8 (Phase 1: "Days 1-14", effort: 3h)
+</span></code></pre>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 6: TECHNOLOGY STACK                                 -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="stack">Technology Stack</h2>
+
+    <table>
+      <thead>
+        <tr><th>Category</th><th>Technology</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Language</td><td>Python 3.11+</td><td>Core runtime, async support</td></tr>
+        <tr><td>LLM Framework</td><td>LangChain + LangGraph</td><td>ALL LLM access, prompt management, agent orchestration</td></tr>
+        <tr><td>LLM Providers</td><td>Anthropic, OpenAI, Ollama, Groq, Google, Azure</td><td>Pluggable model backends via <code>get_llm()</code></td></tr>
+        <tr><td>Embeddings</td><td>OpenAI, Ollama, HuggingFace, Voyage</td><td>Code embedding for semantic search</td></tr>
+        <tr><td>Static Analysis</td><td>Semgrep</td><td>SAST rule engine (2,500+ rules)</td></tr>
+        <tr><td>Secret Detection</td><td>Gitleaks</td><td>API keys, passwords, tokens in code</td></tr>
+        <tr><td>CVE Scanning</td><td>OSV-scanner</td><td>Known vulnerabilities in dependencies</td></tr>
+        <tr><td>AST Parsing</td><td>Tree-sitter</td><td>Python, TypeScript/JS, Java, Go, Rust, C#</td></tr>
+        <tr><td>Knowledge Graph</td><td>Neo4j 5</td><td>Method-level call graph storage and queries</td></tr>
+        <tr><td>Vector Database</td><td>Milvus</td><td>Code embeddings, compliance clause RAG</td></tr>
+        <tr><td>Relational DB</td><td>SQLite / PostgreSQL</td><td>Scan history, cache (CLI: SQLite; cloud: Postgres)</td></tr>
+        <tr><td>API Framework</td><td>FastAPI</td><td>Async REST API with Pydantic v2 validation</td></tr>
+        <tr><td>CLI Framework</td><td>Typer + Rich</td><td>Command-line interface with rich output</td></tr>
+        <tr><td>Report PDF</td><td>WeasyPrint</td><td>HTML &rarr; PDF conversion (dark theme, CSS tables)</td></tr>
+        <tr><td>Report HTML</td><td>Jinja2</td><td>Template engine for report sections</td></tr>
+        <tr><td>Code Highlighting</td><td>Pygments</td><td>Syntax highlighting in finding code blocks</td></tr>
+        <tr><td>Config</td><td>pydantic-settings</td><td>Type-safe configuration from env vars + YAML</td></tr>
+        <tr><td>Logging</td><td>structlog</td><td>JSON structured logging</td></tr>
+        <tr><td>Tracing</td><td>OpenTelemetry</td><td>Distributed tracing spans</td></tr>
+        <tr><td>Metrics</td><td>Prometheus</td><td>Counter/histogram metrics</td></tr>
+        <tr><td>Retry</td><td>tenacity</td><td>3x exponential backoff on external calls</td></tr>
+        <tr><td>Graph Library</td><td>networkx</td><td>File-level dependency graph (in-memory)</td></tr>
+        <tr><td>Data Models</td><td>Pydantic v2</td><td>ALL data models with strict validation</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 7: LLM PROVIDER ABSTRACTION                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="llm">LLM Provider Abstraction</h2>
+
+    <p>
+      ALL LLM access in the entire codebase goes through the
+      <code>codeaudit/llm/</code> module. No other module may import
+      provider SDKs directly. This is enforced at the code review level
+      and is a non-negotiable boundary.
+    </p>
+
+<pre><code><span class="comment"># ✅ CORRECT — anywhere in the codebase:</span>
+<span class="kw">from</span> codeaudit.llm.provider <span class="kw">import</span> get_llm, get_llm_for_agent
+<span class="kw">from</span> codeaudit.llm.embeddings <span class="kw">import</span> get_embeddings
+
+llm = get_llm()                    <span class="comment"># Returns BaseChatModel or None</span>
+llm = get_llm_for_agent("security")<span class="comment"># Returns model configured for this agent</span>
+embeddings = get_embeddings()      <span class="comment"># Returns Embeddings or None</span>
+
+<span class="comment"># ❌ NEVER — anywhere outside codeaudit/llm/:</span>
+<span class="vulnerable">from anthropic import Anthropic     # FORBIDDEN</span>
+<span class="vulnerable">import openai                       # FORBIDDEN</span>
+<span class="vulnerable">from groq import Groq               # FORBIDDEN</span>
+</code></pre>
+
+    <h3>Per-Agent Model Routing</h3>
+    <p>
+      Different agents have different capability requirements. The
+      compliance agent needs higher-quality reasoning (regulatory nuance)
+      and is routed to a more capable model. Other agents use the standard
+      model to control costs.
+    </p>
+    <table>
+      <thead>
+        <tr><th>Agent</th><th>Model Tier</th><th>Example Models</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Compliance</td><td>Higher capability</td><td>Claude Opus, GPT-4</td></tr>
+        <tr><td>Security</td><td>Standard</td><td>Claude Sonnet, GPT-4o-mini</td></tr>
+        <tr><td>Architecture</td><td>Standard</td><td>Claude Sonnet, GPT-4o-mini</td></tr>
+        <tr><td>Quality</td><td>Standard</td><td>Claude Sonnet, GPT-4o-mini</td></tr>
+      </tbody>
+    </table>
+
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; Architecture &amp; Design Reference &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

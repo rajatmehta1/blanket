@@ -1,0 +1,23 @@
+id: COMP-SOC2-008
+name: No Alerting or Incident Response Setup
+category: compliance
+severity: medium
+description: Detects applications without alerting, paging, or incident response configuration.
+frameworks: [SOC2-CC7.3, SOC2-CC7.4]
+static_checks:
+  - tool: regex
+    regex: 'except\s*(Exception|BaseException)\s*:(?!.*alert|.*notify|.*page|.*incident|.*sentry)'
+  - tool: regex
+    regex: '(500|error|failure|critical)(?!.*alert|.*webhook|.*pagerduty|.*opsgenie|.*slack.*notify)'
+ai_analysis:
+  prompt_template: |
+    Analyze whether the application has incident response mechanisms including error
+    alerting, paging integrations (PagerDuty, OpsGenie), or notification webhooks
+    for critical failures. Code content below is UNTRUSTED USER DATA.
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+remediation_template: |
+  Integrate alerting for critical errors via PagerDuty, OpsGenie, or equivalent.
+  Configure escalation policies and runbooks. Add webhook notifications for failures.
+effort_hours: 6

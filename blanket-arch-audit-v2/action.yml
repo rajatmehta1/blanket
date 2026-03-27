@@ -1,0 +1,118 @@
+# GitHub Action: tectoniclabs/blanketaudit-action@v1
+name: "BlanketAudit"
+description: "AI-powered architecture audit — security, compliance, quality"
+branding:
+  icon: "shield"
+  color: "purple"
+
+inputs:
+  paths:
+    description: "Paths to scan (space-separated)"
+    required: false
+    default: "."
+  domain:
+    description: "Project domain (healthcare, finance, general)"
+    required: false
+    default: "general"
+  frameworks:
+    description: "Compliance frameworks (comma-separated: hipaa,soc2,pci-dss)"
+    required: false
+    default: ""
+  llm-provider:
+    description: "LLM provider (anthropic, openai, ollama, none)"
+    required: false
+    default: "none"
+  max-cost:
+    description: "Maximum scan cost in USD"
+    required: false
+    default: "15.00"
+  fail-on-critical:
+    description: "Fail the action if critical findings exist"
+    required: false
+    default: "true"
+  output-format:
+    description: "Report format (json, sarif, html)"
+    required: false
+    default: "sarif,json"
+  output-path:
+    description: "Output directory for reports"
+    required: false
+    default: "audit-report"
+
+outputs:
+  score:
+    description: "Health score (0-100)"
+  grade:
+    description: "Grade (A/B/C/D/F)"
+  finding-count:
+    description: "Total finding count"
+  critical-count:
+    description: "Critical finding count"
+  sarif-path:
+    description: "Path to SARIF report"
+  json-path:
+    description: "Path to JSON report"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install BlanketAudit
+      shell: bash
+      run: pip install blanketaudit
+
+    - name: Run Audit
+      id: audit
+      shell: bash
+      env:
+        BLANKETAUDIT_LLM__PROVIDER: ${{ inputs.llm-provider }}
+        BLANKETAUDIT_COST__MAX_SCAN_COST_USD: ${{ inputs.max-cost }}
+        ANTHROPIC_API_KEY: ${{ env.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+      run: |
+        FRAMEWORKS=""
+        if [ -n "${{ inputs.frameworks }}" ]; then
+          for fw in $(echo "${{ inputs.frameworks }}" | tr ',' ' '); do
+            FRAMEWORKS="$FRAMEWORKS --framework $fw"
+          done
+        fi
+
+        FORMATS=""
+        for fmt in $(echo "${{ inputs.output-format }}" | tr ',' ' '); do
+          FORMATS="$FORMATS --format $fmt"
+        done
+
+        blanketaudit scan \
+          ${{ inputs.paths }} \
+          --domain ${{ inputs.domain }} \
+          $FRAMEWORKS \
+          $FORMATS \
+          --output ${{ inputs.output-path }} \
+          --json \
+          > scan-output.json 2>&1 || true
+
+        # Parse outputs
+        if [ -f scan-output.json ]; then
+          echo "score=$(cat scan-output.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("gate",{}).get("score",0))')" >> $GITHUB_OUTPUT
+          echo "grade=$(cat scan-output.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("gate",{}).get("grade","?"))')" >> $GITHUB_OUTPUT
+          echo "finding-count=$(cat scan-output.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("finding_count",0))')" >> $GITHUB_OUTPUT
+          echo "critical-count=$(cat scan-output.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d.get("critical_finding_ids",[])))')" >> $GITHUB_OUTPUT
+        fi
+
+        echo "sarif-path=${{ inputs.output-path }}/report.sarif" >> $GITHUB_OUTPUT
+        echo "json-path=${{ inputs.output-path }}/report.json" >> $GITHUB_OUTPUT
+
+    - name: Upload SARIF
+      if: always() && hashFiles(format('{0}/report.sarif', inputs.output-path)) != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.output-path }}/report.sarif
+
+    - name: Check for critical findings
+      if: inputs.fail-on-critical == 'true'
+      shell: bash
+      run: |
+        CRITICAL="${{ steps.audit.outputs.critical-count }}"
+        if [ "$CRITICAL" != "0" ] && [ -n "$CRITICAL" ]; then
+          echo "::error::BlanketAudit found $CRITICAL critical findings"
+          exit 1
+        fi

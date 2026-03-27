@@ -1,0 +1,248 @@
+# SOC 2 Trust Services Criteria - Clauses Relevant to Code Audits
+# Regulatory text is paraphrased from AICPA Trust Services Criteria (2017/2022)
+# Source: American Institute of Certified Public Accountants (AICPA)
+
+clauses:
+  - id: "SOC2-CC6.1"
+    framework: "SOC2"
+    clause: "CC6.1"
+    title: "Logical and Physical Access Controls"
+    text: >
+      The entity implements logical access security software, infrastructure,
+      and architectures over protected information assets to protect them
+      from security events to meet the entity's objectives. This includes
+      identification and authentication of users, authorization of access,
+      and restriction of access to authorized individuals.
+    technical_requirements:
+      - Authentication on all protected endpoints
+      - Authorization checks before data access
+      - Network segmentation between trust zones
+      - Principle of least privilege enforced in code
+    code_indicators:
+      - "auth middleware on protected routes"
+      - "permission checks before data operations"
+      - "network security group or firewall rules"
+      - "least privilege role assignments"
+
+  - id: "SOC2-CC6.2"
+    framework: "SOC2"
+    clause: "CC6.2"
+    title: "Credentials and Secrets Management"
+    text: >
+      Prior to issuing system credentials and granting system access, the
+      entity registers and authorizes new internal and external users whose
+      access is administered by the entity. User system credentials are
+      created, managed, and removed in a timely manner.
+    technical_requirements:
+      - No hardcoded credentials in source code
+      - Secrets stored in vault or environment variables
+      - API keys rotated on a schedule
+      - Credential lifecycle management (create, rotate, revoke)
+    code_indicators:
+      - "secrets manager or vault integration"
+      - "environment variable for credentials"
+      - "no hardcoded passwords, API keys, or tokens"
+      - "credential rotation mechanism"
+
+  - id: "SOC2-CC6.3"
+    framework: "SOC2"
+    clause: "CC6.3"
+    title: "Role-Based Access and Authorization"
+    text: >
+      The entity authorizes, modifies, or removes access to data, software
+      functions, and other protected information assets based on roles,
+      responsibilities, or the system design and changes, giving
+      consideration to the concepts of least privilege and segregation
+      of duties.
+    technical_requirements:
+      - Role-based access control (RBAC) implementation
+      - Segregation of duties in critical workflows
+      - Access reviews and recertification
+      - Privilege escalation controls
+    code_indicators:
+      - "RBAC middleware or decorator"
+      - "role check before sensitive operations"
+      - "separation of admin and user privileges"
+      - "privilege escalation prevention"
+
+  - id: "SOC2-CC6.6"
+    framework: "SOC2"
+    clause: "CC6.6"
+    title: "System Boundary Protection"
+    text: >
+      The entity implements logical access security measures to protect
+      against threats from sources outside its system boundaries. The
+      entity restricts access to information assets through the use of
+      firewalls, routers, and other network devices at system boundaries.
+    technical_requirements:
+      - Input validation on all external-facing endpoints
+      - Web application firewall or equivalent protection
+      - Rate limiting on public APIs
+      - CORS policy restricting allowed origins
+    code_indicators:
+      - "input validation and sanitization on API inputs"
+      - "rate limiting middleware"
+      - "CORS configuration with restricted origins"
+      - "request size limits and payload validation"
+
+  - id: "SOC2-CC6.7"
+    framework: "SOC2"
+    clause: "CC6.7"
+    title: "Data Transmission Protection"
+    text: >
+      The entity restricts the transmission, movement, and removal of
+      information to authorized internal and external users and processes,
+      and protects it during transmission, movement, or removal to meet
+      the entity's objectives.
+    technical_requirements:
+      - TLS encryption for all data in transit
+      - Data classification and handling procedures in code
+      - Secure file transfer mechanisms
+      - No sensitive data in unencrypted channels
+    code_indicators:
+      - "TLS/HTTPS enforcement"
+      - "encrypted API communication"
+      - "secure file upload/download handlers"
+      - "no sensitive data in plaintext HTTP"
+
+  - id: "SOC2-CC6.8"
+    framework: "SOC2"
+    clause: "CC6.8"
+    title: "Prevention of Unauthorized Software"
+    text: >
+      The entity implements controls to prevent or detect and act upon
+      the introduction of unauthorized or malicious software to meet the
+      entity's objectives. This includes dependency management and
+      software integrity verification.
+    technical_requirements:
+      - Dependency vulnerability scanning in CI/CD
+      - Lock files for dependency pinning
+      - Software composition analysis (SCA)
+      - Container image scanning
+    code_indicators:
+      - "dependency lock file (package-lock.json, poetry.lock)"
+      - "vulnerability scanning in CI pipeline"
+      - "pinned dependency versions"
+      - "container image scanning step"
+
+  - id: "SOC2-CC7.1"
+    framework: "SOC2"
+    clause: "CC7.1"
+    title: "Security Monitoring"
+    text: >
+      To meet its objectives, the entity uses detection and monitoring
+      procedures to identify changes to configurations that result in the
+      introduction of new vulnerabilities, and susceptibilities to newly
+      discovered vulnerabilities.
+    technical_requirements:
+      - Application-level security monitoring and logging
+      - Configuration change detection
+      - Vulnerability scanning integration
+      - Security event collection and correlation
+    code_indicators:
+      - "security event logging"
+      - "configuration drift detection"
+      - "health check and monitoring endpoints"
+      - "structured security log events"
+
+  - id: "SOC2-CC7.2"
+    framework: "SOC2"
+    clause: "CC7.2"
+    title: "Anomaly Detection"
+    text: >
+      The entity monitors system components and the operation of those
+      components for anomalies that are indicative of malicious acts,
+      natural disasters, and errors affecting the entity's ability to
+      meet its objectives. Anomalies are analyzed to determine whether
+      they represent security events.
+    technical_requirements:
+      - Anomaly detection on user behavior and system metrics
+      - Alerting thresholds for abnormal activity
+      - Automated response to detected anomalies
+      - Baseline establishment for normal operations
+    code_indicators:
+      - "anomaly detection logic or thresholds"
+      - "alert on unusual access patterns"
+      - "metric collection for behavioral analysis"
+      - "automated circuit breaker on anomalous load"
+
+  - id: "SOC2-CC7.3"
+    framework: "SOC2"
+    clause: "CC7.3"
+    title: "Security Event Evaluation"
+    text: >
+      The entity evaluates security events to determine whether they
+      could or have resulted in a failure of the entity to meet its
+      objectives (security incidents) and, if so, takes actions to
+      prevent or address such failures.
+    technical_requirements:
+      - Security incident classification and severity assignment
+      - Incident response procedures accessible to engineering
+      - Automated incident creation from security alerts
+      - Post-incident review and remediation tracking
+    code_indicators:
+      - "incident severity classification"
+      - "automated alert-to-incident pipeline"
+      - "incident response runbook references"
+      - "error tracking integration (Sentry, PagerDuty)"
+
+  - id: "SOC2-CC8.1"
+    framework: "SOC2"
+    clause: "CC8.1"
+    title: "Change Management"
+    text: >
+      The entity authorizes, designs, develops or acquires, configures,
+      documents, tests, approves, and implements changes to infrastructure,
+      data, software, and procedures to meet its objectives. Changes are
+      managed through a defined change management process.
+    technical_requirements:
+      - Version control for all source code
+      - Code review required before merge to main branch
+      - CI/CD pipeline with automated testing
+      - Change approval workflow for production deployments
+    code_indicators:
+      - "pull request or merge request requirement"
+      - "CI/CD pipeline configuration"
+      - "branch protection rules"
+      - "automated test suite in deployment pipeline"
+
+  - id: "SOC2-A1.2"
+    framework: "SOC2"
+    clause: "A1.2"
+    title: "Recovery and Continuity"
+    text: >
+      The entity authorizes, designs, develops or acquires, implements,
+      operates, approves, maintains, and monitors environmental protections,
+      software, data backup processes, and recovery infrastructure to meet
+      its objectives. Recovery procedures support timely restoration of
+      systems and data.
+    technical_requirements:
+      - Automated backup procedures for critical data
+      - Backup verification and restoration testing
+      - Disaster recovery configuration in code
+      - Health checks and readiness probes
+    code_indicators:
+      - "backup configuration or scheduling"
+      - "database migration and rollback scripts"
+      - "health check and readiness endpoints"
+      - "retry logic and graceful degradation"
+
+  - id: "SOC2-PI1.1"
+    framework: "SOC2"
+    clause: "PI1.1"
+    title: "Data Processing Integrity"
+    text: >
+      The entity implements policies and procedures over system processing
+      to result in products, services, and reporting to meet the entity's
+      objectives. Processing integrity requires that system processing is
+      complete, valid, accurate, timely, and authorized.
+    technical_requirements:
+      - Input validation on all data processing endpoints
+      - Data transformation correctness checks
+      - Idempotency for critical operations
+      - Transaction integrity (ACID compliance)
+    code_indicators:
+      - "input validation and schema enforcement"
+      - "idempotency keys or idempotent operations"
+      - "database transactions with rollback"
+      - "data validation before persistence"

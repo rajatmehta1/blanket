@@ -1,0 +1,27 @@
+id: SEC-022
+name: Weak Random Number Generator for Security
+category: security
+severity: medium
+description: Detects use of random.random() or Math.random() for security-sensitive operations.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:random\.(?:random|randint|choice|randrange)\s*\().*(?:token|secret|key|password|nonce|salt|session|otp)'
+  - tool: semgrep
+    rule: python.lang.security.audit.insecure-random
+
+ai_analysis:
+  prompt_template: |
+    Analyze this random number usage. Consider:
+    - Is the random value used for security (tokens, keys, sessions)?
+    - Is this for non-security purposes like shuffling or sampling?
+    - Could an attacker predict the output to forge tokens?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Use secrets.token_hex(), secrets.token_urlsafe(), or os.urandom() for security.
+  Reserve random module for non-security uses like testing and simulations.
+effort_hours: 1

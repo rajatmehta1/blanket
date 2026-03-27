@@ -1,0 +1,27 @@
+id: SEC-009
+name: CORS Wildcard Origin
+category: security
+severity: medium
+description: Detects Access-Control-Allow-Origin set to * which allows any domain to make requests.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: "(?:Access-Control-Allow-Origin[\"']\\s*[:,]\\s*[\"']\\*|allow_origins\\s*=\\s*\\[?\\s*[\"']\\*)"
+  - tool: semgrep
+    rule: python.django.security.audit.cors-wildcard
+
+ai_analysis:
+  prompt_template: |
+    Analyze this CORS wildcard configuration. Consider:
+    - Does this API handle sensitive data or require authentication?
+    - Is this a public API where wildcard CORS is acceptable?
+    - Are credentials (cookies/tokens) sent with cross-origin requests?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Replace wildcard origin with an explicit allowlist of trusted domains.
+  Set allow_origins to specific domains and avoid using * with credentials.
+effort_hours: 1

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Future Features Roadmap &mdash; BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <nav class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="prompts.html">Prompts</a>
+      <a href="callgraph.html">Call Graph</a>
+      <a href="samples.html">Samples</a>
+      <a href="local-setup.html">Local Setup</a>
+      <a class="active" href="roadmap.html">Roadmap</a>
+      <a href="deployment.html">Deployment</a>
+    </nav>
+
+    <h1>Future Features Roadmap <span class="badge badge-purple">2026</span></h1>
+    <p>Where BlanketAudit is headed. These features are organized into 30/60/90 day phases, from quick wins that ship fast to moonshots that redefine what an audit tool can do.</p>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Phase 1: Next 30 Days <span class="badge badge-green">quick wins</span></h2>
+    <p>High-impact features that build on existing infrastructure. Each can ship independently.</p>
+
+    <div class="card">
+      <h3>1. Auto-Fix PR Generation</h3>
+      <p>Every finding already includes <code>fix_code</code> with before/after snippets. This feature closes the loop: BlanketAudit creates a branch, applies the fix, and opens a pull request on GitHub/GitLab with the finding ID as the title and the AI explanation as the PR body. One-click remediation from the report to a merged fix.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>2 weeks (1 engineer)</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Reduces mean time to remediate from days to minutes. Transforms BlanketAudit from "tells you what's wrong" to "fixes it for you."</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>2. Slack &amp; Microsoft Teams Integration</h3>
+      <p>Post scan summaries to a channel when a scan completes. Alert on new critical findings compared to the previous scan. Send a daily compliance digest showing controls that moved between PASS, PARTIAL, and FAIL. Configurable via webhook URL in <code>audit.yaml</code>.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>1 week</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Keeps security and compliance teams informed without logging into a dashboard. Critical for enterprise adoption where Slack is the nervous system.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>3. VS Code Extension</h3>
+      <p>Show BlanketAudit findings inline in the editor. Red underlines on vulnerable lines with severity-colored squiggles. Hover over a finding to see the AI explanation, blast radius, and compliance refs. Quick-fix code action applies the <code>fix_code</code> directly. Reads from <code>report.sarif</code> so it works with any scan.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>3 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Brings findings to where developers already work. SARIF integration means it also works with GitHub Codespaces and other SARIF-compatible editors.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>4. GitHub App (PR Gating)</h3>
+      <p>Install as a GitHub App. Automatically scan every pull request. Post SARIF results as inline code review comments on the exact lines with findings. Block merge if any critical-severity findings are detected. Configuration lives in <code>.blanketaudit.yml</code> at the repo root.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>2 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Shifts security left into the PR workflow. Prevents vulnerabilities from reaching main. The single most requested feature for CI/CD teams.</td></tr>
+      </table>
+    </div>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Phase 2: Next 60 Days <span class="badge badge-yellow">differentiators</span></h2>
+    <p>Features that separate BlanketAudit from every other SAST tool on the market.</p>
+
+    <div class="card">
+      <h3>5. AI Agent Memory &amp; Learning</h3>
+      <p>Agents build a persistent knowledge base about your codebase over repeated scans. Custom patterns are learned: if you consistently mark a finding as a false positive, the agent adjusts its confidence threshold for that pattern. Over time, BlanketAudit generates custom policy rules tailored to your codebase's conventions. False positive rate drops with each scan.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>4 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Solves the #1 complaint with SAST tools: noise. A tool that gets smarter about YOUR code is exponentially more valuable than one that treats every repo the same.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>6. Dependency License Audit &amp; SBOM</h3>
+      <p>Flag GPL-licensed dependencies in commercial projects. Generate Software Bill of Materials in CycloneDX and SPDX formats. Build a license compatibility matrix that shows which dependencies conflict with your project's license. Integrates with the existing manifest parser to pull license data from npm, PyPI, Maven Central, and crates.io.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>3 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>SBOM generation is becoming a regulatory requirement (US Executive Order 14028). This makes BlanketAudit essential for government contractors and enterprise procurement.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>7. Secret Rotation Automation</h3>
+      <p>When Gitleaks detects a hardcoded secret, BlanketAudit goes beyond alerting. It identifies the secret type (AWS key, database password, API token), rotates it via the provider's API (AWS Secrets Manager, HashiCorp Vault, GCP Secret Manager), updates the code to reference an environment variable, and opens a PR with the change. The old secret is invalidated automatically.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>4 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Hardcoded secrets are the most common critical finding. Auto-rotation eliminates the most dangerous class of vulnerability without human intervention.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>8. Compliance Certification Tracker</h3>
+      <p>Track SOC 2, HIPAA, and PCI-DSS compliance progress over time with a dedicated dashboard. See controls moving from FAIL to PARTIAL to PASS across scans. Timeline view shows when each control was last assessed and its trend. Generate auditor-ready evidence exports with timestamps, scan IDs, and remediation history. Answers the auditor's question: "Show me when you fixed this and prove it stayed fixed."</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>3 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Turns BlanketAudit from a point-in-time scanner into a continuous compliance platform. Companies preparing for SOC 2 audits will use this daily.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>9. Multi-Language Deep Analysis</h3>
+      <p>Expand entity extraction and call graph construction to Go, Rust, C#, and Kotlin. Deeper call graph resolution with generic type support, trait/interface dispatch, and async call tracking. The existing Tree-sitter infrastructure handles parsing; this work focuses on language-specific extractors and symbol resolution for each language's type system.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>6 weeks (across all 4 languages)</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Unlocks enterprise adoption where codebases span multiple languages. Go and Rust are particularly high-demand given the cloud-native ecosystem.</td></tr>
+      </table>
+    </div>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Phase 3: Next 90 Days <span class="badge badge-red">moonshots</span></h2>
+    <p>Ambitious features that push the boundary of what automated code audit can achieve.</p>
+
+    <div class="card">
+      <h3>10. Runtime Taint Analysis</h3>
+      <p>Instrument a running application to trace actual data flows at runtime. Compare static analysis predictions (the call graph's taint paths) against real observed data movement. When static analysis says "user input reaches this SQL query," runtime analysis confirms or refutes it with actual execution traces. This eliminates false positives on taint paths entirely and provides concrete proof of exploitability.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>8 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Zero false positives on taint-based findings. This is the holy grail of application security: combining static and dynamic analysis into one workflow.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>11. AI Architecture Advisor</h3>
+      <p>Ask natural language questions about your architecture: "Should I split this monolith into microservices?" "Is PostgreSQL the right database for my access patterns?" "What happens if this service goes down?" The advisor uses the call graph, dependency analysis, and traffic patterns to generate evidence-based architecture recommendations with trade-off analysis. Not opinions&mdash;data-driven advice grounded in your actual codebase.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>6 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Replaces expensive architecture consulting engagements. A staff engineer in a box that knows your entire codebase.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>12. Compliance Evidence Generator</h3>
+      <p>Auto-generate SOC 2 evidence packets from scan results. Map findings directly to specific auditor questions from the AICPA Trust Services Criteria. Generate a complete evidence binder with: control descriptions, test procedures, test results, exception tracking, and remediation evidence. Exportable as a structured PDF that auditors can review directly, cutting weeks off the audit preparation process.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>5 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>SOC 2 audit preparation costs $50K-$200K in consulting fees. This feature pays for itself on the first audit cycle.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>13. Threat Modeling Agent</h3>
+      <p>Perform automated STRIDE threat analysis per API endpoint. Generate attack trees showing how an attacker could chain vulnerabilities. "If an attacker compromises the auth service, here is every piece of data they can reach, every service they can pivot to, and every user population affected." Uses the call graph's cross-repo edges and blast radius data to map realistic attack paths, not theoretical ones.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>6 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Threat modeling is required by many compliance frameworks but rarely done because it is expensive and manual. Automation makes it accessible to every team.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>14. Cross-Organization Benchmarking</h3>
+      <p>Opt-in anonymous benchmarking: "Your healthcare application scores 31. The median healthcare application on BlanketAudit scores 58. You are in the bottom 15th percentile for HIPAA compliance." No code is shared&mdash;only aggregate scores, finding category distributions, and anonymized trends. Industry-specific benchmarks for healthcare, fintech, e-commerce, and SaaS verticals.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>4 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Creates a powerful network effect. The more companies use BlanketAudit, the more valuable the benchmarks become. Also creates urgency: "We are below the industry median" drives executive buy-in for remediation.</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>15. Natural Language Audit Queries</h3>
+      <p>Chat with your codebase using natural language. "Show me all endpoints that access PHI without encryption." "Which services have no authentication middleware?" "What is the blast radius if the payment database is compromised?" Queries execute against the code graph (Neo4j) and vector database (Milvus) simultaneously, combining structural and semantic search. Results are returned as interactive finding cards with evidence and code snippets.</p>
+      <table>
+        <tr><td><strong>Effort</strong></td><td>5 weeks</td></tr>
+        <tr><td><strong>Impact</strong></td><td>Transforms BlanketAudit from a batch scanning tool into an interactive security research platform. Security teams can investigate hypotheses in seconds instead of hours of manual code review.</td></tr>
+      </table>
+    </div>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Roadmap Summary</h2>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Feature</th><th>Phase</th><th>Effort</th><th>Category</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Auto-Fix PR Generation</td><td><span class="badge badge-green">30 days</span></td><td>2 weeks</td><td>Remediation</td></tr>
+        <tr><td>2</td><td>Slack / Teams Integration</td><td><span class="badge badge-green">30 days</span></td><td>1 week</td><td>Notifications</td></tr>
+        <tr><td>3</td><td>VS Code Extension</td><td><span class="badge badge-green">30 days</span></td><td>3 weeks</td><td>Developer UX</td></tr>
+        <tr><td>4</td><td>GitHub App (PR Gating)</td><td><span class="badge badge-green">30 days</span></td><td>2 weeks</td><td>CI/CD</td></tr>
+        <tr><td>5</td><td>AI Agent Memory</td><td><span class="badge badge-yellow">60 days</span></td><td>4 weeks</td><td>AI Quality</td></tr>
+        <tr><td>6</td><td>License Audit &amp; SBOM</td><td><span class="badge badge-yellow">60 days</span></td><td>3 weeks</td><td>Compliance</td></tr>
+        <tr><td>7</td><td>Secret Rotation Automation</td><td><span class="badge badge-yellow">60 days</span></td><td>4 weeks</td><td>Security</td></tr>
+        <tr><td>8</td><td>Compliance Tracker</td><td><span class="badge badge-yellow">60 days</span></td><td>3 weeks</td><td>Compliance</td></tr>
+        <tr><td>9</td><td>Multi-Language Deep Analysis</td><td><span class="badge badge-yellow">60 days</span></td><td>6 weeks</td><td>Core Engine</td></tr>
+        <tr><td>10</td><td>Runtime Taint Analysis</td><td><span class="badge badge-red">90 days</span></td><td>8 weeks</td><td>Security</td></tr>
+        <tr><td>11</td><td>AI Architecture Advisor</td><td><span class="badge badge-red">90 days</span></td><td>6 weeks</td><td>Architecture</td></tr>
+        <tr><td>12</td><td>Compliance Evidence Generator</td><td><span class="badge badge-red">90 days</span></td><td>5 weeks</td><td>Compliance</td></tr>
+        <tr><td>13</td><td>Threat Modeling Agent</td><td><span class="badge badge-red">90 days</span></td><td>6 weeks</td><td>Security</td></tr>
+        <tr><td>14</td><td>Cross-Org Benchmarking</td><td><span class="badge badge-red">90 days</span></td><td>4 weeks</td><td>Analytics</td></tr>
+        <tr><td>15</td><td>Natural Language Queries</td><td><span class="badge badge-red">90 days</span></td><td>5 weeks</td><td>Developer UX</td></tr>
+      </tbody>
+    </table>
+
+    <blockquote>
+      <strong>Prioritization principle:</strong> Every feature on this roadmap either reduces time-to-remediation, expands the addressable market, or creates a defensible moat through network effects and accumulated intelligence. Features that do none of these do not make the list.
+    </blockquote>
+
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; AI-Powered Architecture Governance &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

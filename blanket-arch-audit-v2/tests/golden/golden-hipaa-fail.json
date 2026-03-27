@@ -1,0 +1,113 @@
+{
+  "fixture": "fixture-hipaa-fail",
+  "description": "HIPAA violations: PHI logging, unencrypted data store, SQL injection, hardcoded credentials, unauthenticated PHI endpoints",
+  "files": [
+    "patient_service.py",
+    "api_routes.py",
+    "requirements.txt"
+  ],
+  "expected_findings": {
+    "must_find": [
+      {
+        "category": "security",
+        "severity": "critical",
+        "pattern": "sql.injection",
+        "description": "SQL injection via f-string in patient_service.py (lines 11 and 20)",
+        "min_count": 1
+      },
+      {
+        "category": "security",
+        "severity": "high",
+        "pattern": "hardcoded.password",
+        "description": "Hardcoded password 'admin123' in patient_service.py line 23",
+        "min_count": 1
+      },
+      {
+        "category": "compliance",
+        "pattern": "phi.*log",
+        "description": "PHI (SSN, DOB) written to logs in patient_service.py lines 13-14",
+        "min_count": 1
+      },
+      {
+        "category": "compliance",
+        "pattern": "unencrypted.*storage|encryption.*rest",
+        "description": "Unencrypted SQLite database for PHI storage (patients.db)",
+        "min_count": 1
+      },
+      {
+        "category": "security",
+        "pattern": "missing.*auth|unauthenticated",
+        "description": "No authentication on PHI endpoints in api_routes.py",
+        "min_count": 1
+      },
+      {
+        "category": "compliance",
+        "pattern": "audit.*log|missing.*audit",
+        "description": "No audit logging on PHI access endpoints",
+        "min_count": 1
+      }
+    ],
+    "must_not_find": [
+      {
+        "category": "security",
+        "pattern": "xss",
+        "reason": "No HTML rendering or DOM manipulation in this fixture"
+      },
+      {
+        "category": "security",
+        "pattern": "csrf",
+        "reason": "No form-based state-changing operations in this fixture"
+      },
+      {
+        "category": "security",
+        "pattern": "deserialization",
+        "reason": "No pickle/yaml.load/deserialization in this fixture"
+      }
+    ]
+  },
+  "expected_severity_counts": {
+    "critical": { "min": 1, "max": 5 },
+    "high": { "min": 2, "max": 10 },
+    "medium": { "min": 0, "max": 15 },
+    "low": { "min": 0, "max": 10 }
+  },
+  "expected_score": {
+    "overall": { "min": 0, "max": 50 },
+    "grade": ["D", "F"]
+  },
+  "expected_compliance": {
+    "HIPAA": {
+      "must_have_controls": [
+        "164.312",
+        "164.530",
+        "164.502"
+      ],
+      "expected_failures": [
+        {
+          "clause_pattern": "164.312.*a",
+          "title_pattern": "access.control",
+          "expected_status": ["fail"]
+        },
+        {
+          "clause_pattern": "164.312.*e",
+          "title_pattern": "transmission.security",
+          "expected_status": ["fail", "partial"]
+        },
+        {
+          "clause_pattern": "164.530",
+          "title_pattern": "safeguard",
+          "expected_status": ["fail"]
+        },
+        {
+          "clause_pattern": "164.502",
+          "title_pattern": "minimum.necessary|use.*disclosure",
+          "expected_status": ["fail"]
+        }
+      ]
+    }
+  },
+  "expected_evidence_files": [
+    "patient_service.py",
+    "api_routes.py"
+  ]
+}

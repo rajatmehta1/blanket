@@ -1,0 +1,30 @@
+id: SEC-020
+name: Missing Rate Limiting on Auth Endpoints
+category: security
+severity: medium
+description: Detects authentication endpoints without rate limiting, enabling brute-force attacks.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: ast
+    pattern:
+      node_type: function_definition
+      conditions:
+        - text_matches: '(?:login|authenticate|signin|sign_in|token|oauth)'
+  - tool: regex
+    regex: '(?:@app\.(?:post|put)\s*\(\s*["\''"].*(?:/login|/auth|/token|/signin))'
+
+ai_analysis:
+  prompt_template: |
+    Analyze this authentication endpoint for rate limiting. Consider:
+    - Is there a rate limiter decorator or middleware applied?
+    - Does the framework provide built-in throttling for this route?
+    - Is there account lockout logic after failed attempts?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Add rate limiting with slowapi, django-ratelimit, or a reverse proxy rule.
+  Limit login attempts to 5-10 per minute per IP and implement account lockout.
+effort_hours: 3

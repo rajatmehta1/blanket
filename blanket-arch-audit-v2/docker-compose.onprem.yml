@@ -1,0 +1,52 @@
+# On-premises with Ollama (local LLM — no API keys needed)
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - BLANKETAUDIT_LLM__PROVIDER=ollama
+      - BLANKETAUDIT_LLM__MODEL=llama3.1
+      - BLANKETAUDIT_EMBEDDING__PROVIDER=ollama
+      - BLANKETAUDIT_EMBEDDING__MODEL=nomic-embed-text
+      - BLANKETAUDIT_NEO4J_URI=bolt://neo4j:7687
+      - BLANKETAUDIT_NEO4J_USER=neo4j
+      - BLANKETAUDIT_NEO4J_PASSWORD=blanketaudit
+      - BLANKETAUDIT_COST__MAX_SCAN_COST_USD=0
+      - BLANKETAUDIT_SQLITE_PATH=/data/blanketaudit.db
+    volumes:
+      - scan-data:/data
+    depends_on:
+      - ollama
+      - neo4j
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/blanketaudit
+    volumes:
+      - neo4j-data:/data
+
+volumes:
+  scan-data:
+  neo4j-data:
+  ollama-models:

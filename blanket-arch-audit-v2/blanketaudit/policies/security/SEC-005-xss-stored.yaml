@@ -1,0 +1,27 @@
+id: SEC-005
+name: Stored XSS via innerHTML or dangerouslySetInnerHTML
+category: security
+severity: high
+description: Detects use of innerHTML or dangerouslySetInnerHTML with potentially unsafe content.
+frameworks: [soc2, pci-dss, gdpr]
+
+static_checks:
+  - tool: regex
+    regex: '(?:\.innerHTML\s*=|dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html)'
+  - tool: semgrep
+    rule: javascript.browser.security.insecure-document-method
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential stored XSS vulnerability. Consider:
+    - Is the HTML content from a trusted source or user-generated?
+    - Is the content sanitized with DOMPurify or similar before rendering?
+    - Could an attacker persist malicious script via this path?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Sanitize HTML with DOMPurify before using innerHTML.
+  Prefer textContent for plain text. Use a safe markdown renderer for rich text.
+effort_hours: 3

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Setup &amp; Ollama Guide &mdash; BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <nav class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="prompts.html">Prompts</a>
+      <a href="callgraph.html">Call Graph</a>
+      <a href="samples.html">Samples</a>
+      <a class="active" href="local-setup.html">Local Setup</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a href="deployment.html">Deployment</a>
+    </nav>
+
+    <h1>Local Setup &amp; Ollama Guide <span class="badge badge-green">quickstart</span></h1>
+    <p>Get BlanketAudit running on your machine in under 5 minutes. No Docker required. Choose your LLM provider&mdash;or run with zero AI for free static-only scans.</p>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Prerequisites</h2>
+
+    <table>
+      <thead>
+        <tr><th>Dependency</th><th>Required?</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Python 3.11+</code></td><td><span class="badge badge-red">required</span></td><td>Runtime for the entire application</td></tr>
+        <tr><td><code>Git</code></td><td><span class="badge badge-red">required</span></td><td>Clone repos, compute diffs for incremental scanning</td></tr>
+        <tr><td><code>pip</code> or <code>uv</code></td><td><span class="badge badge-red">required</span></td><td>Install Python packages</td></tr>
+        <tr><td><code>Ollama</code></td><td><span class="badge badge-blue">optional</span></td><td>Free local LLM inference (no API keys needed)</td></tr>
+        <tr><td><code>Semgrep</code></td><td><span class="badge badge-blue">optional</span></td><td>Static analysis (SAST). BlanketAudit uses built-in rules if missing.</td></tr>
+        <tr><td><code>Gitleaks</code></td><td><span class="badge badge-blue">optional</span></td><td>Secret detection in source code and git history</td></tr>
+        <tr><td><code>Node.js 18+</code></td><td><span class="badge badge-blue">optional</span></td><td>Only needed if running the web frontend</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Installation (No Docker)</h2>
+
+    <p>Clone and install BlanketAudit as an editable Python package. All dependencies are declared in <code>pyproject.toml</code>.</p>
+
+<pre><code><span class="comment"># Clone the repository</span>
+git clone https://github.com/tectoniclabs/blanketaudit
+<span class="kw">cd</span> blanketaudit
+
+<span class="comment"># Create a virtual environment (recommended)</span>
+python -m venv .venv
+source .venv/bin/activate   <span class="comment"># Linux/macOS</span>
+.venv\Scripts\activate      <span class="comment"># Windows</span>
+
+<span class="comment"># Install in editable mode with all dependencies</span>
+pip install -e .
+
+<span class="comment"># Verify installation</span>
+blanketaudit --version
+<span class="comment"># BlanketAudit v2.0.0</span></code></pre>
+
+    <blockquote>
+      <strong>Tip:</strong> If you prefer <a href="https://github.com/astral-sh/uv">uv</a> for faster installs, run <code>uv pip install -e .</code> instead. It resolves dependencies 10-100x faster than pip.
+    </blockquote>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Running with No LLM (Static Only, Free)</h2>
+
+    <p>BlanketAudit works out of the box with <strong>zero AI, zero API keys, zero cost</strong>. Static scanners (Semgrep, Gitleaks, OSV, regex policies) run deterministically and produce actionable findings.</p>
+
+<pre><code><span class="comment"># Scan a local project &mdash; static only, no LLM calls</span>
+blanketaudit scan ./my-project
+
+<span class="comment"># Scan with a specific compliance framework</span>
+blanketaudit scan ./my-project --framework hipaa
+
+<span class="comment"># Scan multiple repos at once</span>
+blanketaudit scan ./patient-api ./payment-engine ./portal-web
+
+<span class="comment"># Dry run: see what would be scanned + cost estimate</span>
+blanketaudit scan ./my-project --dry-run</code></pre>
+
+    <p>Output formats are generated automatically:</p>
+    <ul>
+      <li><code>report.pdf</code> &mdash; Dark-themed PDF with all 9 sections</li>
+      <li><code>report.html</code> &mdash; Interactive HTML with expandable findings</li>
+      <li><code>report.json</code> &mdash; Machine-readable for CI/CD integration</li>
+      <li><code>report.sarif</code> &mdash; GitHub/IDE code scanning integration</li>
+    </ul>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Running with Ollama (Local AI, Free)</h2>
+
+    <p>Ollama gives you AI-powered analysis without paying for API keys. Models run entirely on your machine. BlanketAudit supports Ollama as a first-class provider through LangChain.</p>
+
+    <h3>Step 1: Install Ollama</h3>
+
+<pre><code><span class="comment"># Linux / macOS</span>
+curl -fsSL https://ollama.ai/install.sh | sh
+
+<span class="comment"># Windows &mdash; download from https://ollama.ai/download</span>
+<span class="comment"># Or via winget:</span>
+winget install Ollama.Ollama
+
+<span class="comment"># Verify Ollama is running</span>
+ollama --version</code></pre>
+
+    <h3>Step 2: Pull Models</h3>
+
+    <p>You need one LLM for analysis and one embedding model for semantic search.</p>
+
+<pre><code><span class="comment"># Pull the LLM (pick one based on your hardware)</span>
+ollama pull llama3.1           <span class="comment"># 8B params, ~5GB, works on 8GB RAM</span>
+ollama pull llama3.1:70b       <span class="comment"># 70B params, ~40GB, needs 64GB+ RAM</span>
+ollama pull deepseek-coder-v2  <span class="comment"># Code-specialized alternative</span>
+
+<span class="comment"># Pull the embedding model</span>
+ollama pull nomic-embed-text   <span class="comment"># Fast, high-quality embeddings</span></code></pre>
+
+    <table>
+      <thead>
+        <tr><th>Model</th><th>Size</th><th>RAM Needed</th><th>Best For</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>llama3.1</code></td><td>4.7 GB</td><td>8 GB</td><td>General analysis, fast</td></tr>
+        <tr><td><code>llama3.1:70b</code></td><td>40 GB</td><td>64 GB</td><td>Highest quality local analysis</td></tr>
+        <tr><td><code>deepseek-coder-v2</code></td><td>8.9 GB</td><td>16 GB</td><td>Code-focused tasks</td></tr>
+        <tr><td><code>nomic-embed-text</code></td><td>274 MB</td><td>1 GB</td><td>Embeddings for semantic search</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Step 3: Configure BlanketAudit</h3>
+
+<pre><code><span class="comment"># Set environment variables</span>
+<span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=ollama
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=llama3.1
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__PROVIDER=ollama
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__MODEL=nomic-embed-text
+
+<span class="comment"># Optional: Ollama runs on localhost:11434 by default</span>
+<span class="comment"># Change only if you run Ollama on a different host</span>
+<span class="kw">export</span> BLANKETAUDIT_LLM__BASE_URL=http://localhost:11434</code></pre>
+
+    <h3>Step 4: Run a Scan with AI</h3>
+
+<pre><code><span class="comment"># Full AI-powered scan with compliance framework</span>
+blanketaudit scan ./my-project --domain healthcare --framework hipaa
+
+<span class="comment"># Multi-framework scan</span>
+blanketaudit scan ./my-project --framework hipaa --framework soc2 --framework pci-dss
+
+<span class="comment"># Limit token budget (useful for slower hardware)</span>
+blanketaudit scan ./my-project --max-tokens 200000</code></pre>
+
+    <blockquote>
+      <strong>Performance note:</strong> On a MacBook Pro M2 with 16GB RAM, <code>llama3.1</code> processes about 30 tokens/sec. A typical 500-file scan takes 8-15 minutes with AI enabled vs 30-60 seconds static only.
+    </blockquote>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Running with Cloud LLMs</h2>
+
+    <p>For the highest quality analysis, use a cloud LLM provider. Each provider is accessed through LangChain abstractions&mdash;you only need to set environment variables.</p>
+
+    <h3>Anthropic (Claude)</h3>
+<pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=anthropic
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=claude-sonnet-4-20250514
+<span class="kw">export</span> ANTHROPIC_API_KEY=sk-ant-...
+<span class="comment"># Compliance agent automatically uses Claude Opus for deeper reasoning</span></code></pre>
+
+    <h3>OpenAI (GPT-4)</h3>
+<pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=openai
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=gpt-4o
+<span class="kw">export</span> OPENAI_API_KEY=sk-...</code></pre>
+
+    <h3>Groq (Ultra-Fast Inference)</h3>
+<pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=groq
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=llama-3.1-70b-versatile
+<span class="kw">export</span> GROQ_API_KEY=gsk_...</code></pre>
+
+    <h3>Google (Gemini)</h3>
+<pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=google
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=gemini-pro
+<span class="kw">export</span> GOOGLE_API_KEY=...</code></pre>
+
+    <h3>Azure OpenAI (Enterprise)</h3>
+<pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=azure
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=gpt-4
+<span class="kw">export</span> AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+<span class="kw">export</span> AZURE_OPENAI_API_KEY=...
+<span class="kw">export</span> AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4</code></pre>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Configuration File (audit.yaml)</h2>
+
+    <p>For persistent configuration, create an <code>audit.yaml</code> file in your project root or pass it with <code>--config</code>. This is the recommended approach for teams.</p>
+
+<pre><code><span class="comment"># audit.yaml &mdash; BlanketAudit scan configuration</span>
+
+<span class="comment"># ── Project Metadata ──</span>
+project:
+  name: <span class="str">"MedPay"</span>
+  tagline: <span class="str">"Patient Insurance Payment Platform"</span>
+  domain: <span class="str">"healthcare"</span>            <span class="comment"># healthcare | fintech | ecommerce | saas</span>
+
+<span class="comment"># ── Repositories to Scan ──</span>
+repos:
+  - path: <span class="str">"./patient-api"</span>
+  - path: <span class="str">"./payment-engine"</span>
+  - path: <span class="str">"./portal-web"</span>
+  <span class="comment"># Remote repos are cloned automatically:</span>
+  <span class="comment"># - url: "https://github.com/org/repo.git"</span>
+
+<span class="comment"># ── Compliance Frameworks ──</span>
+compliance:
+  frameworks:
+    - <span class="str">"hipaa"</span>                   <span class="comment"># HIPAA Security Rule</span>
+    - <span class="str">"soc2"</span>                    <span class="comment"># SOC 2 Trust Service Criteria</span>
+    - <span class="str">"pci-dss"</span>                 <span class="comment"># PCI-DSS v4.0</span>
+  <span class="comment"># - "gdpr"                    # GDPR (EU)</span>
+
+<span class="comment"># ── LLM Provider ──</span>
+llm:
+  provider: <span class="str">"ollama"</span>            <span class="comment"># anthropic | openai | ollama | groq | google | azure | none</span>
+  model: <span class="str">"llama3.1"</span>             <span class="comment"># Default model for most agents</span>
+  base_url: <span class="str">"http://localhost:11434"</span>  <span class="comment"># Only needed for Ollama / custom endpoints</span>
+  per_agent_models:             <span class="comment"># Override model per agent (optional)</span>
+    compliance: <span class="str">"llama3.1:70b"</span>  <span class="comment"># Use larger model for compliance reasoning</span>
+    security: <span class="str">"llama3.1"</span>
+    architecture: <span class="str">"llama3.1"</span>
+    quality: <span class="str">"llama3.1"</span>
+
+<span class="comment"># ── Embeddings ──</span>
+embedding:
+  provider: <span class="str">"ollama"</span>           <span class="comment"># openai | ollama | huggingface | voyage | none</span>
+  model: <span class="str">"nomic-embed-text"</span>
+
+<span class="comment"># ── Cost Controls ──</span>
+cost:
+  max_scan_cost_usd: <span class="str">5.00</span>      <span class="comment"># Hard abort if projected cost exceeds this</span>
+  token_budget_per_agent: <span class="str">500000</span>  <span class="comment"># Max tokens per agent before fallback to static</span>
+  dry_run: <span class="str">false</span>               <span class="comment"># Set true to estimate cost without scanning</span>
+
+<span class="comment"># ── Output ──</span>
+output:
+  formats:
+    - <span class="str">"pdf"</span>                    <span class="comment"># Dark-themed WeasyPrint PDF</span>
+    - <span class="str">"html"</span>                   <span class="comment"># Interactive HTML report</span>
+    - <span class="str">"json"</span>                   <span class="comment"># Machine-readable JSON</span>
+    - <span class="str">"sarif"</span>                  <span class="comment"># GitHub / IDE integration</span>
+  directory: <span class="str">"./reports"</span>        <span class="comment"># Output directory</span>
+
+<span class="comment"># ── Caching ──</span>
+cache:
+  enabled: <span class="str">true</span>                <span class="comment"># SHA-256(content + policy_version) cache</span>
+  directory: <span class="str">".blanketaudit-cache"</span>
+
+<span class="comment"># ── Static Tools ──</span>
+tools:
+  semgrep:
+    enabled: <span class="str">true</span>
+    extra_rules: []             <span class="comment"># Paths to additional Semgrep rule files</span>
+  gitleaks:
+    enabled: <span class="str">true</span>
+  osv:
+    enabled: <span class="str">true</span></code></pre>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Running Tests</h2>
+
+<pre><code><span class="comment"># Install test dependencies</span>
+pip install -e <span class="str">".[test]"</span>
+
+<span class="comment"># Run all unit tests (fast, no LLM calls)</span>
+python -m pytest tests/unit/ -v
+<span class="comment"># 1,565 tests pass in ~25 seconds</span>
+
+<span class="comment"># Run fixture tests (planted vulnerabilities)</span>
+python -m pytest tests/fixtures/ -v
+
+<span class="comment"># Run golden file tests (expected output comparison)</span>
+python -m pytest tests/golden/ -v
+
+<span class="comment"># Run everything except LLM-as-Judge eval</span>
+python -m pytest tests/ -k <span class="str">"not TestLLMJudge"</span>
+
+<span class="comment"># Run with coverage report</span>
+python -m pytest tests/ --cov=codeaudit --cov-report=html</code></pre>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Troubleshooting</h2>
+
+    <h3>WeasyPrint: Missing GTK Libraries</h3>
+    <p>WeasyPrint requires GTK/Pango system libraries for PDF rendering.</p>
+<pre><code><span class="comment"># Ubuntu / Debian</span>
+sudo apt install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev
+
+<span class="comment"># macOS</span>
+brew install pango gdk-pixbuf libffi
+
+<span class="comment"># Windows &mdash; install GTK3 runtime:</span>
+<span class="comment"># https://github.com/nickvdyck/weasyprint-win/releases</span>
+<span class="comment"># Or use: pip install weasyprint (bundled DLLs on newer versions)</span></code></pre>
+
+    <h3>Tree-sitter: Compilation Errors</h3>
+    <p>Tree-sitter grammars are compiled from C. You need a C compiler available.</p>
+<pre><code><span class="comment"># Ubuntu / Debian</span>
+sudo apt install build-essential
+
+<span class="comment"># macOS (Xcode CLI tools)</span>
+xcode-select --install
+
+<span class="comment"># Windows (install Visual Studio Build Tools)</span>
+<span class="comment"># https://visualstudio.microsoft.com/visual-cpp-build-tools/</span></code></pre>
+
+    <h3>Ollama: Connection Refused</h3>
+    <p>If BlanketAudit cannot reach Ollama, make sure the service is running.</p>
+<pre><code><span class="comment"># Check if Ollama is running</span>
+curl http://localhost:11434/api/tags
+
+<span class="comment"># Start Ollama (Linux)</span>
+ollama serve
+
+<span class="comment"># On macOS, Ollama runs as a system service after install</span>
+<span class="comment"># On Windows, start the Ollama app from the Start Menu</span>
+
+<span class="comment"># If using a remote Ollama instance:</span>
+<span class="kw">export</span> BLANKETAUDIT_LLM__BASE_URL=http://your-server:11434</code></pre>
+
+    <h3>Semgrep / Gitleaks Not Found</h3>
+    <p>These tools are optional. BlanketAudit falls back to built-in regex rules if they are missing. To install:</p>
+<pre><code><span class="comment"># Semgrep</span>
+pip install semgrep
+<span class="comment"># Or: brew install semgrep</span>
+
+<span class="comment"># Gitleaks</span>
+brew install gitleaks
+<span class="comment"># Or download from: https://github.com/gitleaks/gitleaks/releases</span></code></pre>
+
+    <h3>Out of Memory During Scan</h3>
+    <p>Large codebases can use significant memory during AST parsing and call graph construction.</p>
+<pre><code><span class="comment"># Reduce token budget to limit memory usage</span>
+blanketaudit scan ./large-project --max-tokens 100000
+
+<span class="comment"># Scan specific directories instead of entire repo</span>
+blanketaudit scan ./large-project/src/api ./large-project/src/auth
+
+<span class="comment"># Disable vector DB (reduces memory by ~500MB)</span>
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__PROVIDER=none</code></pre>
+
+    <h3>Permission Errors on Temp Files</h3>
+    <p>BlanketAudit creates temporary directories for cloned repos and intermediate results. If the process crashes, stale temp dirs may remain.</p>
+<pre><code><span class="comment"># Clean up stale temp directories</span>
+blanketaudit cleanup
+
+<span class="comment"># Or manually:</span>
+rm -rf /tmp/blanketaudit-*</code></pre>
+
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; AI-Powered Architecture Governance &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

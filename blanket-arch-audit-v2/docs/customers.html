@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finding First 10 Customers — BlanketAudit</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<nav class="top-nav"><a href="index.html">← Docs Home</a> <span>Finding First 10 Customers</span></nav>
+
+<main class="container">
+<h1>Finding Your First 10 Customers <span class="badge green">60-Day Playbook</span></h1>
+<p class="muted">A concrete, week-by-week guide to going from zero to 10 paying customers.</p>
+
+<!-- ── ICP ────────────────────────────── -->
+<h2>1. Ideal Customer Profile (ICP)</h2>
+<table>
+<tr><th>Attribute</th><th>Value</th></tr>
+<tr><td>Company stage</td><td>Series A–C startup, 20–100 engineers</td></tr>
+<tr><td>Industry</td><td>Healthcare (HIPAA), Fintech (PCI-DSS/SOX), SaaS (SOC2/GDPR)</td></tr>
+<tr><td>Trigger event</td><td>SOC2 audit in ≤6 months, enterprise deal blocked on compliance, recent failed audit</td></tr>
+<tr><td>Budget holder</td><td>CTO or VP Engineering</td></tr>
+<tr><td>Core pain</td><td>"We need SOC2 but don't know where to start — it took our last company 6 months."</td></tr>
+<tr><td>Sign they're ready</td><td>Open "security engineer" or "compliance" job posting; investor deck mentions SOC2 timeline</td></tr>
+</table>
+
+<!-- ── Week 1 ─────────────────────────── -->
+<h2>2. Week 1 — Identify 50 Prospects</h2>
+
+<h3>Method A: LinkedIn Sales Navigator</h3>
+<ol>
+<li>Search: <code>"CTO" OR "VP Engineering"</code> + industry: <code>Healthcare IT</code>, <code>Fintech</code></li>
+<li>Filter: company size 20–200, funding stage Series A–C</li>
+<li>Save 50 profiles to a "BlanketAudit Prospects" list</li>
+<li>For each: note whether they handle PHI, PCI data, or mention SOC2 on their website</li>
+</ol>
+
+<h3>Method B: Crunchbase / AngelList</h3>
+<ol>
+<li>Filter: Healthcare or Fintech, raised &gt;$5M, founded after 2020</li>
+<li>Check careers page — open roles mentioning "security", "compliance", or "SOC2" = strong signal</li>
+<li>Cross-reference with LinkedIn to find the CTO/VP Eng</li>
+</ol>
+
+<h3>Method C: GitHub Reconnaissance</h3>
+<ol>
+<li>Search GitHub for repos containing: <code>"HIPAA"</code>, <code>"patient"</code>, <code>"phi"</code>, <code>"card_number"</code></li>
+<li>Check if <code>.env</code> is committed (instant finding you can reference in outreach)</li>
+<li>Look for <code>requirements.txt</code> with outdated deps (CVE findings)</li>
+<li>Note: only scan public repos; this is for research, not uninvited scanning of private code</li>
+</ol>
+
+<h3>Method D: SOC2 Auditor Referrals</h3>
+<ol>
+<li>Identify 5 SOC2 audit firms (Vanta partners, Drata partners, Secureframe partners)</li>
+<li>Email: "We offer free pre-audit code scans to your clients. Helps them pass faster = less rework for you."</li>
+<li>Offer a white-label version of the report with their branding</li>
+<li>Auditors refer 3–5 clients each → 15–25 warm leads</li>
+</ol>
+
+<blockquote><strong>Output:</strong> Spreadsheet with 50 rows: Company, CTO name, LinkedIn URL, email, industry, trigger signal, notes.</blockquote>
+
+<!-- ── Week 2-3 ───────────────────────── -->
+<h2>3. Week 2–3 — Outreach: The Free Audit Offer</h2>
+
+<h3>Cold Email Template</h3>
+<pre><code>Subject: Found 3 security issues in {company}'s public code
+
+Hi {first_name},
+
+I built an AI tool that audits codebases for HIPAA + SOC2 compliance.
+I ran a quick scan on {company}'s public repos and found:
+
+• SQL injection in {file} (Critical — HIPAA §164.312)
+• Hardcoded API key in {file} (High — SOC2 CC6.1)
+• PHI-like data in log statements (High — HIPAA §164.530)
+
+I can send you the full report with exact fix code for each one.
+No charge — I'm collecting feedback from healthcare CTOs.
+
+15-minute call to walk through it?
+
+Best,
+{your_name}
+Founder, BlanketAudit
+</code></pre>
+
+<h3>LinkedIn DM Template</h3>
+<pre><code>Hi {first_name}, saw {company} is building in healthcare.
+
+We built a tool that scans codebases for HIPAA/SOC2 gaps and
+generates a remediation roadmap with effort estimates.
+
+Would you be open to a free audit of your repos? Takes 12 minutes,
+you get a PDF report with dollar-impact per finding.
+
+No strings — just looking for early feedback.
+</code></pre>
+
+<h3>Follow-Up Cadence</h3>
+<table>
+<tr><th>Day</th><th>Action</th><th>Content</th></tr>
+<tr><td>0</td><td>Initial email or DM</td><td>Free audit offer with 2–3 specific findings</td></tr>
+<tr><td>3</td><td>Follow-up email</td><td>"Here's one more finding I noticed — your .env file is tracked in git"</td></tr>
+<tr><td>7</td><td>Value-add follow-up</td><td>Link to your blog: "SOC2 Checklist for Healthcare Startups"</td></tr>
+<tr><td>14</td><td>Break-up email</td><td>"Looks like timing isn't right. I'll check back in 3 months."</td></tr>
+</table>
+
+<blockquote><strong>Expected results:</strong> 50 outreaches → 15 replies (30%) → 10 free scans delivered → 7 demo calls booked.</blockquote>
+
+<!-- ── Week 3-4 ───────────────────────── -->
+<h2>4. Week 3–4 — Demo &amp; Close</h2>
+
+<h3>15-Minute Demo Script</h3>
+<table>
+<tr><th>Time</th><th>Section</th><th>What to Say / Show</th></tr>
+<tr><td>0:00–2:00</td><td>Problem</td><td>"SOC2 auditors ask 300 questions. Finding the answers in your code takes 6 months. We do it in 12 minutes."</td></tr>
+<tr><td>2:00–5:00</td><td>Sample report</td><td>Show MedPay example: score gauge, critical findings with dollar impact, compliance matrix</td></tr>
+<tr><td>5:00–10:00</td><td>THEIR report</td><td>Show the scan results from THEIR repos. Walk through their top 3 findings. This is the "aha" moment.</td></tr>
+<tr><td>10:00–13:00</td><td>Roadmap</td><td>"Phase 1 fixes get you from Grade D to C in 14 days. Here are the 7 tasks, 20 hours total."</td></tr>
+<tr><td>13:00–15:00</td><td>Close</td><td>"For $299/month we re-scan weekly, track progress, and give you auditor-ready PDFs. Want to start?"</td></tr>
+</table>
+
+<h3>Objection Handling</h3>
+<table>
+<tr><th>Objection</th><th>Response</th></tr>
+<tr><td>"We already use SonarQube / Snyk"</td><td>"Great — those find bugs. We map findings to SOC2/HIPAA controls with dollar impact and a remediation roadmap. We're complementary, not competitive."</td></tr>
+<tr><td>"Too expensive"</td><td>"Your SOC2 audit costs $50K and 6 months of eng time. We compress the prep to 45 days. The $299/mo pays for itself in the first week."</td></tr>
+<tr><td>"We'll build it ourselves"</td><td>"That's 36K lines of code, 88 policy rules, 4 compliance frameworks, and a PDF renderer. Let us handle the plumbing so your team can ship product."</td></tr>
+<tr><td>"Can I try it free?"</td><td>"Absolutely. Static-only is free forever — no credit card. AI analysis with PDF reports is $99/mo with a 14-day trial."</td></tr>
+<tr><td>"I need to check with my team"</td><td>"Of course. I'll send you the report PDF — share it in your next eng meeting. The compliance matrix on page 5 usually sells it for the team."</td></tr>
+<tr><td>"We're not doing SOC2 yet"</td><td>"When your next enterprise prospect asks for it, you'll wish you started 6 months ago. The free tier costs nothing — run it now, have the baseline ready."</td></tr>
+</table>
+
+<!-- ── Week 4-8 ───────────────────────── -->
+<h2>5. Week 4–8 — Convert &amp; Grow</h2>
+
+<h3>Conversion Triggers (Free → Paid)</h3>
+<table>
+<tr><th>Signal</th><th>Action</th><th>Offer</th></tr>
+<tr><td>User scans 3+ repos</td><td>In-app prompt</td><td>"Upgrade for AI analysis — 10× fewer false positives"</td></tr>
+<tr><td>Score &lt; 50</td><td>Email with report</td><td>"Your score is 38. Get a remediation roadmap → Team plan"</td></tr>
+<tr><td>Compliance gaps found</td><td>Email with matrix</td><td>"5 HIPAA controls failing. Get auditor-ready PDFs → Pro plan"</td></tr>
+<tr><td>Multiple team members</td><td>In-app prompt</td><td>"Share reports with your team → Team plan"</td></tr>
+<tr><td>30 days since scan</td><td>Re-scan email</td><td>"Re-scan to see your progress. Score went from 38 → ???"</td></tr>
+</table>
+
+<h3>Retention Emails</h3>
+<ol>
+<li><strong>Monthly re-scan:</strong> "Your score went from 31 → 52! Here's what to fix next." (with chart)</li>
+<li><strong>Compliance deadline:</strong> "SOC2 audit in 3 months. You have 8 failing controls. Here's the plan."</li>
+<li><strong>New policies:</strong> "We added 5 new HIPAA rules. Re-scan to check compliance."</li>
+<li><strong>Competitive pressure:</strong> "The median healthcare startup scores 58. You're at 31. Here's how to catch up."</li>
+</ol>
+
+<!-- ── Milestones ─────────────────────── -->
+<h2>6. Milestone Tracker</h2>
+<table>
+<tr><th>Week</th><th>Target</th><th>How</th><th>Revenue</th></tr>
+<tr><td>1</td><td>50 prospects identified</td><td>LinkedIn + Crunchbase + GitHub</td><td>$0</td></tr>
+<tr><td>2</td><td>20 free scans delivered</td><td>Cold email + LinkedIn DM</td><td>$0</td></tr>
+<tr><td>3</td><td>10 demo calls booked</td><td>Follow-up on scan recipients</td><td>$0</td></tr>
+<tr><td>4</td><td>3 paid customers</td><td>Close from demos</td><td>$897/mo</td></tr>
+<tr><td>5</td><td>5 paid customers</td><td>2 referrals from first 3</td><td>$1,495/mo</td></tr>
+<tr><td>6</td><td>7 paid customers</td><td>Content marketing kicks in</td><td>$2,093/mo</td></tr>
+<tr><td>7</td><td>8 paid customers</td><td>Auditor referral channel</td><td>$2,392/mo</td></tr>
+<tr><td>8</td><td><strong>10 paid customers</strong></td><td>Paid channels + referrals</td><td><strong>$2,990/mo</strong></td></tr>
+</table>
+
+<!-- ── After 10 ───────────────────────── -->
+<h2>7. After 10 Customers — Scale</h2>
+<ol>
+<li><strong>Build 3 case studies</strong> from your best customers. Format: "Company X went from Grade F to Grade B in 60 days. Here's how."</li>
+<li><strong>Create ROI calculator</strong> on website: "Enter your team size and compliance target → see projected savings."</li>
+<li><strong>Hire first sales rep</strong> to handle inbound demos (you should be doing product by now).</li>
+<li><strong>Launch referral program:</strong> "$100 credit for every referred customer who signs up."</li>
+<li><strong>Apply to Y Combinator / Techstars</strong> with: 10 customers, $3K MRR, 1,565 tests, working product.</li>
+<li><strong>Raise pre-seed</strong> on the strength of: product built, customers paying, compliance domain expertise.</li>
+</ol>
+
+<h3>The Story You Tell Investors</h3>
+<blockquote>
+"Every startup that wants enterprise customers needs SOC2. The prep takes 6 months and $200K in eng time. We compress it to 45 days with AI that reads code and maps it to compliance controls. We have 10 paying customers, $3K MRR, and the product is 36K lines of tested code with 1,565 passing tests. The market is every startup that handles sensitive data — that's 50,000+ companies."
+</blockquote>
+
+<!-- ── Key Insight ────────────────────── -->
+<h2>8. The One Insight That Matters</h2>
+<div class="card" style="border-left: 3px solid var(--accent); padding: 20px;">
+<p style="font-size: 1.1em; line-height: 1.8;">
+<strong>Don't sell a "security scanner."</strong> Sell a <strong>"compliance accelerator."</strong>
+</p>
+<p class="muted">
+CTOs don't wake up wanting another scanning tool. They wake up panicking about a SOC2 audit that's 4 months away and they haven't started. Your product turns "4 months of scrambling" into "here's a 45-day plan with exact tasks and effort estimates." That's what they'll pay $299/month for.
+</p>
+<p class="muted">
+The report is the product. The AI findings are features. The compliance matrix is what closes deals. The score trend (31 → 52 → 76 → 88) is what prevents churn.
+</p>
+</div>
+
+</main>
+</body>
+</html>

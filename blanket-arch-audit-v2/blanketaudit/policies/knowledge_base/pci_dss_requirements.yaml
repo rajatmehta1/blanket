@@ -1,0 +1,253 @@
+# PCI DSS v4.0 Requirements - Clauses Relevant to Code Audits
+# Regulatory text is paraphrased from PCI Data Security Standard v4.0
+# Source: Payment Card Industry Security Standards Council (PCI SSC)
+
+clauses:
+  - id: "PCI-DSS-2.2"
+    framework: "PCI-DSS"
+    clause: "Req 2.2"
+    title: "System Hardening Standards"
+    text: >
+      System components are configured and managed securely. Develop
+      configuration standards for all system components that address all
+      known security vulnerabilities and are consistent with industry-
+      accepted system hardening standards. Remove or disable unnecessary
+      default accounts, services, and configurations.
+    technical_requirements:
+      - No default credentials in deployed systems
+      - Unnecessary services and debug endpoints disabled in production
+      - Security headers configured (X-Frame-Options, CSP, etc.)
+      - Production configuration hardened (debug mode off, verbose errors off)
+    code_indicators:
+      - "DEBUG = False in production config"
+      - "security headers middleware"
+      - "default account removal or password change"
+      - "unnecessary endpoint disabled in production"
+
+  - id: "PCI-DSS-3.4"
+    framework: "PCI-DSS"
+    clause: "Req 3.4"
+    title: "Render PAN Unreadable"
+    text: >
+      The primary account number (PAN) is secured wherever it is stored.
+      Render PAN unreadable anywhere it is stored by using any of the
+      following approaches: one-way hashes based on strong cryptography,
+      truncation, index tokens and pads, or strong cryptography with
+      associated key-management processes and procedures.
+    technical_requirements:
+      - PAN encrypted at rest using strong cryptography (AES-256)
+      - PAN masked in display (show only last 4 digits)
+      - PAN not stored in logs, temporary files, or caches
+      - Tokenization for PAN storage where possible
+    code_indicators:
+      - "PAN or card number encryption before storage"
+      - "card number masking (last 4 digits only)"
+      - "tokenization of payment card data"
+      - "no plaintext PAN in logs or temporary storage"
+
+  - id: "PCI-DSS-4.1"
+    framework: "PCI-DSS"
+    clause: "Req 4.1"
+    title: "Encrypt Cardholder Data in Transit"
+    text: >
+      Strong cryptography and security protocols are implemented to
+      safeguard sensitive cardholder data during transmission over
+      open, public networks. Use trusted keys and certificates,
+      enforce secure protocol versions, and ensure encryption strength
+      is appropriate for the encryption methodology in use.
+    technical_requirements:
+      - TLS 1.2 or higher for all cardholder data transmission
+      - No SSL or early TLS (1.0, 1.1) support
+      - Certificate validation enforced
+      - Secure cipher suite configuration
+    code_indicators:
+      - "TLS 1.2+ enforcement for payment endpoints"
+      - "SSL/early TLS versions explicitly disabled"
+      - "certificate validation enabled"
+      - "secure cipher suite whitelist"
+
+  - id: "PCI-DSS-6.2"
+    framework: "PCI-DSS"
+    clause: "Req 6.2"
+    title: "Security Patches"
+    text: >
+      Bespoke and custom software are developed securely. System components
+      are protected from known vulnerabilities by installing applicable
+      security patches and updates. Install critical security patches
+      within one month of release. Maintain an inventory of software
+      and dependencies.
+    technical_requirements:
+      - Dependency vulnerability scanning in CI/CD pipeline
+      - Known-vulnerable dependencies flagged and remediated
+      - Automated security update notifications
+      - Software bill of materials (SBOM) generation
+    code_indicators:
+      - "dependency vulnerability scanning (npm audit, safety, osv-scanner)"
+      - "automated dependency update tooling (Dependabot, Renovate)"
+      - "SBOM generation step in build"
+      - "no known-vulnerable dependency versions"
+
+  - id: "PCI-DSS-6.3"
+    framework: "PCI-DSS"
+    clause: "Req 6.3"
+    title: "Secure Software Development"
+    text: >
+      Bespoke and custom software is developed securely. Software
+      development processes and practices are defined, documented, and
+      applied to all software development activities. Security is
+      incorporated into all phases of the software development lifecycle.
+    technical_requirements:
+      - Secure coding guidelines followed and enforced
+      - Code review process with security focus
+      - Static application security testing (SAST) in pipeline
+      - Security testing before production release
+    code_indicators:
+      - "SAST tool configuration (Semgrep, SonarQube, CodeQL)"
+      - "security-focused code review checklist"
+      - "pre-commit or CI security scanning hooks"
+      - "security test cases in test suite"
+
+  - id: "PCI-DSS-6.5"
+    framework: "PCI-DSS"
+    clause: "Req 6.5"
+    title: "Common Vulnerability Prevention"
+    text: >
+      Bespoke and custom software are developed securely. Applications
+      are developed based on secure coding guidelines to prevent common
+      software attack vulnerabilities in custom code, including but not
+      limited to injection flaws, buffer overflows, insecure cryptographic
+      storage, and insecure communications.
+    technical_requirements:
+      - Protection against OWASP Top 10 vulnerability classes
+      - Input validation and output encoding on all user inputs
+      - Parameterized queries for all database operations
+      - Secure error handling that does not leak sensitive information
+    code_indicators:
+      - "parameterized queries or ORM usage"
+      - "input validation and output encoding"
+      - "CSRF token protection"
+      - "secure error handling without stack traces"
+
+  - id: "PCI-DSS-6.5.1"
+    framework: "PCI-DSS"
+    clause: "Req 6.5.1"
+    title: "Injection Flaws Prevention"
+    text: >
+      Address injection flaws, particularly SQL injection. Validate input
+      to verify user data cannot modify the meaning of commands and queries.
+      Use parameterized queries, stored procedures, and input validation
+      to prevent injection attacks against the application.
+    technical_requirements:
+      - All SQL queries use parameterized statements or ORM
+      - No string concatenation or f-strings in SQL construction
+      - Input validation on all user-supplied data
+      - Command injection prevention for OS calls
+    code_indicators:
+      - "parameterized SQL queries (?, %s, :param)"
+      - "ORM query builder usage instead of raw SQL"
+      - "no f-string or format() in SQL statements"
+      - "subprocess with shell=False, shlex.quote()"
+
+  - id: "PCI-DSS-6.5.7"
+    framework: "PCI-DSS"
+    clause: "Req 6.5.7"
+    title: "Cross-Site Scripting (XSS) Prevention"
+    text: >
+      Address cross-site scripting (XSS) vulnerabilities in custom code.
+      Validate all parameters before inclusion in page output. Apply
+      context-appropriate output encoding to user-controllable data
+      when rendered in HTML, JavaScript, CSS, or URL contexts.
+    technical_requirements:
+      - Output encoding for all user-supplied data in HTML responses
+      - Content Security Policy (CSP) headers configured
+      - No use of innerHTML or dangerouslySetInnerHTML with user data
+      - Template engine auto-escaping enabled
+    code_indicators:
+      - "output encoding or HTML escaping"
+      - "Content-Security-Policy header"
+      - "auto-escaping enabled in template engine"
+      - "no innerHTML with user-controlled data"
+
+  - id: "PCI-DSS-7.1"
+    framework: "PCI-DSS"
+    clause: "Req 7.1"
+    title: "Access Control for Cardholder Data"
+    text: >
+      Access to system components and cardholder data is limited to only
+      those individuals whose job requires such access. Establish an
+      access control system for system components that restricts access
+      based on a user's need to know and is set to deny all unless
+      specifically allowed.
+    technical_requirements:
+      - Role-based access control for cardholder data
+      - Default-deny access policy
+      - Need-to-know principle enforced in code
+      - Access to cardholder data logged and monitored
+    code_indicators:
+      - "RBAC on payment data endpoints"
+      - "default-deny authorization policy"
+      - "permission check before cardholder data access"
+      - "access logging on payment routes"
+
+  - id: "PCI-DSS-8.2"
+    framework: "PCI-DSS"
+    clause: "Req 8.2"
+    title: "User Authentication Management"
+    text: >
+      User identification and related accounts for users and administrators
+      are strictly managed throughout an account's lifecycle. Assign all
+      users a unique ID before allowing them to access system components
+      or cardholder data. Implement multi-factor authentication for all
+      access into the cardholder data environment.
+    technical_requirements:
+      - Unique user IDs for all system users
+      - Multi-factor authentication for administrative access
+      - Strong password policies (minimum 12 characters, complexity)
+      - Account lockout after repeated failed attempts
+    code_indicators:
+      - "unique user identification in auth system"
+      - "MFA enforcement for admin access"
+      - "password policy validation (length, complexity)"
+      - "account lockout after failed attempts"
+
+  - id: "PCI-DSS-10.1"
+    framework: "PCI-DSS"
+    clause: "Req 10.1"
+    title: "Audit Trail Implementation"
+    text: >
+      Audit trails are implemented and active. Implement audit trails to
+      link all access to system components to each individual user.
+      Establish a process for linking all access to system components
+      (especially access done with administrative privileges) to each
+      individual user.
+    technical_requirements:
+      - Comprehensive audit logging for all access to cardholder data
+      - Audit logs include user identification, event type, date/time, success/failure
+      - Audit logs for all actions taken by any individual with root or admin privileges
+      - Audit trail tamper protection
+    code_indicators:
+      - "audit log middleware on all payment endpoints"
+      - "structured log events with user_id, action, timestamp, outcome"
+      - "admin action logging"
+      - "log integrity protection (append-only, signed)"
+
+  - id: "PCI-DSS-11.3"
+    framework: "PCI-DSS"
+    clause: "Req 11.3"
+    title: "Penetration Testing and Vulnerability Management"
+    text: >
+      External and internal vulnerabilities are regularly identified,
+      prioritized, and addressed. Perform internal and external penetration
+      testing at least annually and after any significant infrastructure
+      or application change. Include testing for OWASP Top 10 and other
+      relevant vulnerabilities.
+    technical_requirements:
+      - Automated security testing in CI/CD pipeline
+      - DAST or penetration test configuration maintained
+      - Vulnerability scan results tracked and remediated
+      - Security regression tests for previously found vulnerabilities
+    code_indicators:
+      - "security test suite (DAST, fuzz testing)"
+      - "penetration test configuration"
+      - "vulnerability scan integration in CI"
+      - "regression tests for security fixes"

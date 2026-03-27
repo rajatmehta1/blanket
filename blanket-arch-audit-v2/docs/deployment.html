@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docker Deployment Guide &mdash; BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <nav class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="prompts.html">Prompts</a>
+      <a href="callgraph.html">Call Graph</a>
+      <a href="samples.html">Samples</a>
+      <a href="local-setup.html">Local Setup</a>
+      <a href="roadmap.html">Roadmap</a>
+      <a class="active" href="deployment.html">Deployment</a>
+    </nav>
+
+    <h1>Docker Deployment Guide <span class="badge badge-blue">ops</span></h1>
+    <p>Deploy BlanketAudit as a CLI container, an API server, or a full stack with Neo4j, Milvus, and the web UI. Choose the deployment model that fits your team.</p>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Quick Start: CLI in Docker</h2>
+
+    <p>The simplest deployment. Mount your project directory and get a report.</p>
+
+<pre><code><span class="comment"># Build the CLI image</span>
+docker build -t blanketaudit .
+
+<span class="comment"># Scan a local project</span>
+docker run --rm \
+  -v $(pwd)/my-project:/repo \
+  -v $(pwd)/reports:/output \
+  blanketaudit scan /repo --output-dir /output
+
+<span class="comment"># Scan with Ollama (host network for localhost access)</span>
+docker run --rm --network host \
+  -e BLANKETAUDIT_LLM__PROVIDER=ollama \
+  -e BLANKETAUDIT_LLM__MODEL=llama3.1 \
+  -v $(pwd)/my-project:/repo \
+  blanketaudit scan /repo
+
+<span class="comment"># Dry run (cost estimate only)</span>
+docker run --rm \
+  -v $(pwd)/my-project:/repo \
+  blanketaudit scan /repo --dry-run</code></pre>
+
+    <blockquote>
+      <strong>Note:</strong> The CLI image includes Semgrep, Gitleaks, Tree-sitter grammars, and WeasyPrint with all required system libraries. No additional setup needed.
+    </blockquote>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>API Server Deployment</h2>
+
+    <p>Run BlanketAudit as a FastAPI service that accepts scan requests via HTTP. Ideal for integrating with CI/CD pipelines, dashboards, and automated workflows.</p>
+
+<pre><code><span class="comment"># Build the API image</span>
+docker build -f Dockerfile.api -t blanketaudit-api .
+
+<span class="comment"># Run the API server</span>
+docker run -d \
+  --name blanketaudit-api \
+  -p 8000:8000 \
+  -e BLANKETAUDIT_LLM__PROVIDER=anthropic \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v blanketaudit-data:/data \
+  blanketaudit-api
+
+<span class="comment"># API docs available at:</span>
+<span class="comment"># http://localhost:8000/docs     (Swagger UI)</span>
+<span class="comment"># http://localhost:8000/redoc    (ReDoc)</span></code></pre>
+
+    <p>Key API endpoints:</p>
+    <table>
+      <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/api/scan</code></td><td>Start a new scan (async, returns scan ID)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/scan/{id}</code></td><td>Get scan status and results</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/scan/{id}/report</code></td><td>Download report (PDF/HTML/JSON/SARIF)</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/scans</code></td><td>List all scans with history</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/scan/estimate</code></td><td>Dry-run cost estimate</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/health</code></td><td>Health check + provider status</td></tr>
+        <tr><td><code>GET</code></td><td><code>/metrics</code></td><td>Prometheus metrics endpoint</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Full Stack (docker-compose)</h2>
+
+    <p>The complete BlanketAudit platform: API server, Neo4j for call graphs, Milvus for semantic search, PostgreSQL for scan history, and the Next.js web UI.</p>
+
+<pre><code><span class="comment"># Start the full stack</span>
+docker compose up -d
+
+<span class="comment"># Services:</span>
+<span class="comment">#   API:     http://localhost:8000</span>
+<span class="comment">#   Web UI:  http://localhost:3000</span>
+<span class="comment">#   Neo4j:   http://localhost:7474 (browser) / bolt://localhost:7687</span>
+<span class="comment">#   Milvus:  localhost:19530</span>
+<span class="comment">#   Postgres: localhost:5432</span>
+
+<span class="comment"># View logs</span>
+docker compose logs -f api
+
+<span class="comment"># Stop everything</span>
+docker compose down</code></pre>
+
+    <h3>docker-compose.yml</h3>
+
+<pre><code><span class="kw">version</span>: <span class="str">"3.9"</span>
+
+<span class="kw">services</span>:
+
+  <span class="comment"># ── BlanketAudit API Server ──</span>
+  <span class="fn">api</span>:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - <span class="str">"8000:8000"</span>
+    environment:
+      - BLANKETAUDIT_LLM__PROVIDER=anthropic
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - BLANKETAUDIT_EMBEDDING__PROVIDER=openai
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BLANKETAUDIT_NEO4J__URI=bolt://neo4j:7687
+      - BLANKETAUDIT_NEO4J__USER=neo4j
+      - BLANKETAUDIT_NEO4J__PASSWORD=${NEO4J_PASSWORD:-changeme}
+      - BLANKETAUDIT_MILVUS__URI=http://milvus:19530
+      - BLANKETAUDIT_DB__URL=postgresql://blanketaudit:${DB_PASSWORD:-changeme}@postgres:5432/blanketaudit
+    volumes:
+      - scan-data:/data
+    depends_on:
+      - neo4j
+      - milvus
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: [<span class="str">"CMD"</span>, <span class="str">"curl"</span>, <span class="str">"-f"</span>, <span class="str">"http://localhost:8000/api/health"</span>]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  <span class="comment"># ── Neo4j (Call Graph + Knowledge Graph) ──</span>
+  <span class="fn">neo4j</span>:
+    image: neo4j:5-community
+    ports:
+      - <span class="str">"7474:7474"</span>             <span class="comment"># Browser UI</span>
+      - <span class="str">"7687:7687"</span>             <span class="comment"># Bolt protocol</span>
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-changeme}
+      - NEO4J_PLUGINS=[<span class="str">"apoc"</span>]
+      - NEO4J_server_memory_heap_max__size=1G
+    volumes:
+      - neo4j-data:/data
+    restart: unless-stopped
+
+  <span class="comment"># ── Milvus (Vector DB for Semantic Search) ──</span>
+  <span class="fn">milvus</span>:
+    image: milvusdb/milvus:v2.4-latest
+    ports:
+      - <span class="str">"19530:19530"</span>           <span class="comment"># gRPC</span>
+      - <span class="str">"9091:9091"</span>             <span class="comment"># Metrics</span>
+    environment:
+      - ETCD_USE_EMBED=true
+      - COMMON_STORAGETYPE=local
+    volumes:
+      - milvus-data:/var/lib/milvus
+    restart: unless-stopped
+
+  <span class="comment"># ── PostgreSQL (Scan History + API State) ──</span>
+  <span class="fn">postgres</span>:
+    image: postgres:16-alpine
+    ports:
+      - <span class="str">"5432:5432"</span>
+    environment:
+      - POSTGRES_USER=blanketaudit
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+      - POSTGRES_DB=blanketaudit
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  <span class="comment"># ── Next.js Web UI ──</span>
+  <span class="fn">web</span>:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - <span class="str">"3000:3000"</span>
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+<span class="kw">volumes</span>:
+  scan-data:
+  neo4j-data:
+  milvus-data:
+  postgres-data:</code></pre>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>On-Premises with Ollama (Zero Cloud)</h2>
+
+    <p>For air-gapped environments and organizations that cannot send code to external APIs. Everything runs on your servers, including the LLM.</p>
+
+<pre><code><span class="comment"># Start the on-prem stack with GPU-accelerated Ollama</span>
+docker compose -f docker-compose.onprem.yml up -d
+
+<span class="comment"># No API keys needed. No data leaves your network.</span>
+<span class="comment"># Ollama with GPU passthrough for fast local inference.</span></code></pre>
+
+    <h3>docker-compose.onprem.yml</h3>
+
+<pre><code><span class="kw">version</span>: <span class="str">"3.9"</span>
+
+<span class="kw">services</span>:
+
+  <span class="fn">api</span>:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - <span class="str">"8000:8000"</span>
+    environment:
+      - BLANKETAUDIT_LLM__PROVIDER=ollama
+      - BLANKETAUDIT_LLM__MODEL=llama3.1
+      - BLANKETAUDIT_LLM__BASE_URL=http://ollama:11434
+      - BLANKETAUDIT_EMBEDDING__PROVIDER=ollama
+      - BLANKETAUDIT_EMBEDDING__MODEL=nomic-embed-text
+      - BLANKETAUDIT_NEO4J__URI=bolt://neo4j:7687
+      - BLANKETAUDIT_NEO4J__USER=neo4j
+      - BLANKETAUDIT_NEO4J__PASSWORD=${NEO4J_PASSWORD:-changeme}
+      - BLANKETAUDIT_MILVUS__URI=http://milvus:19530
+      - BLANKETAUDIT_DB__URL=postgresql://blanketaudit:${DB_PASSWORD:-changeme}@postgres:5432/blanketaudit
+    depends_on:
+      - ollama
+      - neo4j
+      - milvus
+      - postgres
+    restart: unless-stopped
+
+  <span class="comment"># ── Ollama with GPU Passthrough ──</span>
+  <span class="fn">ollama</span>:
+    image: ollama/ollama:latest
+    ports:
+      - <span class="str">"11434:11434"</span>
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  <span class="fn">neo4j</span>:
+    image: neo4j:5-community
+    ports:
+      - <span class="str">"7474:7474"</span>
+      - <span class="str">"7687:7687"</span>
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-changeme}
+    volumes:
+      - neo4j-data:/data
+    restart: unless-stopped
+
+  <span class="fn">milvus</span>:
+    image: milvusdb/milvus:v2.4-latest
+    ports:
+      - <span class="str">"19530:19530"</span>
+    volumes:
+      - milvus-data:/var/lib/milvus
+    restart: unless-stopped
+
+  <span class="fn">postgres</span>:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=blanketaudit
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+      - POSTGRES_DB=blanketaudit
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  <span class="fn">web</span>:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - <span class="str">"3000:3000"</span>
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+<span class="kw">volumes</span>:
+  ollama-models:
+  neo4j-data:
+  milvus-data:
+  postgres-data:
+  scan-data:</code></pre>
+
+    <p>After starting, pull the models into the Ollama container:</p>
+<pre><code><span class="comment"># Pull models into the running Ollama container</span>
+docker compose -f docker-compose.onprem.yml exec ollama ollama pull llama3.1
+docker compose -f docker-compose.onprem.yml exec ollama ollama pull nomic-embed-text</code></pre>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Railway Deployment (Cloud API)</h2>
+
+    <p>Deploy the API server to <a href="https://railway.app">Railway</a> in under 5 minutes. Railway auto-detects the Dockerfile and handles TLS, scaling, and logging.</p>
+
+    <h3>Step-by-Step</h3>
+    <ol>
+      <li><strong>Fork the repo</strong> on GitHub (or use your own clone).</li>
+      <li><strong>Create a new Railway project</strong> at <a href="https://railway.app/new">railway.app/new</a>.</li>
+      <li><strong>Connect your GitHub repo.</strong> Railway detects <code>Dockerfile.api</code> automatically.</li>
+      <li><strong>Add a PostgreSQL service</strong> from the Railway marketplace (one click).</li>
+      <li><strong>Set environment variables</strong> in the Railway dashboard:
+<pre><code>BLANKETAUDIT_LLM__PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+BLANKETAUDIT_DB__URL=${{Postgres.DATABASE_URL}}
+BLANKETAUDIT_EMBEDDING__PROVIDER=openai
+OPENAI_API_KEY=sk-...</code></pre>
+      </li>
+      <li><strong>Deploy.</strong> Railway builds and deploys automatically. You get a public URL like <code>https://blanketaudit-api-production.up.railway.app</code>.</li>
+      <li><strong>Verify:</strong> Visit <code>/docs</code> on your Railway URL for the Swagger UI.</li>
+    </ol>
+
+    <blockquote>
+      <strong>Cost:</strong> Railway's Hobby plan ($5/month) is sufficient for small teams. The API uses minimal resources when idle. LLM costs are separate (paid to Anthropic/OpenAI).
+    </blockquote>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Vercel Deployment (Frontend)</h2>
+
+    <p>Deploy the Next.js web UI to Vercel for a polished dashboard experience.</p>
+
+    <ol>
+      <li><strong>Connect the <code>web/</code> directory</strong> to a new Vercel project.</li>
+      <li><strong>Set the root directory</strong> to <code>web</code> in Vercel project settings.</li>
+      <li><strong>Add environment variable:</strong>
+<pre><code>NEXT_PUBLIC_API_URL=https://your-railway-url.up.railway.app</code></pre>
+      </li>
+      <li><strong>Deploy.</strong> Vercel handles builds, CDN, and preview deployments for PRs.</li>
+    </ol>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>GitHub Action Setup</h2>
+
+    <p>Run BlanketAudit in your CI/CD pipeline. Scan on every push or PR, upload SARIF results to GitHub Code Scanning, and fail the build on critical findings.</p>
+
+<pre><code><span class="comment"># .github/workflows/blanketaudit.yml</span>
+<span class="kw">name</span>: BlanketAudit Security Scan
+
+<span class="kw">on</span>:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+<span class="kw">permissions</span>:
+  contents: read
+  security-events: write     <span class="comment"># Required for SARIF upload</span>
+
+<span class="kw">jobs</span>:
+  <span class="fn">audit</span>:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run BlanketAudit
+        uses: tectoniclabs/blanketaudit-action@v1
+        with:
+          <span class="comment"># Scan configuration</span>
+          path: <span class="str">"."</span>
+          framework: <span class="str">"hipaa,soc2"</span>
+          domain: <span class="str">"healthcare"</span>
+
+          <span class="comment"># LLM provider (optional &mdash; static-only if omitted)</span>
+          llm-provider: <span class="str">"anthropic"</span>
+          llm-model: <span class="str">"claude-sonnet-4-20250514"</span>
+
+          <span class="comment"># Cost controls</span>
+          max-cost-usd: <span class="str">"2.00"</span>
+          token-budget: <span class="str">"300000"</span>
+
+          <span class="comment"># Fail the build on critical findings</span>
+          fail-on-critical: <span class="str">"true"</span>
+          fail-on-high: <span class="str">"false"</span>
+
+          <span class="comment"># Output formats</span>
+          output-formats: <span class="str">"sarif,json"</span>
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: blanketaudit-report.sarif
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blanketaudit-report
+          path: |
+            blanketaudit-report.json
+            blanketaudit-report.sarif</code></pre>
+
+    <blockquote>
+      <strong>Tip:</strong> For PRs, use <code>fail-on-critical: "true"</code> to block merges with critical vulnerabilities. For main branch scans, set both to <code>"false"</code> and use the SARIF upload for tracking trends.
+    </blockquote>
+
+    <!-- ───────────────────────────────────────────── -->
+    <h2>Production Checklist</h2>
+
+    <p>Before going live, verify every item on this list.</p>
+
+    <h3>Security</h3>
+    <table>
+      <tbody>
+        <tr><td><code>[ ]</code></td><td>API keys stored in a secrets manager (not environment variables in plain text)</td></tr>
+        <tr><td><code>[ ]</code></td><td>HTTPS enabled on all public endpoints (use a reverse proxy like Caddy or nginx)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Neo4j password changed from default</td></tr>
+        <tr><td><code>[ ]</code></td><td>PostgreSQL password changed from default</td></tr>
+        <tr><td><code>[ ]</code></td><td>API authentication configured (API key or OAuth)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Network: Neo4j, Milvus, PostgreSQL not exposed to public internet</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Cost Controls</h3>
+    <table>
+      <tbody>
+        <tr><td><code>[ ]</code></td><td><code>max_scan_cost_usd</code> set to a reasonable limit per scan</td></tr>
+        <tr><td><code>[ ]</code></td><td><code>token_budget_per_agent</code> configured (default: 500K tokens)</td></tr>
+        <tr><td><code>[ ]</code></td><td>LLM provider billing alerts configured (Anthropic/OpenAI dashboard)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Rate limiting enabled on the API (prevent runaway scans)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Monitoring</h3>
+    <table>
+      <tbody>
+        <tr><td><code>[ ]</code></td><td>Prometheus scraping the <code>/metrics</code> endpoint</td></tr>
+        <tr><td><code>[ ]</code></td><td>Grafana dashboards configured for scan duration, token usage, error rate</td></tr>
+        <tr><td><code>[ ]</code></td><td>Alerting on: scan failures, circuit breaker open, cost threshold exceeded</td></tr>
+        <tr><td><code>[ ]</code></td><td>OpenTelemetry traces exported to Jaeger/Zipkin (optional but recommended)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Log aggregation configured (structlog JSON output to ELK/Loki)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Data</h3>
+    <table>
+      <tbody>
+        <tr><td><code>[ ]</code></td><td>Docker volumes mounted to persistent storage (not ephemeral container storage)</td></tr>
+        <tr><td><code>[ ]</code></td><td>PostgreSQL backup schedule configured (daily recommended)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Neo4j backup schedule configured</td></tr>
+        <tr><td><code>[ ]</code></td><td>Scan history retention policy set (e.g., keep last 90 days)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Temp directory cleanup verified (atexit handler + cron fallback)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Availability</h3>
+    <table>
+      <tbody>
+        <tr><td><code>[ ]</code></td><td>Health check endpoints verified for all services</td></tr>
+        <tr><td><code>[ ]</code></td><td>Restart policies set to <code>unless-stopped</code> or <code>always</code></td></tr>
+        <tr><td><code>[ ]</code></td><td>Memory limits configured per container (prevent OOM on large scans)</td></tr>
+        <tr><td><code>[ ]</code></td><td>Graceful shutdown: API drains in-progress scans before stopping</td></tr>
+      </tbody>
+    </table>
+
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; AI-Powered Architecture Governance &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

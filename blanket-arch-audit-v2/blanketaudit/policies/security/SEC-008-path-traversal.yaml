@@ -1,0 +1,27 @@
+id: SEC-008
+name: Path Traversal via User Input
+category: security
+severity: high
+description: Detects file operations using unsanitized user input that may contain ../ sequences.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:open|Path)\s*\(.*(?:request\.|params\[|input\(|argv)'
+  - tool: semgrep
+    rule: python.lang.security.audit.path-traversal
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential path traversal vulnerability. Consider:
+    - Is the file path derived from user input?
+    - Is there os.path.abspath or pathlib resolve before use?
+    - Is the resolved path checked against an allowed base directory?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Resolve the path with os.path.realpath() then verify it starts with the allowed base dir.
+  Use pathlib and call .resolve() before checking the prefix.
+effort_hours: 2

@@ -1,0 +1,25 @@
+<!-- Section 7: Infrastructure audit -->
+<div class="section">
+  <h2><span class="accent">07</span> Infrastructure Audit</h2>
+
+  {% for inf in report.infra_findings | default([]) %}
+  <div class="card" style="page-break-inside: avoid;">
+    <div style="margin-bottom: 6px;">
+      <span class="badge severity-{{ inf.severity }}">{{ inf.severity }}</span>
+      <span style="margin-left: 8px; font-weight: 600; color: #fff;">{{ inf.title }}</span>
+    </div>
+    <div class="mono small muted">{{ inf.file | default('') }}</div>
+    <p class="small">{{ inf.detail | default('') }}</p>
+    {% if inf.fix | default('') %}
+    <div style="margin-top: 6px; padding: 6px 10px; background: rgba(52,211,153,0.04); border-left: 2px solid rgba(52,211,153,0.25); border-radius: 0 4px 4px 0;">
+      <span class="small" style="color: #34d399;">Fix:</span>
+      <span class="mono small">{{ inf.fix }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if not report.infra_findings | default([]) %}
+  <p class="muted">No infrastructure issues detected.</p>
+  {% endif %}
+</div>

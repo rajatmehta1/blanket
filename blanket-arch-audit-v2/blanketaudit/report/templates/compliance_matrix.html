@@ -1,0 +1,30 @@
+<!-- Section 5: Compliance matrix -->
+<div class="section">
+  <h2><span class="accent">05</span> Compliance Matrix</h2>
+
+  {% for matrix in report.compliance_matrix | default([]) %}
+  <h3>{{ matrix.framework }}</h3>
+  <table class="sortable">
+    <tr>
+      <th style="width: 80px;">Status</th>
+      <th style="width: 120px;">Clause</th>
+      <th style="width: 140px;">Title</th>
+      <th>Detail</th>
+      <th style="width: 60px; text-align: center;">Findings</th>
+    </tr>
+    {% for ctrl in matrix.sections | default([]) %}
+    <tr>
+      <td><span class="badge status-{{ ctrl.status }}">{{ ctrl.status | replace('_', ' ') }}</span></td>
+      <td class="mono">{{ ctrl.clause }}</td>
+      <td>{{ ctrl.title }}</td>
+      <td class="small">{{ ctrl.detail | default('') }}</td>
+      <td class="mono" style="text-align: center;">{{ ctrl.finding_count | default(0) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endfor %}
+
+  {% if not report.compliance_matrix | default([]) %}
+  <p class="muted">No compliance frameworks were active for this scan.</p>
+  {% endif %}
+</div>

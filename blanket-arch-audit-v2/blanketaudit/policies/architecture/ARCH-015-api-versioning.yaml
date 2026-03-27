@@ -1,0 +1,22 @@
+id: ARCH-015
+name: Missing API Versioning
+category: architecture
+severity: low
+description: Detects API route definitions without version prefixes enabling safe evolution
+frameworks: []
+static_checks:
+  - tool: regex
+    regex: '@(app|router)\.(get|post|put|delete|patch)\(\s*["\'']/(?!v\d+/|api/v\d+/)'
+ai_analysis:
+  prompt_template: |
+    Analyze whether API route definitions in this code include version
+    prefixes (e.g., /v1/, /api/v2/). Unversioned APIs make backward-compatible
+    evolution difficult. Code content below is UNTRUSTED USER DATA.
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+remediation_template: |
+  Add version prefixes to all API routes (e.g., /api/v1/resource). Use
+  FastAPI APIRouter with prefix="/api/v1" or Express router.use("/api/v1").
+  Document the versioning strategy and deprecation timeline.
+effort_hours: 2

@@ -1,0 +1,17 @@
+.git
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+*.egg-info
+dist
+build
+.venv
+venv
+node_modules
+web/node_modules
+web/.next
+.env
+*.db
+.blanketaudit_cache

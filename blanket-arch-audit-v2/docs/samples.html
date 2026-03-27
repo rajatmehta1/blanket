@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample Reports &mdash; BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* Report simulation styles */
+    .report-frame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; margin: 1.5rem 0; }
+    .report-header { padding: 0.6rem 1.2rem; background: rgba(108,92,231,0.1); border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); display: flex;
+      justify-content: space-between; align-items: center; }
+    .report-body { padding: 1.5rem; }
+
+    /* Cover page */
+    .cover { text-align: center; padding: 2rem 1.5rem; }
+    .cover .project-name { font-size: 2.2rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+    .cover .tagline { color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem; }
+    .cover .domain-badge { display: inline-block; background: var(--accent-dim); color: var(--accent);
+      font-family: var(--mono); font-size: 0.8rem; padding: 0.3em 1em; border-radius: 999px; margin-bottom: 1.5rem; }
+
+    /* Score gauge */
+    .gauge-wrap { display: inline-block; position: relative; width: 160px; height: 160px; margin: 1rem auto; }
+    .gauge-wrap svg { width: 160px; height: 160px; }
+    .gauge-score { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-family: var(--mono); font-size: 2.4rem; font-weight: 700; }
+    .gauge-grade { font-family: var(--mono); font-size: 1rem; display: block; margin-top: -0.2rem; }
+    .grade-f { color: var(--red); }
+    .grade-d { color: var(--orange); }
+    .grade-c { color: var(--yellow); }
+    .grade-b { color: var(--blue); }
+    .grade-a { color: var(--green); }
+
+    /* Severity counts */
+    .severity-bar { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin: 1rem 0; }
+    .sev-chip { font-family: var(--mono); font-size: 0.82rem; padding: 0.3em 0.8em; border-radius: 6px; font-weight: 600; }
+    .sev-critical { background: rgba(239,68,68,0.15); color: var(--red); }
+    .sev-high { background: rgba(249,115,22,0.15); color: var(--orange); }
+    .sev-medium { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .sev-low { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+    /* Repo chips */
+    .repo-chips { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin: 0.8rem 0; }
+    .repo-chip { font-family: var(--mono); font-size: 0.78rem; padding: 0.25em 0.7em; border-radius: 4px;
+      background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+
+    /* Red callout */
+    .callout-red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3);
+      border-left: 4px solid var(--red); border-radius: 0 8px 8px 0; padding: 1rem 1.2rem; margin: 1rem 0; }
+    .callout-red .callout-title { color: var(--red); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
+
+    /* Green callout */
+    .callout-green { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.3);
+      border-left: 4px solid var(--green); border-radius: 0 8px 8px 0; padding: 1rem 1.2rem; margin: 1rem 0; }
+
+    /* Score bar */
+    .score-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.5rem; }
+    .score-label { width: 160px; font-size: 0.88rem; text-align: right; flex-shrink: 0; }
+    .score-bar-track { flex: 1; height: 22px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; position: relative; }
+    .score-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.5rem;
+      font-family: var(--mono); font-size: 0.75rem; font-weight: 600; color: #fff; min-width: 36px; }
+    .score-count { width: 40px; font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); text-align: right; flex-shrink: 0; }
+
+    /* Finding card */
+    .finding-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      margin: 1.5rem 0; overflow: hidden; }
+    .finding-header { padding: 1rem 1.2rem; border-bottom: 1px solid var(--border); display: flex;
+      align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+    .finding-header .finding-id { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+    .finding-header .finding-title { font-weight: 700; font-size: 1.05rem; }
+    .finding-body { padding: 1.2rem; }
+    .finding-section { margin-bottom: 1.2rem; }
+    .finding-section-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+    .finding-location { font-family: var(--mono); font-size: 0.85rem; color: var(--blue); margin-bottom: 0.8rem; }
+
+    /* Code snippet (pink on dark for vulnerable) */
+    .code-vulnerable { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 8px; padding: 1rem; font-family: var(--mono); font-size: 0.82rem;
+      overflow-x: auto; line-height: 1.5; margin: 0.5rem 0; }
+    .code-fix { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2);
+      border-radius: 8px; padding: 1rem; font-family: var(--mono); font-size: 0.82rem;
+      overflow-x: auto; line-height: 1.5; margin: 0.5rem 0; }
+
+    /* Compliance ref chips */
+    .ref-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .ref-chip { font-family: var(--mono); font-size: 0.72rem; padding: 0.2em 0.6em; border-radius: 4px;
+      background: rgba(251,191,36,0.1); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
+
+    /* Call chain */
+    .call-chain { font-family: var(--mono); font-size: 0.82rem; line-height: 1.8; }
+    .call-chain .step { padding-left: 1rem; position: relative; }
+    .call-chain .step::before { content: ''; position: absolute; left: 0.3rem; top: 0; bottom: 0;
+      width: 2px; background: var(--border); }
+    .call-chain .step:last-child::before { bottom: 50%; }
+    .call-chain .step-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 0.5rem; vertical-align: middle; }
+    .dot-entry { background: var(--green); }
+    .dot-method { background: var(--blue); }
+    .dot-taint { background: var(--orange); }
+    .dot-sink { background: var(--red); }
+    .dot-cross { background: var(--accent); }
+    .dot-external { background: #64748b; }
+
+    /* Dollar impact */
+    .dollar-box { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 8px; padding: 0.8rem 1rem; font-family: var(--mono); font-size: 1.1rem;
+      font-weight: 700; color: var(--red); text-align: center; margin: 0.5rem 0; }
+
+    /* Blast radius mini-grid */
+    .blast-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin: 0.5rem 0; }
+    .blast-cell { text-align: center; padding: 0.6rem; background: rgba(255,255,255,0.03); border-radius: 6px; }
+    .blast-cell .blast-num { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .blast-cell .blast-label { font-size: 0.7rem; color: var(--text-muted); }
+    @media (max-width: 600px) { .blast-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Compliance matrix */
+    .status-pass { color: var(--green); font-weight: 700; }
+    .status-fail { color: var(--red); font-weight: 700; }
+    .status-partial { color: var(--yellow); font-weight: 700; }
+
+    /* Roadmap phases */
+    .phase { border-left: 4px solid; border-radius: 0 8px 8px 0; padding: 1rem 1.2rem; margin: 1rem 0;
+      background: var(--bg-card); }
+    .phase-1 { border-color: var(--red); }
+    .phase-2 { border-color: var(--yellow); }
+    .phase-3 { border-color: var(--green); }
+    .phase-title { font-weight: 700; font-size: 1.05rem; margin-bottom: 0.5rem; }
+    .phase-meta { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.8rem; }
+
+    /* Mini report cards for secondary samples */
+    .mini-report { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem 1.2rem; align-items: start;
+      margin: 1rem 0 1.5rem; }
+    .mini-gauge { text-align: center; }
+    .mini-gauge .score { font-family: var(--mono); font-size: 1.8rem; font-weight: 700; }
+    .mini-gauge .grade { font-family: var(--mono); font-size: 0.9rem; }
+
+    /* Format cards */
+    .format-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    @media (max-width: 768px) { .format-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <nav class="nav">
+      <a href="index.html">&larr; Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="prompts.html">LLM Prompts</a>
+      <a href="callgraph.html">Call Graph</a>
+      <a href="samples.html" class="active">Sample Reports</a>
+    </nav>
+
+    <h1>Sample Reports <span class="badge badge-purple">Examples</span></h1>
+    <p class="text-muted">
+      Realistic example outputs from BlanketAudit scans, showing all 9 report sections
+      and each output format. These samples demonstrate the depth and structure of
+      findings, compliance mapping, and remediation planning.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- MEDPAY SAMPLE REPORT                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="medpay">Sample MedPay Report (Healthcare)</h2>
+
+    <p>
+      MedPay is a fictional patient insurance payment platform consisting of three
+      microservices: <code>patient-api</code> (Python/FastAPI), <code>payment-engine</code>
+      (Java/Spring), and <code>claims-processor</code> (TypeScript/Express). The scan
+      targets HIPAA, SOC2, and PCI-DSS compliance frameworks.
+    </p>
+
+    <!-- ── Section 1: Cover Page ── -->
+    <h3 id="medpay-cover">Section 1 &mdash; Cover Page</h3>
+
+    <div class="report-frame">
+      <div class="report-header">
+        <span>BLANKETAUDIT REPORT</span>
+        <span>Generated March 21, 2026 &middot; 12 min 34 sec</span>
+      </div>
+      <div class="report-body cover">
+        <div class="project-name">MedPay</div>
+        <div class="tagline">Patient Insurance Payment Platform</div>
+        <div class="domain-badge">Healthcare</div>
+
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+            <circle cx="80" cy="80" r="70" fill="none" stroke="#ef4444" stroke-width="12"
+              stroke-dasharray="136.4 303.6" stroke-dashoffset="-110" stroke-linecap="round"
+              transform="rotate(-90 80 80)"/>
+          </svg>
+          <div class="gauge-score">
+            <span style="color:var(--red)">31</span>
+            <span class="gauge-grade grade-f">F</span>
+          </div>
+        </div>
+
+        <div class="severity-bar">
+          <span class="sev-chip sev-critical">7 Critical</span>
+          <span class="sev-chip sev-high">19 High</span>
+          <span class="sev-chip sev-medium">28 Medium</span>
+          <span class="sev-chip sev-low">31 Low</span>
+        </div>
+
+        <div class="repo-chips">
+          <span class="repo-chip">patient-api &middot; Python &middot; 142 files &middot; 18k lines</span>
+          <span class="repo-chip">payment-engine &middot; Java &middot; 89 files &middot; 24k lines</span>
+          <span class="repo-chip">claims-processor &middot; TypeScript &middot; 67 files &middot; 20k lines</span>
+        </div>
+
+        <div style="margin-top:1rem;">
+          <div class="stats">
+            <div class="stat"><div class="num">298</div><div class="label">Files</div></div>
+            <div class="stat"><div class="num">62k</div><div class="label">Lines</div></div>
+            <div class="stat"><div class="num">1,247</div><div class="label">Methods</div></div>
+            <div class="stat"><div class="num">14</div><div class="label">Cross-Repo Edges</div></div>
+            <div class="stat"><div class="num">23</div><div class="label">Entry Points</div></div>
+            <div class="stat"><div class="num">9</div><div class="label">Max Call Depth</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 2: Executive Summary ── -->
+    <h3 id="medpay-exec">Section 2 &mdash; Executive Summary</h3>
+
+    <div class="report-frame">
+      <div class="report-header"><span>EXECUTIVE SUMMARY</span><span>Section 2 of 9</span></div>
+      <div class="report-body">
+        <p>
+          The MedPay platform presents <strong>critical security and compliance deficiencies</strong>
+          that require immediate remediation. Seven critical-severity findings were identified,
+          including plaintext PHI logging to external monitoring services, SQL injection
+          vulnerabilities in patient search endpoints, and unencrypted payment card data
+          in transit between the claims processor and payment engine. The platform's
+          current architecture allows protected health information to flow through 8
+          API entry points without adequate access controls, audit logging, or encryption
+          at rest &mdash; placing the organization in direct violation of HIPAA
+          &sect;164.312(a)(1) and PCI-DSS Requirement 3.4.
+        </p>
+        <p>
+          Cross-repository analysis revealed 14 service-to-service HTTP calls with no
+          mutual TLS or authentication token validation, creating a lateral movement
+          path that could allow an attacker who compromises any single service to access
+          patient records, payment data, and insurance claims across all three repositories.
+          The call graph analysis identified 3 circular dependencies and 47 dead methods
+          (1,200 lines) contributing to maintenance burden. The combined HIPAA compliance
+          score of 18/100 indicates the platform is not audit-ready and faces potential
+          penalties of $50,000&ndash;$1,900,000 per violation category under the HITECH Act.
+        </p>
+
+        <div class="callout-red">
+          <div class="callout-title">Immediate Actions Required</div>
+          <ol style="margin:0; padding-left:1.2rem; font-size:0.92rem;">
+            <li><strong>Stop logging PHI to Datadog.</strong> Mask all patient SSN, DOB, and diagnosis fields in log statements within 24 hours. 3 files affected.</li>
+            <li><strong>Parameterize all SQL queries.</strong> Replace f-string SQL construction in <code>patient_service.py</code> and <code>claims_repo.py</code> with parameterized queries. 5 injection points identified.</li>
+            <li><strong>Encrypt card data in transit.</strong> Enable mTLS between claims-processor and payment-engine. Card numbers are currently sent as plaintext JSON over internal HTTP.</li>
+            <li><strong>Add authentication to internal APIs.</strong> All 14 cross-repo HTTP calls lack bearer token or mTLS validation. Implement service-to-service auth using JWT or mTLS certificates.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 3: Score Dashboard ── -->
+    <h3 id="medpay-scores">Section 3 &mdash; Score Dashboard</h3>
+
+    <div class="report-frame">
+      <div class="report-header"><span>SCORE DASHBOARD</span><span>Section 3 of 9</span></div>
+      <div class="report-body">
+        <div style="text-align:center; margin-bottom:1.5rem;">
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="12"/>
+              <circle cx="80" cy="80" r="70" fill="none" stroke="#ef4444" stroke-width="12"
+                stroke-dasharray="136.4 303.6" stroke-dashoffset="-110" stroke-linecap="round"
+                transform="rotate(-90 80 80)"/>
+            </svg>
+            <div class="gauge-score">
+              <span style="color:var(--red)">31</span>
+              <span class="gauge-grade grade-f">F</span>
+            </div>
+          </div>
+          <div style="font-size:0.85rem; color:var(--text-muted);">Weighted Composite Score</div>
+        </div>
+
+        <div class="score-row">
+          <div class="score-label">Security</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:24%; background:var(--red);">24</div></div>
+          <div class="score-count">12</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">HIPAA Compliance</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:18%; background:var(--red);">18</div></div>
+          <div class="score-count">9</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">SOC2 Compliance</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:32%; background:var(--red);">32</div></div>
+          <div class="score-count">7</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">PCI-DSS Compliance</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:27%; background:var(--red);">27</div></div>
+          <div class="score-count">8</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">Code Quality</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:47%; background:var(--yellow);">47</div></div>
+          <div class="score-count">15</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">Performance</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:38%; background:var(--orange);">38</div></div>
+          <div class="score-count">11</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">Reliability</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:35%; background:var(--orange);">35</div></div>
+          <div class="score-count">9</div>
+        </div>
+        <div class="score-row">
+          <div class="score-label">Infrastructure</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:33%; background:var(--orange);">33</div></div>
+          <div class="score-count">14</div>
+        </div>
+
+        <p class="text-muted" style="font-size:0.8rem; margin-top:1rem;">
+          Composite formula: 0.35 &times; Security + 0.30 &times; avg(Compliance) + 0.15 &times; Quality + 0.10 &times; Performance + 0.10 &times; Infrastructure.
+          Grade: A &ge; 85, B &ge; 70, C &ge; 50, D &ge; 30, F &lt; 30.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Section 4: Critical Finding BLK-001 ── -->
+    <h3 id="medpay-findings">Section 4 &mdash; Critical Findings</h3>
+    <p>Below is finding <strong>BLK-001</strong> rendered as it appears in the report, with every field populated:</p>
+
+    <div class="finding-card">
+      <div class="finding-header">
+        <span class="badge badge-red">CRITICAL</span>
+        <span class="finding-id">BLK-001 &middot; SEC-003</span>
+        <span class="finding-title">PHI Logged in Plaintext to External Monitoring</span>
+      </div>
+      <div class="finding-body">
+
+        <div class="finding-section">
+          <div class="finding-location">patient-api / services/patient_service.py : lines 42&ndash;44</div>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">Code</div>
+          <div class="code-vulnerable">
+<span style="color:var(--text-muted)">41</span>  <span style="color:#64748b">def</span> process_claim(self, patient: Patient, claim: Claim):
+<span style="color:var(--text-muted)">42</span>      <span style="color:var(--red)">logger.debug(f"Processing patient: {patient.ssn}, DOB: {patient.dob}")</span>
+<span style="color:var(--text-muted)">43</span>      <span style="color:var(--red)">logger.info(f"Claim diagnosis: {claim.diagnosis_code} for {patient.full_name}")</span>
+<span style="color:var(--text-muted)">44</span>      result = self.claims_repo.submit(patient, claim)
+          </div>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">AI Explanation</div>
+          <p style="font-size:0.92rem;">
+            This code logs protected health information (PHI) &mdash; including Social Security
+            numbers, dates of birth, diagnosis codes, and patient names &mdash; directly into
+            application logs using Python's standard logging library. These logs are shipped
+            to Datadog via the configured log handler, meaning PHI leaves the application
+            boundary and is stored in a third-party SaaS platform without a Business
+            Associate Agreement (BAA) covering log data specifically.
+          </p>
+          <p style="font-size:0.92rem;">
+            Under HIPAA &sect;164.312(a)(1), covered entities must implement technical
+            safeguards to control access to electronic PHI. Logging PHI in plaintext to
+            an external service violates this requirement because: (1) the data is not
+            encrypted at rest in the logging platform, (2) access controls on log viewers
+            are broader than the minimum necessary standard, and (3) there is no audit
+            trail of who accessed these logs. The HITECH Act establishes penalties of
+            $50,000 per violation up to $1.9M per violation category annually.
+          </p>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">Compliance References</div>
+          <div class="ref-chips">
+            <span class="ref-chip">HIPAA &sect;164.312(a)(1) &mdash; Access Control</span>
+            <span class="ref-chip">HIPAA &sect;164.530(c) &mdash; Administrative Safeguards</span>
+            <span class="ref-chip">SOC2 CC6.1 &mdash; Logical Access Controls</span>
+          </div>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">Financial Exposure</div>
+          <div class="dollar-box">$50,000 &mdash; $1,900,000</div>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">Call Chain (Entry Point &rarr; Vulnerability)</div>
+          <div class="call-chain">
+            <div class="step"><span class="step-dot dot-entry"></span> <span style="color:var(--green)">POST /api/patients/{id}/claim</span> <span class="text-muted">&middot; patient-api</span></div>
+            <div class="step"><span class="step-dot dot-method"></span> <span style="color:var(--blue)">ClaimRouter.submit_claim()</span> <span class="text-muted">&middot; patient-api</span></div>
+            <div class="step"><span class="step-dot dot-method"></span> <span style="color:var(--blue)">PatientService.process_claim()</span> <span class="text-muted">&middot; patient-api</span></div>
+            <div class="step"><span class="step-dot dot-sink"></span> <span style="color:var(--red)">logger.debug(f"Processing patient: {patient.ssn}...")</span> <span class="text-muted">&middot; patient-api</span></div>
+            <div class="step"><span class="step-dot dot-external"></span> <span style="color:#94a3b8">Datadog Log Ingestion API</span> <span class="text-muted">&middot; external</span></div>
+          </div>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">Blast Radius</div>
+          <div class="blast-grid">
+            <div class="blast-cell"><div class="blast-num">8</div><div class="blast-label">Entry Points</div></div>
+            <div class="blast-cell"><div class="blast-num">1</div><div class="blast-label">Repos Affected</div></div>
+            <div class="blast-cell"><div class="blast-num">~2,400</div><div class="blast-label">Daily Calls</div></div>
+            <div class="blast-cell"><div class="blast-num">All</div><div class="blast-label">Patients Affected</div></div>
+          </div>
+        </div>
+
+        <div class="finding-section">
+          <div class="finding-section-title">Fix</div>
+          <div class="code-fix">
+<span style="color:var(--text-muted)">   # Before (VULNERABLE):</span>
+<span style="color:var(--red)">-  logger.debug(f"Processing patient: {patient.ssn}, DOB: {patient.dob}")</span>
+<span style="color:var(--red)">-  logger.info(f"Claim diagnosis: {claim.diagnosis_code} for {patient.full_name}")</span>
+
+<span style="color:var(--text-muted)">   # After (FIXED):</span>
+<span style="color:var(--green)">+  from codeaudit.utils.phi_mask import mask_phi</span>
+<span style="color:var(--green)">+  logger.debug(f"Processing patient: {mask_phi(patient.ssn)}, DOB: {mask_phi(patient.dob)}")</span>
+<span style="color:var(--green)">+  logger.info(f"Claim for patient_id={patient.id}")</span>  <span style="color:var(--text-muted)"># Use opaque ID, not PHI</span>
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.3rem;">
+            <strong>Effort estimate:</strong> 3 hours &middot; <code>mask_phi()</code> replaces SSN with <code>***-**-1234</code>, DOB with <code>****-**-DD</code>.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 5: Compliance Matrix ── -->
+    <h3 id="medpay-compliance">Section 5 &mdash; Compliance Matrix (HIPAA excerpt)</h3>
+
+    <div class="report-frame">
+      <div class="report-header"><span>COMPLIANCE MATRIX &mdash; HIPAA</span><span>Section 5 of 9</span></div>
+      <div class="report-body">
+        <table>
+          <thead>
+            <tr><th>Status</th><th>Clause</th><th>Title</th><th>Detail</th><th style="text-align:right">Findings</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="status-fail">FAIL</span></td>
+              <td><strong>&sect;164.312(a)(1)</strong></td>
+              <td>Access Control</td>
+              <td>PHI logged to external services without access restrictions. No role-based access to patient data endpoints.</td>
+              <td style="text-align:right">4</td>
+            </tr>
+            <tr>
+              <td><span class="status-fail">FAIL</span></td>
+              <td><strong>&sect;164.312(e)(1)</strong></td>
+              <td>Transmission Security</td>
+              <td>Internal service-to-service calls transmit ePHI over unencrypted HTTP. No mTLS between microservices.</td>
+              <td style="text-align:right">3</td>
+            </tr>
+            <tr>
+              <td><span class="status-partial">PARTIAL</span></td>
+              <td><strong>&sect;164.312(b)</strong></td>
+              <td>Audit Controls</td>
+              <td>Application logs exist but contain PHI and lack tamper-proof storage. No audit trail for data access.</td>
+              <td style="text-align:right">2</td>
+            </tr>
+            <tr>
+              <td><span class="status-partial">PARTIAL</span></td>
+              <td><strong>&sect;164.530(c)</strong></td>
+              <td>Administrative Safeguards</td>
+              <td>Some access policies defined but not enforced programmatically. No automated policy violation detection.</td>
+              <td style="text-align:right">2</td>
+            </tr>
+            <tr>
+              <td><span class="status-pass">PASS</span></td>
+              <td><strong>&sect;164.312(c)(1)</strong></td>
+              <td>Integrity Controls</td>
+              <td>Database uses checksums for record integrity. Migration scripts use transactions with rollback.</td>
+              <td style="text-align:right">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section 6: Call Graph Summary (brief) ── -->
+    <h3 id="medpay-callgraph">Section 6 &mdash; Call Graph Analysis</h3>
+
+    <div class="report-frame">
+      <div class="report-header"><span>CALL GRAPH ANALYSIS</span><span>Section 6 of 9</span></div>
+      <div class="report-body">
+        <div class="stats" style="margin-bottom:1.5rem;">
+          <div class="stat"><div class="num">23</div><div class="label">Entry Points</div></div>
+          <div class="stat"><div class="num">14</div><div class="label">Cross-Repo Edges</div></div>
+          <div class="stat"><div class="num">9</div><div class="label">Max Call Depth</div></div>
+        </div>
+
+        <h4 style="color:var(--accent); margin-bottom:0.5rem;">Cross-Repo Service Calls</h4>
+        <table style="font-size:0.85rem;">
+          <thead><tr><th>From</th><th>Via</th><th>To</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>patient-api::ClaimService.submit()</code></td>
+              <td><code>POST /api/payments/charge</code></td>
+              <td><code>payment-engine::PaymentController.charge()</code></td>
+            </tr>
+            <tr>
+              <td><code>claims-processor::Adjudicator.verify()</code></td>
+              <td><code>GET /api/patients/{id}</code></td>
+              <td><code>patient-api::PatientRouter.get_patient()</code></td>
+            </tr>
+            <tr>
+              <td><code>patient-api::NotificationService.send()</code></td>
+              <td><code>POST /api/claims/{id}/status</code></td>
+              <td><code>claims-processor::StatusController.update()</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4 style="color:var(--accent); margin:1rem 0 0.5rem;">Issues Detected</h4>
+        <ul style="font-size:0.92rem;">
+          <li><strong>Circular dependencies (3):</strong> ClaimService &harr; NotificationService &harr; StatusController</li>
+          <li><strong>Dead methods:</strong> 47 unreachable methods (1,200 lines) across 12 files</li>
+          <li><strong>Single points of failure:</strong> <code>PaymentController.charge()</code> has no fallback &mdash; all payment flows route through this single method</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ── Section 7: Infrastructure (brief mention) ── -->
+    <h3 id="medpay-infra">Section 7 &mdash; Infrastructure Audit</h3>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3><span class="badge badge-red">CRITICAL</span></h3>
+        <p><strong>Docker: Running as Root</strong><br>
+        <code>patient-api/Dockerfile</code><br>
+        No USER directive &mdash; container runs as root. Add <code>USER appuser</code> after installing dependencies.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-yellow">MEDIUM</span></h3>
+        <p><strong>K8s: No Resource Limits</strong><br>
+        <code>k8s/payment-deployment.yaml</code><br>
+        Missing <code>resources.limits</code> for CPU and memory. Container can consume unbounded resources.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-yellow">MEDIUM</span></h3>
+        <p><strong>CI/CD: Secrets in Env Vars</strong><br>
+        <code>.github/workflows/deploy.yml</code><br>
+        Database password passed as plain environment variable. Use GitHub Secrets with <code>${{ secrets.DB_PASS }}</code>.</p>
+      </div>
+    </div>
+
+    <!-- ── Section 8: Remediation Roadmap ── -->
+    <h3 id="medpay-roadmap">Section 8 &mdash; Remediation Roadmap</h3>
+
+    <div class="report-frame">
+      <div class="report-header"><span>REMEDIATION ROADMAP</span><span>Section 8 of 9</span></div>
+      <div class="report-body">
+
+        <div class="phase phase-1">
+          <div class="phase-title" style="color:var(--red);">Phase 1: URGENT &mdash; Days 1&ndash;14</div>
+          <div class="phase-meta">Total effort: 20 hours &middot; Score target: 31 &rarr; 52 (+21 points)</div>
+          <table style="font-size:0.88rem;">
+            <thead><tr><th>Task</th><th>Effort</th><th>Finding</th><th>Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Mask PHI in all log statements</td><td>3h</td><td>BLK-001</td><td>+4</td></tr>
+              <tr><td>Parameterize all SQL queries</td><td>5h</td><td>BLK-002</td><td>+5</td></tr>
+              <tr><td>Enable mTLS between services</td><td>6h</td><td>BLK-003</td><td>+6</td></tr>
+              <tr><td>Add JWT auth to internal APIs</td><td>4h</td><td>BLK-004</td><td>+4</td></tr>
+              <tr><td>Remove hardcoded DB credentials</td><td>2h</td><td>BLK-005</td><td>+2</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="phase phase-2">
+          <div class="phase-title" style="color:var(--yellow);">Phase 2: HIGH PRIORITY &mdash; Days 15&ndash;45</div>
+          <div class="phase-meta">Total effort: 42 hours &middot; Score target: 52 &rarr; 76 (+24 points)</div>
+          <table style="font-size:0.88rem;">
+            <thead><tr><th>Task</th><th>Effort</th><th>Finding</th><th>Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Implement RBAC for patient endpoints</td><td>12h</td><td>BLK-006</td><td>+6</td></tr>
+              <tr><td>Encrypt PII at rest (DB column encryption)</td><td>10h</td><td>BLK-007</td><td>+5</td></tr>
+              <tr><td>Add audit logging with tamper-proof storage</td><td>8h</td><td>BLK-008</td><td>+5</td></tr>
+              <tr><td>Fix circular dependencies in claims flow</td><td>6h</td><td>BLK-012</td><td>+4</td></tr>
+              <tr><td>Replace float64 with Decimal for financials</td><td>6h</td><td>BLK-015</td><td>+4</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="phase phase-3">
+          <div class="phase-title" style="color:var(--green);">Phase 3: HARDENING &mdash; Days 46&ndash;90</div>
+          <div class="phase-meta">Total effort: 63 hours &middot; Score target: 76 &rarr; 88 (+12 points)</div>
+          <table style="font-size:0.88rem;">
+            <thead><tr><th>Task</th><th>Effort</th><th>Finding</th><th>Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Remove 47 dead methods (1,200 LOC)</td><td>8h</td><td>BLK-020</td><td>+2</td></tr>
+              <tr><td>Add rate limiting to all public endpoints</td><td>6h</td><td>BLK-018</td><td>+2</td></tr>
+              <tr><td>Implement circuit breaker for payment calls</td><td>10h</td><td>BLK-019</td><td>+3</td></tr>
+              <tr><td>Add container security scanning to CI</td><td>4h</td><td>BLK-022</td><td>+1</td></tr>
+              <tr><td>Reduce cyclomatic complexity in 8 hot files</td><td>16h</td><td>BLK-025</td><td>+2</td></tr>
+              <tr><td>Increase test coverage to 80%</td><td>19h</td><td>BLK-030</td><td>+2</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- QUICKLEND SAMPLE                                            -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="quicklend">Sample QuickLend Report (Fintech)</h2>
+
+    <div class="mini-report">
+      <div class="mini-gauge">
+        <div class="score grade-d" style="color:var(--orange);">44</div>
+        <div class="grade grade-d" style="color:var(--orange);">D</div>
+      </div>
+      <div>
+        <p>
+          <strong>QuickLend</strong> &mdash; Personal Loan Origination Platform &middot;
+          <span class="badge badge-yellow">Fintech</span>
+        </p>
+        <p style="font-size:0.92rem;">
+          2 repos (<code>loan-api</code> Go, <code>underwriting-engine</code> Python),
+          PCI-DSS + SOC2 frameworks. 4 critical, 11 high, 22 medium findings.
+        </p>
+      </div>
+    </div>
+
+    <div class="severity-bar" style="justify-content:flex-start;">
+      <span class="sev-chip sev-critical">4 Critical</span>
+      <span class="sev-chip sev-high">11 High</span>
+      <span class="sev-chip sev-medium">22 Medium</span>
+      <span class="sev-chip sev-low">18 Low</span>
+    </div>
+
+    <h3>Top Findings</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h3><span class="badge badge-red">CRITICAL</span> Plaintext Card Storage</h3>
+        <p>Credit card numbers stored as plaintext VARCHAR in PostgreSQL. PCI-DSS Req 3.4 requires rendering PAN unreadable. Estimated exposure: $100K&ndash;$500K per breach.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-red">CRITICAL</span> float64 Financial Math</h3>
+        <p>Loan interest calculations use Go <code>float64</code>, causing rounding errors of up to $0.03 per calculation. At 50K loans/month, cumulative error reaches $18K/year. Use <code>shopspring/decimal</code>.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-red">CRITICAL</span> Circular Dependencies</h3>
+        <p>5-node circular dependency: LoanService &rarr; CreditCheck &rarr; RiskEngine &rarr; PricingService &rarr; LoanService. Creates deployment ordering issues and makes testing impossible in isolation.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-yellow">HIGH</span> Missing Rate Limiting</h3>
+        <p>The <code>/api/loans/apply</code> endpoint accepts unlimited requests. An attacker could submit thousands of loan applications to perform credit bureau enumeration.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- COLLABFLOW SAMPLE                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="collabflow">Sample CollabFlow Report (SaaS)</h2>
+
+    <div class="mini-report">
+      <div class="mini-gauge">
+        <div class="score grade-c" style="color:var(--yellow);">52</div>
+        <div class="grade grade-c" style="color:var(--yellow);">C</div>
+      </div>
+      <div>
+        <p>
+          <strong>CollabFlow</strong> &mdash; Team Collaboration Platform &middot;
+          <span class="badge badge-blue">SaaS</span>
+        </p>
+        <p style="font-size:0.92rem;">
+          3 repos (<code>collab-web</code> React/TS, <code>collab-api</code> Node/Express,
+          <code>collab-worker</code> Python), SOC2 + GDPR frameworks.
+          2 critical, 8 high, 19 medium findings.
+        </p>
+      </div>
+    </div>
+
+    <div class="severity-bar" style="justify-content:flex-start;">
+      <span class="sev-chip sev-critical">2 Critical</span>
+      <span class="sev-chip sev-high">8 High</span>
+      <span class="sev-chip sev-medium">19 Medium</span>
+      <span class="sev-chip sev-low">24 Low</span>
+    </div>
+
+    <h3>Top Findings</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h3><span class="badge badge-red">CRITICAL</span> Multi-Tenant Data Leak</h3>
+        <p>API queries filter by <code>user_id</code> but not <code>tenant_id</code>. A user in Tenant A can access documents belonging to Tenant B by guessing document UUIDs. SOC2 CC6.1 violation.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-red">CRITICAL</span> Stored XSS via dangerouslySetInnerHTML</h3>
+        <p>User-supplied markdown is rendered with <code>dangerouslySetInnerHTML</code> without sanitization. An attacker can inject <code>&lt;script&gt;</code> tags that execute in other users' browsers.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-yellow">HIGH</span> No GDPR Data Export</h3>
+        <p>No endpoint exists for GDPR Article 20 data portability. Users cannot export their data in a machine-readable format. Must implement <code>GET /api/users/{id}/export</code>.</p>
+      </div>
+      <div class="card">
+        <h3><span class="badge badge-yellow">HIGH</span> Worker Queue Poisoning</h3>
+        <p>The background worker deserializes Redis queue messages with <code>pickle.loads()</code> without validation. A compromised Redis instance enables remote code execution.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- OUTPUT FORMATS                                              -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2 id="formats">Output Formats</h2>
+
+    <p>
+      BlanketAudit generates reports in four formats. Each serves a different audience
+      and integration point:
+    </p>
+
+    <div class="format-grid">
+
+      <div class="card">
+        <h3><span class="badge badge-purple">PDF</span> Dark Theme Report</h3>
+        <p>
+          Full 9-section report rendered by WeasyPrint. Dark background (<code>#0b0f1a</code>),
+          Sora headings, JetBrains Mono code blocks. SVG gauges, syntax-highlighted
+          code snippets via Pygments, page breaks between sections. Designed for
+          executive presentations and compliance auditor handoff.
+        </p>
+<pre><code><span class="comment">/* PDF CSS (WeasyPrint) */</span>
+<span class="kw">@page</span> {
+  size: A4;
+  margin: 2cm;
+  background: <span class="str">#0b0f1a</span>;
+  <span class="kw">@bottom-center</span> {
+    content: <span class="str">"BlanketAudit - MedPay - March 21, 2026 - Page "</span> counter(page);
+    color: <span class="str">rgba(255,255,255,0.3)</span>;
+    font-family: <span class="str">'JetBrains Mono'</span>;
+    font-size: <span class="str">8pt</span>;
+  }
+}</code></pre>
+      </div>
+
+      <div class="card">
+        <h3><span class="badge badge-green">HTML</span> Interactive Report</h3>
+        <p>
+          Same content as PDF but with JavaScript interactivity: expandable/collapsible
+          finding cards, sortable tables, filter by severity/category, search across
+          findings. Served as a single self-contained HTML file with inlined CSS and JS.
+        </p>
+<pre><code><span class="comment">&lt;!-- Finding card with expand/collapse --&gt;</span>
+&lt;<span class="kw">details</span> class=<span class="str">"finding-card"</span>&gt;
+  &lt;<span class="kw">summary</span>&gt;
+    &lt;<span class="kw">span</span> class=<span class="str">"badge-critical"</span>&gt;CRITICAL&lt;/<span class="kw">span</span>&gt;
+    BLK-001 &mdash; PHI Logged in Plaintext
+  &lt;/<span class="kw">summary</span>&gt;
+  &lt;<span class="kw">div</span> class=<span class="str">"finding-body"</span>&gt;...&lt;/<span class="kw">div</span>&gt;
+&lt;/<span class="kw">details</span>&gt;</code></pre>
+      </div>
+
+      <div class="card">
+        <h3><span class="badge badge-blue">JSON</span> CI/CD Integration</h3>
+        <p>
+          Machine-readable output of the full <code>AuditReport</code> Pydantic model.
+          Used for CI/CD gates (fail pipeline if score &lt; 70), trend tracking in
+          SQLite, and API responses.
+        </p>
+<pre><code>{
+  <span class="str">"project_name"</span>: <span class="str">"MedPay"</span>,
+  <span class="str">"health_score"</span>: {
+    <span class="str">"overall"</span>: <span class="str">31</span>,
+    <span class="str">"grade"</span>: <span class="str">"F"</span>,
+    <span class="str">"severity_counts"</span>: {
+      <span class="str">"critical"</span>: <span class="str">7</span>, <span class="str">"high"</span>: <span class="str">19</span>,
+      <span class="str">"medium"</span>: <span class="str">28</span>, <span class="str">"low"</span>: <span class="str">31</span>
+    }
+  },
+  <span class="str">"findings"</span>: [
+    {
+      <span class="str">"id"</span>: <span class="str">"BLK-001"</span>,
+      <span class="str">"severity"</span>: <span class="str">"critical"</span>,
+      <span class="str">"title"</span>: <span class="str">"PHI Logged in Plaintext"</span>,
+      <span class="str">"confidence"</span>: <span class="str">0.96</span>,
+      <span class="str">"dollar_impact"</span>: <span class="str">"$50,000 - $1,900,000"</span>,
+      <span class="str">"blast_radius"</span>: { <span class="str">"entry_points"</span>: <span class="str">8</span> }
+    }
+  ]
+}</code></pre>
+      </div>
+
+      <div class="card">
+        <h3><span class="badge badge-yellow">SARIF</span> GitHub Integration</h3>
+        <p>
+          Static Analysis Results Interchange Format. Upload to GitHub Code Scanning
+          to see findings as inline annotations on pull requests. Each finding maps
+          to a SARIF <code>result</code> with <code>physicalLocation</code>.
+        </p>
+<pre><code>{
+  <span class="str">"$schema"</span>: <span class="str">"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json"</span>,
+  <span class="str">"version"</span>: <span class="str">"2.1.0"</span>,
+  <span class="str">"runs"</span>: [{
+    <span class="str">"tool"</span>: { <span class="str">"driver"</span>: { <span class="str">"name"</span>: <span class="str">"BlanketAudit"</span> } },
+    <span class="str">"results"</span>: [{
+      <span class="str">"ruleId"</span>: <span class="str">"SEC-003"</span>,
+      <span class="str">"level"</span>: <span class="str">"error"</span>,
+      <span class="str">"message"</span>: { <span class="str">"text"</span>: <span class="str">"PHI Logged in Plaintext"</span> },
+      <span class="str">"locations"</span>: [{
+        <span class="str">"physicalLocation"</span>: {
+          <span class="str">"artifactLocation"</span>: { <span class="str">"uri"</span>: <span class="str">"services/patient_service.py"</span> },
+          <span class="str">"region"</span>: { <span class="str">"startLine"</span>: <span class="str">42</span>, <span class="str">"endLine"</span>: <span class="str">44</span> }
+        }
+      }]
+    }]
+  }]
+}</code></pre>
+      </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- FOOTER                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; AI-Powered Architecture Governance &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

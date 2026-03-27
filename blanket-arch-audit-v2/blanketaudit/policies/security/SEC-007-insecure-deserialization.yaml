@@ -1,0 +1,27 @@
+id: SEC-007
+name: Insecure Deserialization
+category: security
+severity: critical
+description: Detects use of pickle.loads, yaml.load without SafeLoader, or marshal.loads on untrusted data.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:pickle\.loads?\s*\(|yaml\.load\s*\([^)]*(?!Loader\s*=\s*SafeLoader)|marshal\.loads?\s*\(|shelve\.open\s*\()'
+  - tool: semgrep
+    rule: python.lang.security.deserialization.avoid-pickle
+
+ai_analysis:
+  prompt_template: |
+    Analyze this insecure deserialization usage. Consider:
+    - Is the deserialized data from a trusted or untrusted source?
+    - Could an attacker supply a crafted payload?
+    - Is yaml.load using SafeLoader or FullLoader?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Replace pickle with JSON or msgpack for untrusted data.
+  Use yaml.safe_load() instead of yaml.load(). Never deserialize untrusted input.
+effort_hours: 4

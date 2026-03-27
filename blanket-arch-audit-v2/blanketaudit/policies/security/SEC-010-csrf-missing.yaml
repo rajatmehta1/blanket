@@ -1,0 +1,27 @@
+id: SEC-010
+name: Missing CSRF Protection
+category: security
+severity: medium
+description: Detects state-changing endpoints or forms without CSRF token validation.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:csrf_exempt|@csrf_exempt|WTF_CSRF_ENABLED\s*=\s*False|CSRF_ENABLED\s*=\s*False)'
+  - tool: semgrep
+    rule: python.django.security.audit.csrf-exempt
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential missing CSRF protection. Consider:
+    - Is this a state-changing endpoint (POST/PUT/DELETE)?
+    - Is CSRF protection disabled intentionally for an API-only endpoint?
+    - Does the endpoint use token-based auth (JWT) which mitigates CSRF?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Enable CSRF middleware and include CSRF tokens in all state-changing forms.
+  Remove @csrf_exempt decorators unless the endpoint uses non-cookie auth.
+effort_hours: 2

@@ -1,0 +1,122 @@
+{
+  "fixture": "fixture-pci-fail",
+  "description": "PCI-DSS violations: plaintext card data storage, SQL injection, MD5 hashing, hardcoded API key and DB URL, card data in logs, debug mode enabled",
+  "files": [
+    "payment_processor.py",
+    "checkout_api.py",
+    "requirements.txt"
+  ],
+  "expected_findings": {
+    "must_find": [
+      {
+        "category": "security",
+        "severity": "critical",
+        "pattern": "sql.injection",
+        "description": "SQL injection via f-string in payment_processor.py (lines 9-10 and 26)",
+        "min_count": 1
+      },
+      {
+        "category": "compliance",
+        "severity": "critical",
+        "pattern": "plaintext.*card|card.*plaintext|card.*storage",
+        "description": "Card number and CVV stored in plaintext in SQLite (payment_processor.py line 9)",
+        "min_count": 1
+      },
+      {
+        "category": "security",
+        "severity": "high",
+        "pattern": "hardcoded.*(secret|key|credential|password)|embedded.*(secret|key)",
+        "description": "Hardcoded API key (sk-live-abc123def456) on line 29",
+        "min_count": 1
+      },
+      {
+        "category": "security",
+        "severity": "high",
+        "pattern": "hardcoded.*(url|password|credential)|database.*credential",
+        "description": "Hardcoded database URL with credentials on line 30",
+        "min_count": 1
+      },
+      {
+        "category": "security",
+        "severity": "high",
+        "pattern": "weak.*(hash|crypto)|md5",
+        "description": "MD5 used for card fingerprinting in payment_processor.py line 15",
+        "min_count": 1
+      },
+      {
+        "category": "compliance",
+        "pattern": "card.*log|sensitive.*log|pan.*log",
+        "description": "Card number printed to stdout in payment_processor.py line 18",
+        "min_count": 1
+      },
+      {
+        "category": "security",
+        "pattern": "debug.*mode|debug.*enabled",
+        "description": "Debug mode enabled in production (checkout_api.py line 4)",
+        "min_count": 1
+      }
+    ],
+    "must_not_find": [
+      {
+        "category": "security",
+        "pattern": "xss",
+        "reason": "No HTML rendering in this fixture"
+      },
+      {
+        "category": "security",
+        "pattern": "xxe",
+        "reason": "No XML parsing in this fixture"
+      },
+      {
+        "category": "compliance",
+        "pattern": "phi|hipaa|protected.health",
+        "reason": "This is a PCI fixture, not a HIPAA fixture"
+      }
+    ]
+  },
+  "expected_severity_counts": {
+    "critical": { "min": 2, "max": 8 },
+    "high": { "min": 2, "max": 12 },
+    "medium": { "min": 0, "max": 10 },
+    "low": { "min": 0, "max": 8 }
+  },
+  "expected_score": {
+    "overall": { "min": 0, "max": 40 },
+    "grade": ["D", "F"]
+  },
+  "expected_compliance": {
+    "PCI-DSS": {
+      "must_have_controls": [
+        "3.4",
+        "6.5",
+        "8.2"
+      ],
+      "expected_failures": [
+        {
+          "clause_pattern": "3\\.4",
+          "title_pattern": "render.*pan.*unreadable|protect.*stored.*card|encryption",
+          "expected_status": ["fail"]
+        },
+        {
+          "clause_pattern": "6\\.5\\.1",
+          "title_pattern": "injection|sql",
+          "expected_status": ["fail"]
+        },
+        {
+          "clause_pattern": "8\\.2",
+          "title_pattern": "credential|authentication|password",
+          "expected_status": ["fail", "partial"]
+        },
+        {
+          "clause_pattern": "3\\.2",
+          "title_pattern": "sensitive.*auth|cvv|track",
+          "expected_status": ["fail"]
+        }
+      ]
+    }
+  },
+  "expected_evidence_files": [
+    "payment_processor.py",
+    "checkout_api.py"
+  ]
+}

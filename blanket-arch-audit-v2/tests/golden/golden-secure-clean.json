@@ -1,0 +1,77 @@
+{
+  "fixture": "fixture-secure-clean",
+  "description": "Clean secure code: parameterized queries, salted SHA-256 password hashing, auth decorators on all endpoints, secrets from environment variables. Zero critical/high findings expected.",
+  "files": [
+    "user_service.py",
+    "api_routes.py",
+    "config.py"
+  ],
+  "expected_findings": {
+    "must_find": [],
+    "must_not_find": [
+      {
+        "category": "security",
+        "pattern": "sql.injection",
+        "reason": "All queries use parameterized placeholders (user_service.py line 23)"
+      },
+      {
+        "category": "security",
+        "pattern": "hardcoded.*(password|secret|key|credential)",
+        "reason": "All secrets loaded from environment variables (config.py)"
+      },
+      {
+        "category": "security",
+        "severity": "critical",
+        "pattern": ".*",
+        "reason": "No critical vulnerabilities should be found in secure code"
+      },
+      {
+        "category": "security",
+        "severity": "high",
+        "pattern": ".*",
+        "reason": "No high severity vulnerabilities should be found in secure code"
+      },
+      {
+        "category": "compliance",
+        "pattern": "missing.*auth|unauthenticated|no.*auth",
+        "reason": "All endpoints use require_auth decorator (api_routes.py)"
+      },
+      {
+        "category": "compliance",
+        "pattern": "phi.*log|sensitive.*log|password.*log",
+        "reason": "No sensitive data logging in this fixture"
+      },
+      {
+        "category": "security",
+        "pattern": "weak.*(hash|crypto)|md5",
+        "reason": "Uses SHA-256 with salt, not MD5 (user_service.py)"
+      }
+    ],
+    "allowed_findings": {
+      "description": "Low and medium quality/style findings from generic static analysis rules are acceptable",
+      "max_severity": "medium",
+      "allowed_categories": ["quality", "architecture"],
+      "max_count": 5
+    }
+  },
+  "expected_severity_counts": {
+    "critical": { "min": 0, "max": 0 },
+    "high": { "min": 0, "max": 0 },
+    "medium": { "min": 0, "max": 5 },
+    "low": { "min": 0, "max": 5 }
+  },
+  "expected_score": {
+    "overall": { "min": 70, "max": 100 },
+    "grade": ["A", "B"]
+  },
+  "expected_compliance": {
+    "_any_framework": {
+      "must_not_have_status": {
+        "status": "fail",
+        "for_categories": ["security", "compliance"],
+        "reason": "Secure fixture should not fail any security or compliance controls"
+      }
+    }
+  },
+  "expected_evidence_files": []
+}

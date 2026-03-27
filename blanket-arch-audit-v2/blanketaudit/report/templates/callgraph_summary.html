@@ -1,0 +1,70 @@
+<!-- Section 6: Call graph analysis -->
+<div class="section">
+  <h2><span class="accent">06</span> Call Graph Analysis</h2>
+
+  {% set cg = report.call_graph_summary | default({}) %}
+
+  <!-- Summary cards -->
+  <div style="text-align: center; margin: 16px 0;">
+    <div class="stat-card">
+      <div class="stat-value">{{ cg.entry_points | default([]) | length }}</div>
+      <div class="stat-label">Entry Points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ cg.cross_repo_edges | default([]) | length }}</div>
+      <div class="stat-label">Cross-Repo Edges</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ report.max_call_depth | default(0) }}</div>
+      <div class="stat-label">Max Call Depth</div>
+    </div>
+  </div>
+
+  <!-- Cross-repo edges -->
+  {% if cg.cross_repo_edges | default([]) %}
+  <h3>Cross-Repository Calls</h3>
+  <table>
+    <tr><th>From</th><th>Via</th><th>To</th></tr>
+    {% for edge in cg.cross_repo_edges %}
+    <tr>
+      <td class="mono small">{{ edge.from_method }}</td>
+      <td class="mono small accent">{{ edge.via }}</td>
+      <td class="mono small">{{ edge.to_method }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <!-- Circular dependencies -->
+  {% if cg.circular_dependencies | default([]) %}
+  <h3>Circular Dependencies</h3>
+  <ul>
+    {% for cycle in cg.circular_dependencies %}
+    <li class="small">{{ cycle }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <!-- Dead code -->
+  {% if cg.dead_methods | default({}) %}
+  {% set dm = cg.dead_methods %}
+  <h3>Dead Code</h3>
+  <div class="card">
+    <span class="mono">{{ dm.count | default(0) }}</span> unreachable methods
+    (<span class="mono">{{ dm.total_lines | default(0) }}</span> lines)
+    {% if dm.top_files | default([]) %}
+    <div class="small muted" style="margin-top: 6px;">Top files: {{ dm.top_files | join(', ') }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- SPOFs -->
+  {% if cg.single_points_of_failure | default([]) %}
+  <h3>Single Points of Failure</h3>
+  <ul>
+    {% for spof in cg.single_points_of_failure %}
+    <li class="mono small">{{ spof }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>

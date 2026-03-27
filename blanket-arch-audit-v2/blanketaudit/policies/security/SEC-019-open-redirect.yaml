@@ -1,0 +1,27 @@
+id: SEC-019
+name: Open Redirect via Unvalidated URL
+category: security
+severity: medium
+description: Detects redirects using user-supplied URLs without validating the destination.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:redirect\s*\(.*(?:request\.|params\[|args\.get)|Location["\'']\s*[:,]\s*.*(?:request\.|params\[))'
+  - tool: semgrep
+    rule: python.lang.security.audit.open-redirect
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential open redirect. Consider:
+    - Is the redirect URL taken from user input (query param, form field)?
+    - Is there validation that the URL is relative or on a trusted domain?
+    - Could an attacker use this for phishing by redirecting to a malicious site?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Validate redirect URLs against an allowlist of trusted domains.
+  Use relative paths for redirects or check urlparse(url).netloc against allowed hosts.
+effort_hours: 2

@@ -1,0 +1,27 @@
+id: SEC-025
+name: TLS Certificate Verification Disabled
+category: security
+severity: high
+description: Detects verify=False in HTTP clients which disables TLS certificate validation.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:verify\s*=\s*False|CERT_NONE|check_hostname\s*=\s*False|ssl\s*=\s*False)'
+  - tool: semgrep
+    rule: python.requests.security.disabled-cert-validation
+
+ai_analysis:
+  prompt_template: |
+    Analyze this disabled TLS verification. Consider:
+    - Is verify=False used in production code or only in tests?
+    - Is there a comment explaining why verification is disabled?
+    - Could this enable man-in-the-middle attacks on sensitive data?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Remove verify=False and use proper CA certificates.
+  For internal CAs, set verify="/path/to/ca-bundle.crt" instead of disabling.
+effort_hours: 1

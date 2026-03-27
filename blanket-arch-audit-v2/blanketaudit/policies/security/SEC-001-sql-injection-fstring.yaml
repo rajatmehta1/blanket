@@ -1,0 +1,27 @@
+id: SEC-001
+name: SQL Injection via f-string
+category: security
+severity: critical
+description: Detects f-string interpolation inside SQL query strings, enabling SQL injection.
+frameworks: [hipaa, soc2, pci-dss, gdpr]
+
+static_checks:
+  - tool: regex
+    regex: 'f["\''](SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE)\b.*\{.*\}'
+  - tool: semgrep
+    rule: python.lang.security.audit.formatted-sql-query
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential SQL injection via f-string. Consider:
+    - Is the interpolated variable sanitized or parameterized elsewhere?
+    - Is this test code, a migration script, or production code?
+    - Could an attacker control the interpolated value?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Replace f-string SQL with parameterized queries using placeholders.
+  Use cursor.execute("SELECT * FROM t WHERE id = %s", (user_id,)).
+effort_hours: 2

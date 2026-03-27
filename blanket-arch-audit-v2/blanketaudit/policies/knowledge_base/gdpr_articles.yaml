@@ -1,0 +1,261 @@
+# GDPR (General Data Protection Regulation) - Articles Relevant to Code Audits
+# Regulatory text is paraphrased from Regulation (EU) 2016/679
+# Source: European Parliament and Council of the European Union
+
+clauses:
+  - id: "GDPR-Art5"
+    framework: "GDPR"
+    clause: "Art. 5"
+    title: "Principles Relating to Processing of Personal Data"
+    text: >
+      Personal data shall be processed lawfully, fairly, and in a transparent
+      manner in relation to the data subject. Data shall be collected for
+      specified, explicit, and legitimate purposes and not further processed
+      in a manner incompatible with those purposes. Data shall be adequate,
+      relevant, and limited to what is necessary in relation to the purposes
+      for which they are processed (data minimisation). Data shall be accurate,
+      kept no longer than necessary, and processed with appropriate security
+      including protection against unauthorised or unlawful processing and
+      against accidental loss, destruction, or damage.
+    technical_requirements:
+      - Data collection limited to declared purposes (data minimisation)
+      - Purpose limitation enforced in data processing logic
+      - Data accuracy validation and correction mechanisms
+      - Retention policies implemented with automated deletion
+      - Security measures on all personal data processing
+    code_indicators:
+      - "data minimisation in API responses and queries"
+      - "purpose field or consent tracking on data collection"
+      - "data retention policy or TTL configuration"
+      - "automated data deletion or anonymisation jobs"
+
+  - id: "GDPR-Art6"
+    framework: "GDPR"
+    clause: "Art. 6"
+    title: "Lawfulness of Processing"
+    text: >
+      Processing shall be lawful only if and to the extent that at least one
+      of the following applies: the data subject has given consent to the
+      processing for one or more specific purposes; processing is necessary
+      for the performance of a contract; processing is necessary for
+      compliance with a legal obligation; processing is necessary for the
+      protection of vital interests; processing is necessary for the
+      performance of a task carried out in the public interest; or processing
+      is necessary for the purposes of legitimate interests pursued by the
+      controller or a third party.
+    technical_requirements:
+      - Legal basis recorded for each processing activity
+      - Consent collection with specific, informed, and unambiguous indication
+      - Consent withdrawal mechanism that is as easy as giving consent
+      - Processing activities linked to documented legal basis
+    code_indicators:
+      - "consent collection and storage mechanism"
+      - "consent withdrawal endpoint or function"
+      - "legal basis field on data processing records"
+      - "consent verification before processing"
+
+  - id: "GDPR-Art17"
+    framework: "GDPR"
+    clause: "Art. 17"
+    title: "Right to Erasure (Right to Be Forgotten)"
+    text: >
+      The data subject shall have the right to obtain from the controller
+      the erasure of personal data concerning him or her without undue delay
+      and the controller shall have the obligation to erase personal data
+      without undue delay where one of the following grounds applies: the
+      data is no longer necessary; the data subject withdraws consent; the
+      data subject objects to the processing; the data has been unlawfully
+      processed; or erasure is required for compliance with a legal obligation.
+    technical_requirements:
+      - User data deletion API endpoint or mechanism
+      - Cascading deletion across all systems storing the user's data
+      - Deletion from backups within defined timeframe or anonymisation
+      - Deletion confirmation and audit logging
+      - Third-party data deletion propagation
+    code_indicators:
+      - "user deletion or account erasure endpoint"
+      - "cascading delete across related data stores"
+      - "data anonymisation function"
+      - "deletion propagation to third-party services"
+
+  - id: "GDPR-Art25"
+    framework: "GDPR"
+    clause: "Art. 25"
+    title: "Data Protection by Design and by Default"
+    text: >
+      The controller shall, both at the time of the determination of the
+      means for processing and at the time of the processing itself,
+      implement appropriate technical and organisational measures, such as
+      pseudonymisation, which are designed to implement data-protection
+      principles such as data minimisation in an effective manner and to
+      integrate the necessary safeguards into the processing. The controller
+      shall implement appropriate technical and organisational measures for
+      ensuring that, by default, only personal data which are necessary for
+      each specific purpose of the processing are processed.
+    technical_requirements:
+      - Privacy-by-default configuration (minimum data collection)
+      - Pseudonymisation or anonymisation capabilities
+      - Data protection impact built into system architecture
+      - Default settings favour minimal data processing
+      - Field-level encryption for sensitive personal data
+    code_indicators:
+      - "pseudonymisation or anonymisation utility"
+      - "privacy-by-default configuration"
+      - "field-level encryption for personal data"
+      - "data protection in system design documentation"
+
+  - id: "GDPR-Art28"
+    framework: "GDPR"
+    clause: "Art. 28"
+    title: "Processor Obligations"
+    text: >
+      Where processing is to be carried out on behalf of a controller, the
+      controller shall use only processors providing sufficient guarantees
+      to implement appropriate technical and organisational measures in such
+      a manner that processing will meet the requirements of this Regulation
+      and ensure the protection of the rights of the data subject. The
+      processor shall not engage another processor without prior specific
+      or general written authorisation of the controller.
+    technical_requirements:
+      - Third-party data sharing governed by contracts and access controls
+      - Sub-processor access restricted and auditable
+      - Data processing boundaries enforced in code
+      - Third-party API integrations reviewed for data handling compliance
+    code_indicators:
+      - "third-party data sharing controls"
+      - "data processing boundary enforcement"
+      - "sub-processor access logging"
+      - "API integration with data handling restrictions"
+
+  - id: "GDPR-Art30"
+    framework: "GDPR"
+    clause: "Art. 30"
+    title: "Records of Processing Activities"
+    text: >
+      Each controller and, where applicable, the controller's representative
+      shall maintain a record of processing activities under its
+      responsibility. That record shall contain the name and contact details
+      of the controller, the purposes of the processing, a description of
+      the categories of data subjects and categories of personal data, the
+      categories of recipients, transfers to third countries, envisaged time
+      limits for erasure, and a general description of the technical and
+      organisational security measures.
+    technical_requirements:
+      - Processing activity registry maintained in code or configuration
+      - Data flow documentation for personal data
+      - Categories of data subjects and data types catalogued
+      - Data retention periods defined per processing activity
+    code_indicators:
+      - "data processing registry or catalogue"
+      - "data classification annotations or metadata"
+      - "data flow documentation or mapping"
+      - "retention period configuration per data type"
+
+  - id: "GDPR-Art32"
+    framework: "GDPR"
+    clause: "Art. 32"
+    title: "Security of Processing"
+    text: >
+      Taking into account the state of the art, the costs of implementation,
+      and the nature, scope, context, and purposes of processing as well as
+      the risk of varying likelihood and severity for the rights and freedoms
+      of natural persons, the controller and the processor shall implement
+      appropriate technical and organisational measures to ensure a level of
+      security appropriate to the risk, including as appropriate:
+      pseudonymisation and encryption of personal data; the ability to
+      ensure the ongoing confidentiality, integrity, availability, and
+      resilience of processing systems and services; the ability to restore
+      the availability and access to personal data in a timely manner in
+      the event of a physical or technical incident; a process for regularly
+      testing, assessing, and evaluating the effectiveness of technical and
+      organisational measures.
+    technical_requirements:
+      - Encryption of personal data at rest and in transit
+      - Pseudonymisation where feasible
+      - System resilience and high availability design
+      - Backup and disaster recovery for personal data
+      - Regular security testing and assessment
+    code_indicators:
+      - "encryption at rest and in transit for personal data"
+      - "pseudonymisation utility or pipeline"
+      - "backup and recovery configuration"
+      - "security testing in CI/CD pipeline"
+      - "resilience patterns (retry, circuit breaker, failover)"
+
+  - id: "GDPR-Art33"
+    framework: "GDPR"
+    clause: "Art. 33"
+    title: "Notification of a Personal Data Breach"
+    text: >
+      In the case of a personal data breach, the controller shall without
+      undue delay and, where feasible, not later than 72 hours after having
+      become aware of it, notify the personal data breach to the supervisory
+      authority competent pursuant to Article 55, unless the personal data
+      breach is unlikely to result in a risk to the rights and freedoms of
+      natural persons. The notification shall at a minimum describe the
+      nature of the breach, the categories and approximate number of data
+      subjects concerned, the likely consequences, and the measures taken
+      or proposed to address the breach.
+    technical_requirements:
+      - Breach detection mechanisms in application code
+      - Automated breach notification workflow
+      - Breach severity classification logic
+      - Breach event logging with required details (nature, scope, impact)
+      - 72-hour notification timeline enforcement
+    code_indicators:
+      - "breach detection or anomaly alerting"
+      - "breach notification service or workflow"
+      - "incident classification with severity levels"
+      - "breach event logging with affected data subject count"
+
+  - id: "GDPR-Art35"
+    framework: "GDPR"
+    clause: "Art. 35"
+    title: "Data Protection Impact Assessment"
+    text: >
+      Where a type of processing, in particular using new technologies,
+      and taking into account the nature, scope, context, and purposes
+      of the processing, is likely to result in a high risk to the rights
+      and freedoms of natural persons, the controller shall, prior to the
+      processing, carry out an assessment of the impact of the envisaged
+      processing operations on the protection of personal data. The
+      assessment shall contain a systematic description of the processing
+      operations, an assessment of the necessity and proportionality, an
+      assessment of the risks to the rights and freedoms of data subjects,
+      and the measures envisaged to address the risks.
+    technical_requirements:
+      - Privacy impact assessment documented for high-risk processing
+      - Risk assessment for new data processing features
+      - Data flow analysis for personal data processing
+      - Proportionality checks on data collection
+    code_indicators:
+      - "privacy impact assessment documentation"
+      - "risk assessment for new features processing personal data"
+      - "data flow analysis annotations"
+      - "proportionality review in feature design"
+
+  - id: "GDPR-Art44"
+    framework: "GDPR"
+    clause: "Art. 44"
+    title: "International Data Transfers"
+    text: >
+      Any transfer of personal data which are undergoing processing or are
+      intended for processing after transfer to a third country or to an
+      international organisation shall take place only if the conditions
+      laid down in this Chapter are complied with by the controller and
+      processor, including for onward transfers of personal data from the
+      third country or an international organisation to another third
+      country or to another international organisation. All provisions
+      in this Chapter shall be applied in order to ensure that the level
+      of protection of natural persons guaranteed by this Regulation is
+      not undermined.
+    technical_requirements:
+      - Data residency controls ensuring personal data stays in allowed regions
+      - Transfer mechanism validation (adequacy decision, SCCs, BCRs)
+      - Geographic restrictions on data storage and processing
+      - Cross-border data flow logging and monitoring
+    code_indicators:
+      - "data residency or region configuration"
+      - "geographic restriction on data storage"
+      - "cross-border transfer logging"
+      - "region-aware data routing"

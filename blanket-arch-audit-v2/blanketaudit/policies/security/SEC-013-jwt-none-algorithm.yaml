@@ -1,0 +1,27 @@
+id: SEC-013
+name: JWT None Algorithm Vulnerability
+category: security
+severity: critical
+description: Detects JWT verification that allows the "none" algorithm, enabling token forgery.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:algorithms\s*=\s*\[.*["\''"]none["\''""]|verify\s*=\s*False.*jwt|jwt\.decode\s*\([^)]*options\s*=.*verify_signature.*False)'
+  - tool: semgrep
+    rule: python.jwt.security.audit.jwt-none-alg
+
+ai_analysis:
+  prompt_template: |
+    Analyze this JWT configuration. Consider:
+    - Is the "none" algorithm explicitly allowed in the algorithms list?
+    - Is signature verification disabled via options or verify parameter?
+    - Is this test code or production authentication logic?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Always specify allowed algorithms explicitly: algorithms=["HS256"] or ["RS256"].
+  Never include "none" in the algorithms list. Always verify signatures.
+effort_hours: 1

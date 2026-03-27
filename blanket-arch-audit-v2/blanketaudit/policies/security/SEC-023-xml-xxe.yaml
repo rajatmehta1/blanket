@@ -1,0 +1,27 @@
+id: SEC-023
+name: XML External Entity (XXE) Injection
+category: security
+severity: high
+description: Detects XML parsing without disabling external entity resolution.
+frameworks: [soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:etree\.parse|minidom\.parse|xml\.sax\.parse|XMLParser\s*\(|etree\.fromstring)\s*\('
+  - tool: semgrep
+    rule: python.lang.security.audit.xxe
+
+ai_analysis:
+  prompt_template: |
+    Analyze this XML parsing for XXE vulnerability. Consider:
+    - Is external entity resolution explicitly disabled?
+    - Is the XML input from an untrusted source (user upload, API)?
+    - Is defusedxml used instead of the standard library?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Use defusedxml instead of xml.etree or xml.sax for untrusted XML.
+  Install defusedxml and replace: from defusedxml.ElementTree import parse.
+effort_hours: 2

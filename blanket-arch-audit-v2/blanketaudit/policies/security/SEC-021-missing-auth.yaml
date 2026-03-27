@@ -1,0 +1,30 @@
+id: SEC-021
+name: Endpoint Without Authentication
+category: security
+severity: high
+description: Detects API endpoints that handle sensitive data without requiring authentication.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: ast
+    pattern:
+      node_type: function_definition
+      conditions:
+        - text_matches: '(?:@app\.(?:get|post|put|delete|patch)\s*\()'
+  - tool: regex
+    regex: '(?:@(?:api_view|app\.route|router\.(?:get|post|put|delete))\s*\(.*(?:patient|user|account|payment|claim))'
+
+ai_analysis:
+  prompt_template: |
+    Analyze this endpoint for authentication requirements. Consider:
+    - Is there an auth decorator (login_required, Depends(get_current_user))?
+    - Does middleware enforce authentication for this route prefix?
+    - Does this endpoint access or modify sensitive data?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Add authentication middleware or decorators to all sensitive endpoints.
+  Use Depends(get_current_user) for FastAPI or @login_required for Django.
+effort_hours: 2

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blanket — Architecture Audit for Legacy &amp; AI-Generated Code</title>
+<meta name="description" content="AI-powered architecture audit that finds security flaws, compliance gaps, and costly design issues in legacy code and AI-generated code — before they reach production.">
+<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ NAV ═══════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <span class="logo-icon">◈</span> Blanket
+    </a>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#how">How It Works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-cta">
+      <a href="#cta" class="btn btn-sm">Get Free Audit →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════ HERO ══════════════ -->
+<section class="hero">
+  <div class="hero-badge">Works on legacy code &amp; AI-generated code</div>
+  <h1>Your code has problems<br>you can't see yet.</h1>
+  <p class="hero-sub">
+    Blanket scans your entire codebase — legacy spaghetti, fresh AI output, and everything between —
+    and finds the security flaws, compliance gaps, and architectural time bombs
+    that will cost <strong>$50K–$2M to fix later</strong>.
+  </p>
+  <p class="hero-sub-small">
+    12-minute scan. Zero false promises. One PDF your CTO, auditor, and board can all read.
+  </p>
+  <div class="hero-actions">
+    <a href="#cta" class="btn btn-lg">Scan Your Repos Free →</a>
+    <a href="#demo" class="btn btn-lg btn-ghost">See Sample Report</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><span class="stat-num">1,565</span><span class="stat-label">Tests Passing</span></div>
+    <div class="stat"><span class="stat-num">88</span><span class="stat-label">Policy Rules</span></div>
+    <div class="stat"><span class="stat-num">4</span><span class="stat-label">Compliance Frameworks</span></div>
+    <div class="stat"><span class="stat-num">6</span><span class="stat-label">Languages</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ LOGOS ═════════════ -->
+<section class="logos">
+  <p class="logos-label">Catches issues across</p>
+  <div class="logos-row">
+    <span>Python</span><span>Java</span><span>TypeScript</span><span>Go</span><span>Rust</span><span>C#</span>
+    <span>Docker</span><span>Kubernetes</span><span>Terraform</span><span>GitHub Actions</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ PROBLEM ═══════════ -->
+<section id="problem" class="section">
+  <div class="section-inner">
+    <div class="section-label">The Problem</div>
+    <h2>Code ships fast. Bugs ship faster.</h2>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-icon">🏚️</div>
+        <h3>Legacy code rots silently</h3>
+        <p>That 5-year-old service nobody wants to touch? It has SQL injection, hardcoded secrets, and HIPAA violations that haven't been caught because "it works." Until an auditor or attacker finds them.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">🤖</div>
+        <h3>AI code looks right but isn't</h3>
+        <p>Copilot and ChatGPT write code that compiles and passes tests — but uses <code>pickle.loads()</code> on user input, logs PII to stdout, and skips auth on 3 endpoints. The AI doesn't know your compliance requirements.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">💸</div>
+        <h3>Fixing later costs 100×</h3>
+        <p>A SQL injection found during development costs 2 hours to fix. Found during a SOC2 audit? 2 weeks + $50K in emergency consulting. Found after a breach? $1.5M–$4M in fines, lawsuits, and lost customers.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">📋</div>
+        <h3>Compliance is a maze</h3>
+        <p>Your SOC2 auditor asks 300 questions. Your HIPAA officer wants proof of encryption. Your PCI assessor needs evidence of access controls. Mapping code to controls takes 6 months manually.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ HOW ═══════════════ -->
+<section id="how" class="section section-dark">
+  <div class="section-inner">
+    <div class="section-label">How It Works</div>
+    <h2>From code to compliance in 12 minutes</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>Point it at your repos</h3>
+          <p>GitHub, GitLab, Bitbucket, or a local directory. Multi-repo and monorepo support. We clone, parse, and index every file.</p>
+          <code class="step-code">blanketaudit scan ./my-project --domain healthcare --framework hipaa</code>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>Static tools scan first</h3>
+          <p>Semgrep for SAST, Gitleaks for secrets, OSV for CVEs — plus 88 custom regex + AST policy rules. No AI hallucinations here. Pure deterministic detection.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>AI agents reason over candidates</h3>
+          <p>Four specialized agents (Security, Compliance, Architecture, Quality) review each finding: <em>Is this real or a false positive? What's the blast radius? Which compliance control does it violate? What does the fix look like?</em></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>4 hallucination gates validate everything</h3>
+          <p>Every AI-generated finding passes through: schema validation, evidence verification (does the file/line actually exist?), confidence thresholds, and cross-agent corroboration. No finding enters the report without proof.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h3>You get a report your auditor can read</h3>
+          <p>PDF, interactive HTML, JSON for CI/CD, SARIF for GitHub. Health score, compliance matrix, remediation roadmap with effort estimates, dollar impact per finding, and copy-pasteable fix code.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ DEMO ══════════════ -->
+<section id="demo" class="section">
+  <div class="section-inner">
+    <div class="section-label">Sample Output</div>
+    <h2>What a real report looks like</h2>
+    <div class="demo-report">
+      <div class="demo-header">
+        <div>
+          <div class="demo-title">MedPay — Architecture Audit</div>
+          <div class="demo-sub">Patient Insurance Payment Platform · Healthcare · 3 repos · 62k lines</div>
+        </div>
+        <div class="demo-score">
+          <div class="score-circle"><span class="score-num">31</span><span class="score-grade">Grade F</span></div>
+        </div>
+      </div>
+      <div class="demo-badges">
+        <span class="sev sev-crit">7 critical</span>
+        <span class="sev sev-high">19 high</span>
+        <span class="sev sev-med">28 medium</span>
+        <span class="sev sev-low">31 low</span>
+      </div>
+      <div class="demo-finding">
+        <div class="finding-header">
+          <span class="sev sev-crit">CRITICAL</span>
+          <span class="finding-id">BLK-001</span>
+          <span class="finding-title">Patient PHI Logged in Plaintext to External Service</span>
+        </div>
+        <pre class="code-vuln">logger.debug(
+    f"Processing patient: {patient.ssn}, "
+    f"DOB: {patient.dob}, "
+    f"Diagnosis: {patient.diagnosis}"
+)</pre>
+        <p class="finding-explain">This log statement writes SSN, date of birth, and medical diagnoses to application logs shipped to Datadog — a third-party without a BAA. This is unauthorized PHI disclosure under HIPAA §164.530(c).</p>
+        <div class="finding-meta">
+          <div class="meta-item"><span class="meta-label">Dollar Impact</span><span class="meta-val meta-red">$50,000 — $1,900,000</span></div>
+          <div class="meta-item"><span class="meta-label">Blast Radius</span><span class="meta-val">8 entry points · ~2,400 calls/day · All patients</span></div>
+          <div class="meta-item"><span class="meta-label">Fix Effort</span><span class="meta-val">3 hours</span></div>
+        </div>
+        <pre class="code-fix"># AFTER (COMPLIANT):
+logger.debug(
+    "processing_patient_claim",
+    patient_id=mask_id(patient.id),
+    claim_type=claim.type,
+    # NEVER log: ssn, dob, diagnosis
+)</pre>
+      </div>
+      <div class="demo-compliance">
+        <div class="comp-title">Compliance Matrix (HIPAA)</div>
+        <div class="comp-row"><span class="status status-fail">FAIL</span> <strong>§164.312(a)(1)</strong> Access Control — PHI accessible without RBAC</div>
+        <div class="comp-row"><span class="status status-fail">FAIL</span> <strong>§164.530(c)</strong> Safeguards — PHI in logs, no BAA</div>
+        <div class="comp-row"><span class="status status-partial">PARTIAL</span> <strong>§164.312(e)(1)</strong> Transmission — HTTPS external, HTTP internal</div>
+        <div class="comp-row"><span class="status status-pass">PASS</span> <strong>§164.312(d)</strong> Authentication — JWT with expiration</div>
+      </div>
+      <div class="demo-roadmap">
+        <div class="roadmap-phase phase-urgent">
+          <strong>URGENT — Days 1-14</strong> · 20 hours · Score: 31 → 52 (+21 points)
+          <div class="roadmap-tasks">Mask PHI in logs (3h) · Fix SQL injection (2h) · Rotate Stripe key (1h) · Add auth to 3 endpoints (4h) · Circuit breaker on payments (6h)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ FEATURES ══════════ -->
+<section id="features" class="section section-dark">
+  <div class="section-inner">
+    <div class="section-label">What Makes Blanket Different</div>
+    <h2>Not another SonarQube.</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <h3>Legacy + AI Code</h3>
+        <p>Handles 5-year-old monoliths and yesterday's Copilot output equally. Parses Python, Java, TypeScript, Go, Rust, C# — plus Docker, K8s, Terraform, CI/CD.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>AI That Can't Hallucinate</h3>
+        <p>4 validation gates: schema check, evidence verification (does the file:line actually match?), confidence thresholds, and cross-agent corroboration. No finding without proof.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <h3>Dollar Impact Per Finding</h3>
+        <p>Not just "high severity." We tell you: <em>"This costs $50K–$1.9M in HIPAA fines if exploited."</em> Regulatory penalty data built in for HIPAA, PCI-DSS, GDPR, SOX.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔗</div>
+        <h3>Cross-Repo Call Graph</h3>
+        <p>Traces how a vulnerability in Service A reaches users through Service B. Blast radius: which entry points, how many repos, how many daily calls are affected.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Compliance Matrix</h3>
+        <p>Maps findings to HIPAA, SOC2, PCI-DSS, GDPR controls. PASS / PARTIAL / FAIL per clause. Hand the PDF to your auditor — no 6-week gap analysis.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>30/60/90 Roadmap</h3>
+        <p>Prioritized by severity × blast radius × compliance weight. Each task: finding ID, effort hours, score impact. "Fix these 7 items in 20 hours → score goes from 31 to 52."</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Copy-Paste Fix Code</h3>
+        <p>Before/after code blocks in the same language and framework you use. Not "consider parameterizing" — actual <code>cursor.execute(sql, params)</code> you can paste.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Runs Locally</h3>
+        <p>Ollama mode: your code never leaves your machine. Zero cloud dependency. Or use Anthropic/OpenAI for deeper analysis. Your choice.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ COMPARISON ════════ -->
+<section class="section">
+  <div class="section-inner">
+    <h2>Why teams switch from existing tools</h2>
+    <table class="compare-table">
+      <thead>
+      <tr><th></th><th>Blanket</th><th>SonarQube</th><th>Snyk</th><th>Semgrep</th></tr>
+      </thead>
+      <tbody>
+      <tr><td>AI reasoning on findings</td><td class="check">✓</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Compliance mapping (HIPAA, SOC2)</td><td class="check">✓</td><td>—</td><td>Partial</td><td>—</td></tr>
+      <tr><td>Dollar impact per finding</td><td class="check">✓</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Cross-repo blast radius</td><td class="check">✓</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Remediation roadmap</td><td class="check">✓</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Board-ready PDF report</td><td class="check">✓</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Works on AI-generated code</td><td class="check">✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Free static-only tier</td><td class="check">✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ USE CASES ═════════ -->
+<section class="section section-dark">
+  <div class="section-inner">
+    <div class="section-label">Who It's For</div>
+    <h2>Three scenarios where Blanket saves you</h2>
+    <div class="use-cases">
+      <div class="use-card">
+        <div class="use-tag">Healthcare Startup</div>
+        <h3>"We need HIPAA compliance before our Series B."</h3>
+        <p>Blanket scans your patient-data services, maps every finding to HIPAA controls, and gives your CTO a 90-day plan to go from Grade F to Grade B. Hand the PDF to your auditor on day 1.</p>
+        <div class="use-result">Result: SOC2 + HIPAA ready in 90 days instead of 6 months</div>
+      </div>
+      <div class="use-card">
+        <div class="use-tag">Fintech Team</div>
+        <h3>"Our PCI auditor found plaintext card numbers in the DB."</h3>
+        <p>Blanket would have caught that on day one — plus the float64 financial math errors accumulating rounding in every loan calculation. The call graph shows which 14 endpoints are affected.</p>
+        <div class="use-result">Result: PCI-DSS certification unblocked, $150K audit rework avoided</div>
+      </div>
+      <div class="use-card">
+        <div class="use-tag">AI-Heavy Team</div>
+        <h3>"Half our code was written by Copilot. Is it safe?"</h3>
+        <p>AI writes code that compiles but doesn't know your security policies. Blanket checks every AI-generated file against 88 rules, flags the pickle.loads(), the missing auth decorators, the SELECT * on PHI tables.</p>
+        <div class="use-result">Result: Ship AI-generated code with the same confidence as human-reviewed code</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ PRICING ═══════════ -->
+<section id="pricing" class="section">
+  <div class="section-inner">
+    <div class="section-label">Pricing</div>
+    <h2>Start free. Pay when it saves you money.</h2>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-tier">Free</div>
+        <div class="price-amount">$0</div>
+        <div class="price-period">forever</div>
+        <ul>
+          <li>Static-only analysis (no AI)</li>
+          <li>88 policy rules</li>
+          <li>JSON + SARIF output</li>
+          <li>3 repos</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#cta" class="btn btn-ghost">Start Free →</a>
+      </div>
+      <div class="price-card price-featured">
+        <div class="price-popular">Most Popular</div>
+        <div class="price-tier">Pro</div>
+        <div class="price-amount">$99<span>/mo</span></div>
+        <div class="price-period">per team</div>
+        <ul>
+          <li>Everything in Free</li>
+          <li><strong>AI analysis</strong> (10× fewer false positives)</li>
+          <li>PDF + HTML reports</li>
+          <li>Compliance matrix (HIPAA, SOC2, PCI, GDPR)</li>
+          <li>10 repos</li>
+          <li>14-day free trial</li>
+        </ul>
+        <a href="#cta" class="btn">Start 14-Day Trial →</a>
+      </div>
+      <div class="price-card">
+        <div class="price-tier">Team</div>
+        <div class="price-amount">$299<span>/mo</span></div>
+        <div class="price-period">per team</div>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>Unlimited repos</li>
+          <li>API + GitHub Action</li>
+          <li>Score trend tracking</li>
+          <li>Remediation roadmap</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#cta" class="btn btn-ghost">Contact Sales →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ CTA ═══════════════ -->
+<section id="cta" class="section section-cta">
+  <div class="section-inner" style="text-align:center">
+    <h2>Find the problems before your auditor does.</h2>
+    <p class="cta-sub">Free scan. 12 minutes. No credit card. See what's hiding in your code.</p>
+    <div class="cta-form">
+      <input type="text" placeholder="github.com/your-org/your-repo" class="cta-input" id="repo-input">
+      <button class="btn btn-lg" onclick="alert('Coming soon — sign up at blanketaudit.com')">Scan Free →</button>
+    </div>
+    <p class="cta-note">Or install locally: <code>pip install blanketaudit && blanketaudit scan ./your-project</code></p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ FOOTER ════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo-icon">◈</span> Blanket
+      <div class="footer-tagline">Architecture audit for code that matters.</div>
+    </div>
+    <div class="footer-links">
+      <div><strong>Product</strong><br><a href="#features">Features</a><br><a href="#pricing">Pricing</a><br><a href="#demo">Sample Report</a></div>
+      <div><strong>Resources</strong><br><a href="docs/index.html">Documentation</a><br><a href="docs/local-setup.html">Setup Guide</a><br><a href="docs/prompts.html">How AI Works</a></div>
+      <div><strong>Company</strong><br><a href="#">Blog</a><br><a href="#">GitHub</a><br><a href="#">Contact</a></div>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 Blanket Architecture Audit. Built with 36K lines of tested code and 1,565 passing tests.</div>
+</footer>
+
+</body>
+</html>

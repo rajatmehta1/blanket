@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlanketAudit Documentation</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>BlanketAudit <span class="badge badge-purple">v2.0</span></h1>
+      <p class="tagline">AI-powered architecture governance. Scan repos. Find risks. Fix code.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <div class="num">1,565</div>
+        <div class="label">Tests</div>
+      </div>
+      <div class="stat">
+        <div class="num">88</div>
+        <div class="label">Policies</div>
+      </div>
+      <div class="stat">
+        <div class="num">6</div>
+        <div class="label">LLM Providers</div>
+      </div>
+      <div class="stat">
+        <div class="num">4</div>
+        <div class="label">Output Formats</div>
+      </div>
+      <div class="stat">
+        <div class="num">6</div>
+        <div class="label">Languages</div>
+      </div>
+      <div class="stat">
+        <div class="num">4</div>
+        <div class="label">Compliance Frameworks</div>
+      </div>
+    </div>
+
+    <h2>Documentation</h2>
+
+    <div class="card-grid">
+
+      <a href="architecture.html" class="card" style="text-decoration:none;">
+        <h3>&#9670; Architecture &amp; Design</h3>
+        <p>Seven-tier pipeline, dual-layer analysis, LangGraph orchestration, and the 6 immutable design principles that govern every line of code.</p>
+      </a>
+
+      <a href="prompts.html" class="card" style="text-decoration:none;">
+        <h3>&#9998; LLM Prompts &amp; Samples</h3>
+        <p>Every prompt template used by the 4 AI agents, with annotated examples of input/output and hallucination guardrail enforcement.</p>
+      </a>
+
+      <a href="callgraph.html" class="card" style="text-decoration:none;">
+        <h3>&#8644; Call Graph &amp; AST Explained</h3>
+        <p>How Tree-sitter parsing, file-level dependency graphs, and method-level call graphs power blast radius analysis and taint tracking.</p>
+      </a>
+
+      <a href="samples.html" class="card" style="text-decoration:none;">
+        <h3>&#9776; Sample Reports</h3>
+        <p>Example PDF, HTML, JSON, and SARIF outputs from real scans, with walkthroughs of each report section and scoring methodology.</p>
+      </a>
+
+      <a href="local-setup.html" class="card" style="text-decoration:none;">
+        <h3>&#9881; Local Setup &amp; Ollama Guide</h3>
+        <p>Get running in 5 minutes: Python environment, Ollama for free local LLMs, Neo4j and Milvus setup, and your first scan.</p>
+      </a>
+
+      <a href="roadmap.html" class="card" style="text-decoration:none;">
+        <h3>&#9888; Future Features Roadmap</h3>
+        <p>Planned capabilities: real-time monitoring, IDE plugins, GitHub App marketplace listing, multi-tenant SaaS mode, and SOX support.</p>
+      </a>
+
+      <a href="deployment.html" class="card" style="text-decoration:none;">
+        <h3>&#9655; Docker Deployment</h3>
+        <p>Docker Compose for the full stack (app, Neo4j, Milvus, PostgreSQL), environment variables, volume mounts, and production hardening.</p>
+      </a>
+
+      <a href="marketing.html" class="card" style="text-decoration:none;">
+        <h3>&#9733; Marketing Playbook</h3>
+        <p>Positioning, messaging frameworks, content calendar, competitor analysis, and go-to-market strategy for developer-focused audiences.</p>
+      </a>
+
+      <a href="customers.html" class="card" style="text-decoration:none;">
+        <h3>&#9734; Finding First 10 Customers</h3>
+        <p>Tactical playbook: ideal customer profiles, outreach templates, free audit offers, community building, and conversion funnels.</p>
+      </a>
+
+    </div>
+
+    <h2>Feature Highlights</h2>
+
+    <div class="card-grid">
+
+      <div class="card">
+        <h3><span class="badge badge-red">Security</span> SAST + Secrets + CVEs</h3>
+        <p>Semgrep static analysis, Gitleaks secret detection, and OSV vulnerability scanning feed candidates to AI reasoning agents.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="badge badge-yellow">Compliance</span> HIPAA, SOC2, PCI-DSS, GDPR</h3>
+        <p>Automatic control mapping with clause-level pass/partial/fail assessment. Semantic search matches code patterns to regulatory requirements.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="badge badge-blue">Architecture</span> Cross-Repo Analysis</h3>
+        <p>File-level dependency graphs and method-level call graphs detect coupling, circular dependencies, dead code, and single points of failure.</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="badge badge-green">Quality</span> Complexity + Coverage</h3>
+        <p>Cyclomatic complexity scoring, dead code detection from call graph reachability, and test coverage gap analysis with AI-driven recommendations.</p>
+      </div>
+
+    </div>
+
+    <h2>How It Works</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th>Stage</th>
+          <th>What Happens</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>1</code></td>
+          <td>Source Input</td>
+          <td>Clone from GitHub, GitLab, Bitbucket, or scan a local directory</td>
+        </tr>
+        <tr>
+          <td><code>2</code></td>
+          <td>Ingestion</td>
+          <td>Tree-sitter AST parsing, dependency graph, manifest extraction</td>
+        </tr>
+        <tr>
+          <td><code>2.5</code></td>
+          <td>Entity Extraction</td>
+          <td>Classes, methods, calls, entry points; method-level call graph in Neo4j</td>
+        </tr>
+        <tr>
+          <td><code>3</code></td>
+          <td>Orchestration</td>
+          <td>LangGraph pipeline: triage files, estimate cost, dispatch agents</td>
+        </tr>
+        <tr>
+          <td><code>4</code></td>
+          <td>AI Analysis</td>
+          <td>4 parallel agents: Security, Compliance, Architecture, Quality</td>
+        </tr>
+        <tr>
+          <td><code>5</code></td>
+          <td>Scoring</td>
+          <td>Dedup, 4 hallucination gates, 8-category risk scoring, roadmap</td>
+        </tr>
+        <tr>
+          <td><code>6</code></td>
+          <td>Report</td>
+          <td>PDF (dark theme), HTML (interactive), JSON, SARIF</td>
+        </tr>
+        <tr>
+          <td><code>7</code></td>
+          <td>Delivery</td>
+          <td>Local filesystem, webhooks, SQLite scan history</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Supported LLM Providers</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Models</th>
+          <th>Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Anthropic</td>
+          <td>Claude Opus, Sonnet</td>
+          <td>Highest quality analysis</td>
+        </tr>
+        <tr>
+          <td>OpenAI</td>
+          <td>GPT-4, GPT-4o-mini</td>
+          <td>Broad compatibility</td>
+        </tr>
+        <tr>
+          <td>Ollama</td>
+          <td>Llama 3, Mistral, CodeLlama</td>
+          <td>Free local inference, air-gapped</td>
+        </tr>
+        <tr>
+          <td>Groq</td>
+          <td>Llama 3 70B</td>
+          <td>Ultra-fast inference</td>
+        </tr>
+        <tr>
+          <td>Google</td>
+          <td>Gemini Pro</td>
+          <td>Alternative cloud provider</td>
+        </tr>
+        <tr>
+          <td>Azure</td>
+          <td>Azure OpenAI</td>
+          <td>Enterprise compliance</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <blockquote>
+      <strong>Dual-layer guarantee:</strong> Static scanners always run first. AI agents only enrich and filter. If LLM access is unavailable, every agent falls back to static-only analysis. No unbounded LLM spending.
+    </blockquote>
+
+    <p class="text-muted" style="text-align:center; margin-top:3rem; font-size:0.85rem;">
+      BlanketAudit v2.0 &mdash; AI-Powered Architecture Governance &mdash; 2026
+    </p>
+
+  </div>
+</body>
+</html>

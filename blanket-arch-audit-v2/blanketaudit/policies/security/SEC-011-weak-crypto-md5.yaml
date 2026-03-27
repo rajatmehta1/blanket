@@ -1,0 +1,27 @@
+id: SEC-011
+name: Weak Hashing for Passwords (MD5/SHA1)
+category: security
+severity: high
+description: Detects MD5 or SHA1 used for password hashing instead of bcrypt/argon2/scrypt.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:hashlib\.(?:md5|sha1)\s*\(|MD5\.new\s*\(|SHA\.new\s*\().*(?:password|passwd|secret|credential)'
+  - tool: semgrep
+    rule: python.lang.security.insecure-hash-algorithms
+
+ai_analysis:
+  prompt_template: |
+    Analyze this weak hashing usage. Consider:
+    - Is this hashing passwords or non-security data (checksums, cache keys)?
+    - Is there a migration path to a stronger algorithm?
+    - Is the hash salted or used with HMAC?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Use bcrypt, argon2, or scrypt for password hashing.
+  MD5/SHA1 are acceptable only for non-security checksums, not credentials.
+effort_hours: 4

@@ -1,0 +1,27 @@
+id: SEC-004
+name: Reflected XSS via Unescaped User Input
+category: security
+severity: high
+description: Detects user input rendered directly into HTML responses without escaping.
+frameworks: [soc2, pci-dss, gdpr]
+
+static_checks:
+  - tool: regex
+    regex: '(?:render_template_string|Markup)\s*\(.*(?:request\.|params\[|query\[)'
+  - tool: semgrep
+    rule: python.flask.security.xss.audit.direct-use-of-jinja2
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential reflected XSS vulnerability. Consider:
+    - Is the user input HTML-escaped before rendering?
+    - Does the template engine auto-escape by default?
+    - Can an attacker craft a URL that injects script tags?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Always escape user input before rendering in HTML.
+  Use template auto-escaping and avoid Markup() or |safe on user data.
+effort_hours: 3

@@ -1,0 +1,27 @@
+id: SEC-006
+name: Command Injection via Shell Execution
+category: security
+severity: critical
+description: Detects os.system, subprocess with shell=True, or exec/eval with user input.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:os\.system|os\.popen|subprocess\.(?:call|run|Popen)\s*\(.*shell\s*=\s*True|eval\s*\(|exec\s*\()'
+  - tool: semgrep
+    rule: python.lang.security.audit.dangerous-system-call
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential command injection. Consider:
+    - Does the command include any user-controlled input?
+    - Is shell=True necessary or can it use a list of arguments?
+    - Are there any input validation or allowlist checks?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Use subprocess.run() with a list of args and shell=False.
+  Never pass user input to os.system() or eval(). Use shlex.quote() if shell is required.
+effort_hours: 3

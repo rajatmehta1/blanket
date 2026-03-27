@@ -1,0 +1,27 @@
+id: SEC-012
+name: Weak Encryption Using ECB Mode
+category: security
+severity: high
+description: Detects use of ECB mode in AES or other block ciphers which leaks data patterns.
+frameworks: [hipaa, soc2, pci-dss]
+
+static_checks:
+  - tool: regex
+    regex: '(?:MODE_ECB|AES\.new\s*\([^)]*ECB|mode\s*=\s*["\''"]ECB|\.ECB\b)'
+  - tool: semgrep
+    rule: python.cryptography.security.insecure-cipher-mode
+
+ai_analysis:
+  prompt_template: |
+    Analyze this ECB mode encryption usage. Consider:
+    - Is ECB used for actual data encryption or a non-security purpose?
+    - What data is being encrypted — could pattern leakage be exploited?
+    - Is there a reason GCM or CBC mode was not used?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Replace ECB with AES-GCM (authenticated encryption) or AES-CBC with HMAC.
+  Use cryptography.fernet for simple symmetric encryption in Python.
+effort_hours: 3

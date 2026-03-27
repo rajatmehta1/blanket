@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest pytest-asyncio ruff
+      - name: Lint
+        run: ruff check blanketaudit/ tests/
+      - name: Test
+        run: python -m pytest tests/unit/ -v --tb=short
+      - name: Upload SARIF (on main)
+        if: github.ref == 'refs/heads/main'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: audit-report/report.sarif
+        continue-on-error: true

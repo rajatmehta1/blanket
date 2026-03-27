@@ -1,0 +1,140 @@
+<!-- Interactive JavaScript for HTML report (not included in PDF) -->
+<style>
+/* Interactive-only styles */
+.search-bar { width: 100%; padding: 10px 16px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace; font-size: 10pt; margin: 16px 0;
+  outline: none; }
+.search-bar:focus { border-color: #6C5CE7; }
+.filter-btn { display: inline-block; padding: 4px 12px; margin: 2px 4px;
+  border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 9pt; color: rgba(255,255,255,0.5);
+  background: transparent; transition: all 0.15s; }
+.filter-btn:hover { border-color: #6C5CE7; color: #6C5CE7; }
+.filter-btn.active { background: rgba(108,92,231,0.15); border-color: #6C5CE7; color: #6C5CE7; }
+.finding-card { transition: max-height 0.3s ease; overflow: hidden; }
+.finding-card.collapsed .finding-body { display: none; }
+.finding-header { cursor: pointer; }
+.finding-header:hover { background: rgba(255,255,255,0.02); }
+.toggle-icon { display: inline-block; width: 16px; transition: transform 0.2s; }
+.collapsed .toggle-icon { transform: rotate(-90deg); }
+.sortable th { cursor: pointer; user-select: none; }
+.sortable th:hover { color: #6C5CE7; }
+.sort-arrow { font-size: 8pt; margin-left: 4px; }
+.hidden { display: none !important; }
+.nav-bar { position: fixed; top: 0; left: 0; right: 0; background: rgba(11,15,26,0.95);
+  border-bottom: 1px solid rgba(255,255,255,0.06); padding: 8px 20px; z-index: 100; }
+.nav-bar a { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 9pt;
+  font-family: 'JetBrains Mono', monospace; margin: 0 10px; }
+.nav-bar a:hover { color: #6C5CE7; }
+body { padding-top: 40px; }
+</style>
+
+<!-- Navigation bar -->
+<nav class="nav-bar">
+  <a href="#cover">Cover</a>
+  <a href="#summary">Summary</a>
+  <a href="#scores">Scores</a>
+  <a href="#findings">Findings</a>
+  <a href="#compliance">Compliance</a>
+  <a href="#callgraph">Call Graph</a>
+  <a href="#infra">Infra</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<!-- Search + filter controls (injected before findings section) -->
+<div id="controls-placeholder"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ── Inject search bar before findings ────────────
+  var findingsSection = document.getElementById('findings');
+  if (findingsSection) {
+    var controls = document.createElement('div');
+    controls.innerHTML = `
+      <input type="text" class="search-bar" id="finding-search"
+        placeholder="Search findings by title, file, severity...">
+      <div style="margin-bottom: 12px;">
+        <span class="filter-btn active" data-severity="all">All</span>
+        <span class="filter-btn" data-severity="critical">Critical</span>
+        <span class="filter-btn" data-severity="high">High</span>
+        <span class="filter-btn" data-severity="medium">Medium</span>
+        <span class="filter-btn" data-severity="low">Low</span>
+      </div>
+    `;
+    findingsSection.insertBefore(controls, findingsSection.children[1]);
+  }
+
+  // ── Search filter ────────────────────────────────
+  var searchInput = document.getElementById('finding-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      var query = this.value.toLowerCase();
+      document.querySelectorAll('.finding-card').forEach(function(card) {
+        var text = card.textContent.toLowerCase();
+        card.classList.toggle('hidden', query && !text.includes(query));
+      });
+    });
+  }
+
+  // ── Severity filter buttons ──────────────────────
+  document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      this.classList.add('active');
+      var severity = this.dataset.severity;
+      document.querySelectorAll('.finding-card').forEach(function(card) {
+        if (severity === 'all') {
+          card.classList.remove('hidden');
+        } else {
+          var cardSev = card.dataset.severity || '';
+          card.classList.toggle('hidden', cardSev !== severity);
+        }
+      });
+    });
+  });
+
+  // ── Collapsible findings ─────────────────────────
+  document.querySelectorAll('.finding-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      var card = this.closest('.finding-card');
+      card.classList.toggle('collapsed');
+    });
+  });
+
+  // ── Sortable tables ──────────────────────────────
+  document.querySelectorAll('.sortable').forEach(function(table) {
+    var headers = table.querySelectorAll('th');
+    headers.forEach(function(th, colIdx) {
+      th.innerHTML += ' <span class="sort-arrow">▼</span>';
+      th.addEventListener('click', function() {
+        var tbody = table.querySelector('tbody') || table;
+        var rows = Array.from(tbody.querySelectorAll('tr')).filter(function(r) {
+          return r.querySelector('td');
+        });
+        var asc = !th.classList.contains('sort-asc');
+        headers.forEach(function(h) { h.classList.remove('sort-asc', 'sort-desc'); });
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+        th.querySelector('.sort-arrow').textContent = asc ? '▲' : '▼';
+        rows.sort(function(a, b) {
+          var aVal = (a.children[colIdx] || {}).textContent || '';
+          var bVal = (b.children[colIdx] || {}).textContent || '';
+          var aNum = parseFloat(aVal);
+          var bNum = parseFloat(bVal);
+          if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
+          return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        });
+        rows.forEach(function(row) { tbody.appendChild(row); });
+      });
+    });
+  });
+
+  // ── Section anchors ──────────────────────────────
+  document.querySelectorAll('.section').forEach(function(sec, i) {
+    var ids = ['cover','summary','scores','findings','compliance','callgraph','infra','roadmap','benefits'];
+    if (ids[i]) sec.id = ids[i];
+  });
+});
+</script>

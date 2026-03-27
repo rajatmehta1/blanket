@@ -1,0 +1,27 @@
+id: SEC-003
+name: SQL Injection via .format()
+category: security
+severity: critical
+description: Detects .format() used to interpolate values into SQL query strings.
+frameworks: [hipaa, soc2, pci-dss, gdpr]
+
+static_checks:
+  - tool: regex
+    regex: "[\"'](SELECT|INSERT|UPDATE|DELETE|DROP)\\b[^\"'\\n]*[\"']\\s*\\.format\\s*\\("
+  - tool: semgrep
+    rule: python.lang.security.audit.formatted-sql-query
+
+ai_analysis:
+  prompt_template: |
+    Analyze this potential SQL injection via .format(). Consider:
+    - Are the formatted values from untrusted user input?
+    - Is there a query builder or ORM that should be used instead?
+    - Is this in a code path reachable from external input?
+    {code_context}
+  expected_output: finding_assessment
+  min_confidence: 0.7
+
+remediation_template: |
+  Replace .format() SQL construction with parameterized queries.
+  Use your ORM or cursor.execute() with bound parameters.
+effort_hours: 2
