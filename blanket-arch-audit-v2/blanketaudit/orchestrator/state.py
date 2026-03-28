@@ -44,6 +44,7 @@ class AuditState(TypedDict, total=False):
 
     # ── Tier 3.5: Static analysis (before agents) ────────────
     static_findings: Annotated[list[dict], _merge_lists]
+    static_raw_count: int               # Raw tool findings before conversion
 
     # ── Tier 4: Agent results ────────────────────────────────
     agent_findings: Annotated[list[dict], _merge_lists]

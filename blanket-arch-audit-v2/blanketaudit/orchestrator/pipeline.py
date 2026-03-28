@@ -290,8 +290,12 @@ class AuditPipeline:
             except Exception as exc:
                 errors.append(f"OSV failed: {exc}")
 
-        logger.info("node.static.done", findings=len(findings))
-        return {"static_findings": findings, "errors": errors}
+        # Convert raw tool dicts → AuditFinding-compatible dicts
+        raw_count = len(findings)
+        converted = self._convert_static_to_findings(findings, state)
+
+        logger.info("node.static.done", findings=len(converted), raw_tool_findings=raw_count)
+        return {"static_findings": converted, "static_raw_count": raw_count, "errors": errors}
 
     async def security_node(self, state: AuditState) -> dict:
         """Tier 4: Security agent — AI analysis on static candidates."""
@@ -318,20 +322,57 @@ class AuditPipeline:
             from blanketaudit.validation.pipeline import ValidationPipeline
 
             # Combine static + agent findings
-            all_raw = (
-                state.get("static_findings", []) +
-                state.get("agent_findings", [])
+            static = state.get("static_findings", [])
+            agent = state.get("agent_findings", [])
+            all_raw = static + agent
+
+            logger.info(
+                "node.validate.input_summary",
+                static_count=len(static),
+                agent_count=len(agent),
+                total=len(all_raw),
+                sample_keys=list(all_raw[0].keys()) if all_raw else [],
             )
 
             # Build repo_files map for evidence verification
             repo_files = self._build_repo_files(state)
+            logger.info("node.validate.repo_files", file_count=len(repo_files))
 
             pipeline = ValidationPipeline()
-            validated = pipeline.validate(all_raw, repo_files)
 
-            logger.info("node.validate.done", input=len(all_raw), validated=len(validated))
+            # Separate static-only findings from AI findings.
+            # Static tools (semgrep, gitleaks, osv) don't hallucinate —
+            # Gate 2 (evidence path verification) was designed for AI output.
+            # Run static findings through Gate 1 (schema) only,
+            # run AI findings through all 4 gates.
+            static_only = [f for f in all_raw if f.get("source") == "static"]
+            ai_findings = [f for f in all_raw if f.get("source") != "static"]
+
+            # Validate AI findings through all 4 gates
+            validated_ai = pipeline.validate(ai_findings, repo_files) if ai_findings else []
+
+            # Validate static findings through Gate 1 (schema) only
+            from blanketaudit.validation.gate_schema import SchemaGate
+            schema_gate = SchemaGate()
+            validated_static: list = []
+            for raw in static_only:
+                finding = schema_gate.validate(raw)
+                if finding is not None:
+                    validated_static.append(finding)
+                else:
+                    logger.warning("node.validate.static_schema_fail", finding_id=raw.get("id", "?"))
+
+            all_validated = validated_static + validated_ai
+
+            logger.info(
+                "node.validate.done",
+                input=len(all_raw),
+                validated=len(all_validated),
+                static_passed=len(validated_static),
+                ai_passed=len(validated_ai),
+            )
             return {
-                "validated_findings": [f.model_dump() for f in validated],
+                "validated_findings": [f.model_dump() for f in all_validated],
             }
         except Exception as exc:
             logger.error("node.validate.failed", error=str(exc)[:200])
@@ -347,6 +388,20 @@ class AuditPipeline:
         logger.info("node.score.start")
 
         validated = state.get("validated_findings", [])
+        static_raw_count = state.get("static_raw_count", 0)
+
+        # Detect incomplete scan: tools produced findings but validation rejected all
+        scan_incomplete = (
+            len(validated) == 0
+            and static_raw_count > 0
+        )
+        if scan_incomplete:
+            logger.warning(
+                "score.incomplete_scan",
+                msg="Static tools found findings but all were rejected by validation gates",
+                raw_count=static_raw_count,
+                validated_count=0,
+            )
 
         # Compute severity counts for health score
         severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
@@ -361,6 +416,7 @@ class AuditPipeline:
             severity_counts["medium"] * 3 +
             severity_counts["low"] * 1
         ))
+
         grade = (
             "A" if score >= 85 else
             "B" if score >= 70 else
@@ -455,6 +511,139 @@ class AuditPipeline:
         return "proceed"
 
     # ═══════════════════════════════════════════════════════════
+    # Static finding conversion
+    # ═══════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _convert_static_to_findings(
+        raw_findings: list[dict], state: AuditState
+    ) -> list[dict]:
+        """Convert raw tool output dicts into AuditFinding-compatible dicts.
+
+        Raw tools (semgrep, gitleaks, osv) return minimal dicts.  The
+        validation pipeline expects dicts that can parse into AuditFinding.
+        This bridge fills in required fields with sensible defaults.
+        """
+        from pathlib import Path as _Path
+
+        converted: list[dict] = []
+        repo_name = ""
+        repo_local_path = ""
+        repos = state.get("repo_paths", [])
+        if repos:
+            repo_name = repos[0].get("repo_name", repos[0].get("name", "unknown"))
+            repo_local_path = repos[0].get("local_path", "")
+
+        # Build set of known relative file paths for normalization
+        known_files = {f.get("path", "") for f in state.get("files", []) if f.get("path")}
+
+        def _normalize_evidence_path(raw_path: str) -> str:
+            """Normalize tool-reported file paths to match indexed file paths.
+
+            Tools like gitleaks may report paths relative to the git root
+            (e.g., 'blanket-arch-audit-v2/tests/foo.py') but the indexer
+            stores paths relative to the scan target (e.g., 'tests/foo.py').
+            """
+            p = raw_path.replace("\\", "/")
+            # Already matches an indexed file
+            if p in known_files:
+                return p
+            # Try stripping directory prefixes one level at a time
+            parts = p.split("/")
+            for i in range(1, len(parts)):
+                candidate = "/".join(parts[i:])
+                if candidate in known_files:
+                    return candidate
+            return p  # Return as-is if no match found
+
+        # Map tool-specific rule patterns to policy prefixes
+        _TOOL_CATEGORY: dict[str, str] = {
+            "semgrep": "security",
+            "gitleaks": "security",
+            "osv": "security",
+        }
+        _TOOL_POLICY_PREFIX: dict[str, str] = {
+            "semgrep": "SEC",
+            "gitleaks": "SEC",
+            "osv": "SEC",
+        }
+        _TOOL_SEVERITY_DEFAULT: dict[str, str] = {
+            "semgrep": "medium",
+            "gitleaks": "high",
+            "osv": "medium",
+        }
+
+        for idx, raw in enumerate(raw_findings, start=1):
+            tool = raw.get("tool", "unknown")
+            severity = raw.get("severity", _TOOL_SEVERITY_DEFAULT.get(tool, "medium"))
+            # Normalise severity values from tools
+            severity_map = {
+                "error": "high",
+                "warning": "medium",
+                "info": "low",
+                "note": "low",
+            }
+            severity = severity_map.get(severity, severity)
+            if severity not in ("critical", "high", "medium", "low"):
+                severity = "medium"
+
+            category = _TOOL_CATEGORY.get(tool, "security")
+            policy_prefix = _TOOL_POLICY_PREFIX.get(tool, "SEC")
+
+            # Build title from tool-specific fields
+            rule_id = raw.get("rule_id", "")
+            message = raw.get("message", raw.get("description", ""))
+            if tool == "gitleaks":
+                title = f"Secret Detected: {raw.get('description', rule_id)}"
+                description = f"Gitleaks found a potential secret ({rule_id}) in the source code."
+                remediation = "Remove the secret from source code and rotate the credential immediately."
+                fix_code = "# Remove hardcoded secret and use environment variables instead"
+            elif tool == "osv":
+                pkg = raw.get("package_name", "")
+                ver = raw.get("package_version", "")
+                vuln_id = raw.get("vuln_id", rule_id)
+                fixed = raw.get("fixed_version", "")
+                title = f"Vulnerable Dependency: {pkg}@{ver} ({vuln_id})"
+                description = message or f"Known vulnerability {vuln_id} in {pkg}@{ver}."
+                remediation = f"Upgrade {pkg} to {fixed}." if fixed else f"Check for a patched version of {pkg}."
+                fix_code = f"# Upgrade: {pkg} >= {fixed}" if fixed else f"# Check for updates to {pkg}"
+            else:
+                title = message[:120] if message else f"Static finding: {rule_id}"
+                description = message or f"Semgrep rule {rule_id} triggered."
+                remediation = "Review and fix the flagged code pattern."
+                fix_code = ""
+
+            finding_dict = {
+                "id": f"BLK-{idx:03d}",
+                "policy_id": f"{policy_prefix}-{idx:03d}",
+                "title": title,
+                "description": description,
+                "severity": severity,
+                "category": category,
+                "confidence": 0.85 if tool in ("semgrep", "gitleaks") else 0.7,
+                "source": "static",
+                "evidence": [
+                    {
+                        "file_path": _normalize_evidence_path(raw.get("file_path", "unknown")),
+                        "repo_name": repo_name,
+                        "line_start": raw.get("line_start", 1),
+                        "line_end": raw.get("line_end", raw.get("line_start", 1)),
+                        "code_snippet": raw.get("code_snippet", ""),
+                        "tool": tool,
+                    }
+                ],
+                "compliance_refs": [],
+                "ai_explanation": f"Static analysis tool '{tool}' flagged this issue. {description}",
+                "fix_code": fix_code,
+                "remediation": remediation,
+                "effort_hours": 1.0,
+                "dollar_impact": "",
+            }
+            converted.append(finding_dict)
+
+        return converted
+
+    # ═══════════════════════════════════════════════════════════
     # Agent helpers
     # ═══════════════════════════════════════════════════════════
 
@@ -496,12 +685,93 @@ class AuditPipeline:
 
     @staticmethod
     def _build_repo_files(state: AuditState) -> dict[str, str]:
-        """Build a {file_path: content} map for evidence verification.
+        """Build a {relative_file_path: content} map for evidence verification.
 
-        In a real scan this reads from the cloned repos.  For now
-        returns an empty dict (evidence gate will skip verification).
+        Reads files from the scanned repos so Gate 2 can verify evidence.
+        Also reads from the git root to cover files found by tools like
+        gitleaks that scan across git history.
         """
-        return {}
+        from pathlib import Path
+        import subprocess
+
+        repo_files: dict[str, str] = {}
+
+        for repo in state.get("repo_paths", []):
+            local_path = repo.get("local_path", "")
+            if not local_path:
+                continue
+            repo_root = Path(local_path).resolve()
+
+            # 1. Index files from the scan target (indexed paths)
+            for file_meta in state.get("files", []):
+                rel = file_meta.get("path", "")
+                if not rel:
+                    continue
+                full = repo_root / rel
+                if full.is_file():
+                    try:
+                        repo_files[rel] = full.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        continue
+
+            # 2. Also find the git root — tools like gitleaks report
+            #    paths relative to the git root, not the scan target
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "--show-toplevel"],
+                    capture_output=True, text=True, cwd=str(repo_root),
+                    timeout=5,
+                )
+                if result.returncode == 0:
+                    git_root = Path(result.stdout.strip()).resolve()
+                    # For evidence paths relative to git root, also index them
+                    for file_meta in state.get("files", []):
+                        rel = file_meta.get("path", "")
+                        if not rel:
+                            continue
+                        # Compute path relative to git root
+                        full = repo_root / rel
+                        if full.is_file():
+                            try:
+                                git_rel = str(full.relative_to(git_root)).replace("\\", "/")
+                                if git_rel not in repo_files:
+                                    repo_files[git_rel] = full.read_text(encoding="utf-8", errors="replace")
+                            except (ValueError, OSError):
+                                continue
+            except (subprocess.SubprocessError, OSError):
+                pass
+
+        # 3. For any evidence file_paths from static findings that are
+        #    not in repo_files, try to resolve them from the git root
+        static_findings = state.get("static_findings", [])
+        for finding in static_findings:
+            for ev in finding.get("evidence", []):
+                fp = ev.get("file_path", "")
+                if fp and fp not in repo_files:
+                    # Try resolving from git root
+                    for repo in state.get("repo_paths", []):
+                        local_path = repo.get("local_path", "")
+                        if not local_path:
+                            continue
+                        try:
+                            result = subprocess.run(
+                                ["git", "rev-parse", "--show-toplevel"],
+                                capture_output=True, text=True,
+                                cwd=str(Path(local_path).resolve()),
+                                timeout=5,
+                            )
+                            if result.returncode == 0:
+                                git_root = Path(result.stdout.strip()).resolve()
+                                candidate = git_root / fp
+                                if candidate.is_file():
+                                    repo_files[fp] = candidate.read_text(
+                                        encoding="utf-8", errors="replace"
+                                    )
+                                    break
+                        except (subprocess.SubprocessError, OSError):
+                            continue
+
+        return repo_files
 
 
 # ═══════════════════════════════════════════════════════════════

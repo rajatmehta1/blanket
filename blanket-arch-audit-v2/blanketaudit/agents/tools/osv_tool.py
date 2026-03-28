@@ -161,11 +161,17 @@ def _walk(path: Path):
         yield Path(root), dirs, files
 
 
+def _osv_cmd() -> str:
+    """Resolve the osv-scanner executable path."""
+    from blanketaudit.agents.tools.tool_resolver import resolve_tool
+    return resolve_tool("osv-scanner")
+
+
 async def check_osv_installed() -> bool:
-    """Check if osv-scanner is available on PATH."""
+    """Check if osv-scanner is available."""
     try:
         proc = await asyncio.create_subprocess_exec(
-            "osv-scanner", "--version",
+            _osv_cmd(), "--version",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -210,7 +216,7 @@ async def run_osv_scan(
 
     try:
         cmd = [
-            "osv-scanner",
+            _osv_cmd(),
             "--format", "json",
             "--output", output_path,
         ]
@@ -240,11 +246,17 @@ async def run_osv_scan(
             return []
 
         # osv-scanner returns 1 when vulnerabilities found (not an error)
+        # Exit code 128 = no package sources found (expected for repos without manifests)
+        if proc.returncode == 128:
+            stderr_text = stderr.decode(errors="replace")[:500]
+            if "No package sources found" in stderr_text:
+                logger.info("osv.no_manifests", msg="No dependency manifests found — skipping CVE scan")
+                return []
         if proc.returncode not in (0, 1):
             logger.warning(
                 "osv.error",
                 returncode=proc.returncode,
-                stderr=stderr.decode()[:500],
+                stderr=stderr.decode(errors="replace")[:500],
             )
             return []
 

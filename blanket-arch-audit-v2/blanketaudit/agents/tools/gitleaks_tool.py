@@ -87,11 +87,17 @@ def _parse_gitleaks_json(data: list[dict], repo_path: str) -> list[GitleaksFindi
     return findings
 
 
+def _gitleaks_cmd() -> str:
+    """Resolve the gitleaks executable path."""
+    from blanketaudit.agents.tools.tool_resolver import resolve_tool
+    return resolve_tool("gitleaks")
+
+
 async def check_gitleaks_installed() -> bool:
-    """Check if gitleaks is available on PATH."""
+    """Check if gitleaks is available."""
     try:
         proc = await asyncio.create_subprocess_exec(
-            "gitleaks", "version",
+            _gitleaks_cmd(), "version",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -136,7 +142,7 @@ async def run_gitleaks(
 
     try:
         cmd = [
-            "gitleaks", "detect",
+            _gitleaks_cmd(), "detect",
             "--source", str(repo_path),
             "--report-format", "json",
             "--report-path", output_path,

@@ -106,11 +106,17 @@ def _parse_sarif(sarif_data: dict, repo_path: str) -> list[SemgrepFinding]:
     return findings
 
 
+def _semgrep_cmd() -> str:
+    """Resolve the semgrep executable path."""
+    from blanketaudit.agents.tools.tool_resolver import resolve_tool
+    return resolve_tool("semgrep")
+
+
 async def check_semgrep_installed() -> bool:
-    """Check if semgrep is available on PATH."""
+    """Check if semgrep is available."""
     try:
         proc = await asyncio.create_subprocess_exec(
-            "semgrep", "--version",
+            _semgrep_cmd(), "--version",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -159,7 +165,7 @@ async def run_semgrep(
         output_path = f.name
 
     try:
-        cmd = ["semgrep", "--sarif", "--output", output_path, "--quiet"]
+        cmd = [_semgrep_cmd(), "--sarif", "--output", output_path, "--quiet"]
 
         for config in configs:
             cmd.extend(["--config", config])
@@ -188,12 +194,27 @@ async def run_semgrep(
             return []
 
         # Semgrep returns exit code 1 when findings are present (not an error)
+        # Exit code 2 = config/rule error (e.g., "auto" needs login or network)
         if proc.returncode not in (0, 1):
-            logger.warning(
+            stderr_text = stderr.decode(errors="replace")[:500]
+            stdout_text = stdout.decode(errors="replace")[:500]
+            logger.error(
                 "semgrep.error",
                 returncode=proc.returncode,
-                stderr=stderr.decode()[:500],
+                stderr=stderr_text,
+                stdout=stdout_text,
+                hint="If returncode=2, try: semgrep login, or use --config p/python instead of auto",
             )
+            # Fallback: retry with basic language-specific rulesets if "auto" failed
+            if proc.returncode == 2 and configs == _DEFAULT_CONFIGS:
+                logger.info("semgrep.retry_with_defaults", msg="Retrying with p/default ruleset")
+                return await run_semgrep(
+                    repo_path,
+                    configs=["p/default"],
+                    rules_dir=rules_dir,
+                    timeout=timeout,
+                    extra_args=extra_args,
+                )
             return []
 
         # Parse SARIF output
