@@ -595,7 +595,7 @@ class AuditPipeline:
             message = raw.get("message", raw.get("description", ""))
             if tool == "gitleaks":
                 title = f"Secret Detected: {raw.get('description', rule_id)}"
-                description = f"Gitleaks found a potential secret ({rule_id}) in the source code."
+                description = f"Blanket identified a potential secret ({rule_id}) in the source code."
                 remediation = "Remove the secret from source code and rotate the credential immediately."
                 fix_code = "# Remove hardcoded secret and use environment variables instead"
             elif tool == "osv":
@@ -604,12 +604,12 @@ class AuditPipeline:
                 vuln_id = raw.get("vuln_id", rule_id)
                 fixed = raw.get("fixed_version", "")
                 title = f"Vulnerable Dependency: {pkg}@{ver} ({vuln_id})"
-                description = message or f"Known vulnerability {vuln_id} in {pkg}@{ver}."
+                description = message or f"Blanket identified a known vulnerability ({vuln_id}) in {pkg}@{ver}."
                 remediation = f"Upgrade {pkg} to {fixed}." if fixed else f"Check for a patched version of {pkg}."
                 fix_code = f"# Upgrade: {pkg} >= {fixed}" if fixed else f"# Check for updates to {pkg}"
             else:
                 title = message[:120] if message else f"Static finding: {rule_id}"
-                description = message or f"Semgrep rule {rule_id} triggered."
+                description = message or f"Blanket identified a code pattern violation ({rule_id})."
                 remediation = "Review and fix the flagged code pattern."
                 fix_code = ""
 
@@ -633,7 +633,8 @@ class AuditPipeline:
                     }
                 ],
                 "compliance_refs": [],
-                "ai_explanation": f"Static analysis tool '{tool}' flagged this issue. {description}",
+                # "ai_explanation": f"Static analysis tool '{tool}' flagged this issue. {description}",
+                "ai_explanation": f"{description}",
                 "fix_code": fix_code,
                 "remediation": remediation,
                 "effort_hours": 1.0,

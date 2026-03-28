@@ -1,0 +1,94 @@
+================================================================================
+  BlanketAudit — Domain-Specific Scan Commands
+================================================================================
+
+--------------------------------------------------------------------------------
+1. HEALTHCARE (hospitals, patient portals, EHR, telehealth, insurance)
+--------------------------------------------------------------------------------
+Frameworks: HIPAA, SOC2
+Key concerns: PHI exposure, encryption at rest/transit, access control, audit logs
+
+  blanketaudit scan ./repo --domain healthcare --framework hipaa --framework soc2 --format pdf --format json --output ./audit-healthcare
+
+--------------------------------------------------------------------------------
+2. FINANCE / BANKING (payment processing, trading, lending, fintech)
+--------------------------------------------------------------------------------
+Frameworks: PCI-DSS, SOC2, SOX
+Key concerns: cardholder data, transaction integrity, fraud prevention, key mgmt
+
+  blanketaudit scan ./repo --domain finance --framework pci-dss --framework soc2 --format pdf --format json --output ./audit-finance
+
+--------------------------------------------------------------------------------
+3. E-COMMERCE (online stores, marketplaces, checkout systems)
+--------------------------------------------------------------------------------
+Frameworks: PCI-DSS, GDPR
+Key concerns: payment card data, customer PII, session security, XSS/CSRF
+
+  blanketaudit scan ./repo --domain finance --framework pci-dss --framework gdpr --format pdf --format json --output ./audit-ecommerce
+
+--------------------------------------------------------------------------------
+4. SAAS / DEV TOOLS (internal tools, APIs, developer platforms)
+--------------------------------------------------------------------------------
+Frameworks: SOC2
+Key concerns: API security, secrets management, access control, code quality
+
+  blanketaudit scan ./repo --domain general --framework soc2 --format pdf --format json --output ./audit-saas
+
+--------------------------------------------------------------------------------
+5. GOVERNMENT / PUBLIC SECTOR
+--------------------------------------------------------------------------------
+Frameworks: SOC2, GDPR
+Key concerns: citizen data, access control, audit trails, data retention
+
+  blanketaudit scan ./repo --domain general --framework soc2 --framework gdpr --format pdf --format json --output ./audit-gov
+
+--------------------------------------------------------------------------------
+6. EDUCATION (student portals, LMS, EdTech)
+--------------------------------------------------------------------------------
+Frameworks: SOC2, GDPR
+Key concerns: student records (FERPA-adjacent), PII, access control
+
+  blanketaudit scan ./repo --domain general --framework soc2 --framework gdpr --format pdf --format json --output ./audit-edu
+
+--------------------------------------------------------------------------------
+7. EU / GDPR-FOCUSED (any product handling EU user data)
+--------------------------------------------------------------------------------
+Frameworks: GDPR
+Key concerns: consent, data minimization, right to erasure, cross-border transfer
+
+  blanketaudit scan ./repo --domain general --framework gdpr --format pdf --format json --output ./audit-gdpr
+
+--------------------------------------------------------------------------------
+8. MULTI-REPO / MICROSERVICES (scan multiple repos together)
+--------------------------------------------------------------------------------
+Add multiple paths or --repo flags for cross-repo call graph analysis.
+
+  blanketaudit scan ./service-a ./service-b ./service-c --domain healthcare --framework hipaa --framework soc2 --format pdf --format json --output ./audit-multi
+
+  blanketaudit scan --repo https://github.com/org/api --repo https://github.com/org/frontend --domain finance --framework pci-dss --format pdf --format json --output ./audit-multi
+
+--------------------------------------------------------------------------------
+9. GENERAL / OPEN SOURCE (libraries, CLI tools, utilities)
+--------------------------------------------------------------------------------
+Frameworks: SOC2 (optional, lightweight)
+Key concerns: secrets, code quality, dependency CVEs, dead code
+
+  blanketaudit scan ./repo --domain general --format pdf --format json --output ./audit-general
+
+--------------------------------------------------------------------------------
+10. DRY RUN (cost estimate only, no actual scan — works with any domain)
+--------------------------------------------------------------------------------
+  blanketaudit scan ./repo --domain healthcare --framework hipaa --dry-run
+
+--------------------------------------------------------------------------------
+COMMON FLAGS REFERENCE
+--------------------------------------------------------------------------------
+  --domain, -d       Project domain: healthcare, finance, general
+  --framework, -f    Compliance framework: hipaa, soc2, pci-dss, gdpr (repeatable)
+  --format           Output format: pdf, html, json, sarif (repeatable)
+  --output, -o       Output directory for reports
+  --name, -n         Project name for report cover page
+  --config, -c       Path to audit.yaml config file
+  --max-cost         Maximum scan cost in USD (abort if exceeded)
+  --dry-run          Estimate cost without running agents
+  --json             CI/CD mode — output JSON summary to stdout
