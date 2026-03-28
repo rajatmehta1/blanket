@@ -1,0 +1,460 @@
+{
+  "project_name": "blanketaudit",
+  "project_tagline": "",
+  "domain": "general",
+  "repos": [
+    {
+      "name": "blanketaudit",
+      "lang": "",
+      "files": 0,
+      "lines": 0
+    }
+  ],
+  "scan_date": "March 28, 2026",
+  "scan_duration": "",
+  "total_files": 236,
+  "total_lines": "21k",
+  "total_methods": 0,
+  "cross_repo_edge_count": 0,
+  "entry_point_count": 0,
+  "max_call_depth": 0,
+  "health_score": {
+    "overall": 68,
+    "grade": "C",
+    "categories": [
+      {
+        "name": "Security",
+        "score": 0,
+        "finding_count": 10
+      },
+      {
+        "name": "Compliance",
+        "score": 100,
+        "finding_count": 0
+      },
+      {
+        "name": "Code Quality",
+        "score": 100,
+        "finding_count": 0
+      },
+      {
+        "name": "Performance",
+        "score": 100,
+        "finding_count": 0
+      },
+      {
+        "name": "Reliability",
+        "score": 100,
+        "finding_count": 0
+      },
+      {
+        "name": "Infrastructure",
+        "score": 100,
+        "finding_count": 0
+      }
+    ],
+    "severity_counts": {
+      "critical": 0,
+      "high": 10,
+      "medium": 0,
+      "low": 0
+    }
+  },
+  "executive_summary": {
+    "paragraphs": [
+      "The architecture audit scored 68/100 (Grade C), identifying 10 findings across the codebase. Of these, 0 are critical severity, 10 are high, 0 are medium, and 0 are low.",
+      "The primary risk areas are: security (10 findings)."
+    ],
+    "immediate_actions": [
+      "Address BLK-001: Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "Address BLK-002: Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "Address BLK-003: Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations."
+    ]
+  },
+  "findings": [
+    {
+      "id": "BLK-001",
+      "policy_id": "SEC-001",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/fixtures/fixture-injection-attack/injection_comments.py",
+          "repo_name": "blanketaudit",
+          "line_start": 29,
+          "line_end": 29,
+          "code_snippet": "api_key = \"sk-proj-abc123def456\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-002",
+      "policy_id": "SEC-002",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/fixtures/fixture-pci-fail/payment_processor.py",
+          "repo_name": "blanketaudit",
+          "line_start": 29,
+          "line_end": 29,
+          "code_snippet": "API_KEY = \"sk-live-abc123def456\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-003",
+      "policy_id": "SEC-003",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/golden/test_report_output.py",
+          "repo_name": "blanketaudit",
+          "line_start": 120,
+          "line_end": 120,
+          "code_snippet": "STRIPE_API_KEY = \"sk-live-abc123def456\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-004",
+      "policy_id": "SEC-004",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/unit/test_policy_firing.py",
+          "repo_name": "blanketaudit",
+          "line_start": 144,
+          "line_end": 144,
+          "code_snippet": "api_key = \"sk-proj-abc123def456\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-005",
+      "policy_id": "SEC-005",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/unit/test_tool_integration.py",
+          "repo_name": "blanketaudit",
+          "line_start": 192,
+          "line_end": 192,
+          "code_snippet": "API_KEY = \"sk-1234567890abcdef\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-006",
+      "policy_id": "SEC-006",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/unit/test_tool_integration.py",
+          "repo_name": "blanketaudit",
+          "line_start": 193,
+          "line_end": 193,
+          "code_snippet": "Secret\": \"sk-1234567890abcdef\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-007",
+      "policy_id": "SEC-007",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/unit/test_tool_integration.py",
+          "repo_name": "blanketaudit",
+          "line_start": 202,
+          "line_end": 202,
+          "code_snippet": "Secret\": \"AKIA1234567890\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-008",
+      "policy_id": "SEC-008",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-arch-audit-v2/tests/unit/test_tool_integration.py",
+          "repo_name": "blanketaudit",
+          "line_start": 220,
+          "line_end": 220,
+          "code_snippet": "secret=\"sk-1234567890abcdef\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-009",
+      "policy_id": "SEC-009",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-mcp/db/sample_data.txt",
+          "repo_name": "blanketaudit",
+          "line_start": 14,
+          "line_end": 14,
+          "code_snippet": "key example: grx_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-010",
+      "policy_id": "SEC-010",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
+          "file_path": "blanket-mcp/docs/local-deployment.html",
+          "repo_name": "blanketaudit",
+          "line_start": 393,
+          "line_end": 393,
+          "code_snippet": "api_key=\"blk_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Static analysis tool 'gitleaks' flagged this issue. Gitleaks found a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    }
+  ],
+  "infra_findings": [],
+  "compliance_matrix": [],
+  "call_graph_summary": {
+    "entry_points": [],
+    "cross_repo_edges": [],
+    "circular_dependencies": [],
+    "dead_methods": {
+      "count": 0,
+      "total_lines": 0,
+      "top_files": []
+    },
+    "single_points_of_failure": []
+  },
+  "remediation_phases": [
+    {
+      "title": "URGENT — Days 1-14",
+      "date_range": "Days 1-14",
+      "items": [
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-001",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-002",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-003",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-004",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-005",
+          "score_impact": "+10"
+        }
+      ],
+      "total_effort": "5 hours",
+      "score_target": "68 → 50 (+-18 points)"
+    },
+    {
+      "title": "SHORT-TERM — Days 15-45",
+      "date_range": "Days 15-45",
+      "items": [
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-006",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-007",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-008",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-009",
+          "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-010",
+          "score_impact": "+10"
+        }
+      ],
+      "total_effort": "5 hours",
+      "score_target": "50 → 100 (+50 points)"
+    }
+  ],
+  "scan_manifest": {
+    "scan_id": "scan-5bd0b64d9d85",
+    "timestamp": "2026-03-28T15:20:43.495062+00:00",
+    "policy_versions": {},
+    "prompt_versions": {},
+    "model_ids": {},
+    "tool_versions": {},
+    "repo_commits": {},
+    "config_hash": ""
+  },
+  "llm_provider": "none",
+  "llm_model": "",
+  "active_frameworks": []
+}
