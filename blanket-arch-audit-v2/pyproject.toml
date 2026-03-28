@@ -1,5 +1,5 @@
 [project]
-name = "blanketaudit"
+name="blanketaudit"
 version = "0.1.0"
 description = "AI-powered architecture governance platform"
 requires-python = ">=3.11"
@@ -57,7 +57,7 @@ blanketaudit = "blanketaudit.cli.main:app"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["blanketaudit*"]
