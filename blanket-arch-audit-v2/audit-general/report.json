@@ -10,7 +10,7 @@
       "lines": 0
     }
   ],
-  "scan_date": "March 28, 2026",
+  "scan_date": "March 29, 2026",
   "scan_duration": "",
   "total_files": 236,
   "total_lines": "21k",
@@ -25,7 +25,7 @@
       {
         "name": "Security",
         "score": 0,
-        "finding_count": 11
+        "finding_count": 12
       },
       {
         "name": "Compliance",
@@ -55,15 +55,15 @@
     ],
     "severity_counts": {
       "critical": 0,
-      "high": 11,
+      "high": 12,
       "medium": 0,
       "low": 0
     }
   },
   "executive_summary": {
     "paragraphs": [
-      "The architecture audit scored 68/100 (Grade C), identifying 11 findings across the codebase. Of these, 0 are critical severity, 11 are high, 0 are medium, and 0 are low.",
-      "The primary risk areas are: security (11 findings)."
+      "The architecture audit scored 68/100 (Grade C), identifying 12 findings across the codebase. Of these, 0 are critical severity, 12 are high, 0 are medium, and 0 are low.",
+      "The primary risk areas are: security (12 findings)."
     ],
     "immediate_actions": [
       "Address BLK-001: Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
@@ -83,10 +83,10 @@
       "source": "static",
       "evidence": [
         {
-          "file_path": "blanket-arch-audit-v2/r7.pdf/report.json",
+          "file_path": "blanket-arch-audit-v2/audit-general/report.json",
           "repo_name": "blanketaudit",
-          "line_start": 314,
-          "line_end": 314,
+          "line_start": 342,
+          "line_end": 342,
           "code_snippet": "key example: grx_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6\"",
           "tool": "gitleaks"
         }
@@ -111,11 +111,11 @@
       "source": "static",
       "evidence": [
         {
-          "file_path": "blanket-arch-audit-v2/tests/fixtures/fixture-injection-attack/injection_comments.py",
+          "file_path": "blanket-arch-audit-v2/r7.pdf/report.json",
           "repo_name": "blanketaudit",
-          "line_start": 29,
-          "line_end": 29,
-          "code_snippet": "api_key = \"sk-proj-abc123def456\"",
+          "line_start": 314,
+          "line_end": 314,
+          "code_snippet": "key example: grx_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6\"",
           "tool": "gitleaks"
         }
       ],
@@ -167,6 +167,34 @@
       "source": "static",
       "evidence": [
         {
+          "file_path": "blanket-arch-audit-v2/tests/fixtures/fixture-injection-attack/injection_comments.py",
+          "repo_name": "blanketaudit",
+          "line_start": 29,
+          "line_end": 29,
+          "code_snippet": "api_key = \"sk-proj-abc123def456\"",
+          "tool": "gitleaks"
+        }
+      ],
+      "compliance_refs": [],
+      "ai_explanation": "Blanket identified a potential secret (generic-api-key) in the source code.",
+      "fix_code": "# Remove hardcoded secret and use environment variables instead",
+      "remediation": "Remove the secret from source code and rotate the credential immediately.",
+      "effort_hours": 1.0,
+      "dollar_impact": "",
+      "blast_radius": null,
+      "call_chain": []
+    },
+    {
+      "id": "BLK-005",
+      "policy_id": "SEC-005",
+      "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+      "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
+      "severity": "high",
+      "category": "security",
+      "confidence": 0.85,
+      "source": "static",
+      "evidence": [
+        {
           "file_path": "blanket-arch-audit-v2/tests/golden/test_report_output.py",
           "repo_name": "blanketaudit",
           "line_start": 120,
@@ -185,8 +213,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-005",
-      "policy_id": "SEC-005",
+      "id": "BLK-006",
+      "policy_id": "SEC-006",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -213,8 +241,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-006",
-      "policy_id": "SEC-006",
+      "id": "BLK-007",
+      "policy_id": "SEC-007",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -241,8 +269,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-007",
-      "policy_id": "SEC-007",
+      "id": "BLK-008",
+      "policy_id": "SEC-008",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -269,8 +297,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-008",
-      "policy_id": "SEC-008",
+      "id": "BLK-009",
+      "policy_id": "SEC-009",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -297,8 +325,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-009",
-      "policy_id": "SEC-009",
+      "id": "BLK-010",
+      "policy_id": "SEC-010",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -325,8 +353,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-010",
-      "policy_id": "SEC-010",
+      "id": "BLK-011",
+      "policy_id": "SEC-011",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -353,8 +381,8 @@
       "call_chain": []
     },
     {
-      "id": "BLK-011",
-      "policy_id": "SEC-011",
+      "id": "BLK-012",
+      "policy_id": "SEC-012",
       "title": "Secret Detected: Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
       "description": "Blanket identified a potential secret (generic-api-key) in the source code.",
       "severity": "high",
@@ -431,7 +459,7 @@
         }
       ],
       "total_effort": "5 hours",
-      "score_target": "68 → 40 (+-28 points)"
+      "score_target": "68 → 30 (+-38 points)"
     },
     {
       "title": "SHORT-TERM — Days 15-45",
@@ -472,15 +500,21 @@
           "effort": "1h",
           "finding_id": "BLK-011",
           "score_impact": "+10"
+        },
+        {
+          "task": "Remove the secret from source code and rotate the credential immediately.",
+          "effort": "1h",
+          "finding_id": "BLK-012",
+          "score_impact": "+10"
         }
       ],
-      "total_effort": "6 hours",
-      "score_target": "40 → 100 (+60 points)"
+      "total_effort": "7 hours",
+      "score_target": "30 → 100 (+70 points)"
     }
   ],
   "scan_manifest": {
-    "scan_id": "scan-c35e6de98d1f",
-    "timestamp": "2026-03-28T16:52:57.033023+00:00",
+    "scan_id": "scan-5a8af94024ac",
+    "timestamp": "2026-03-29T07:12:01.417258+00:00",
     "policy_versions": {},
     "prompt_versions": {},
     "model_ids": {},

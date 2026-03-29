@@ -663,16 +663,26 @@ class AuditPipeline:
             from blanketaudit.llm.provider import get_llm_for_agent
 
             llm = get_llm_for_agent(agent_name)
-            if llm is None:
-                logger.info(f"node.agent.{agent_name}.no_llm")
-                return {"agent_findings": []}
 
-            # In the full implementation, each agent would:
-            # 1. Get its static findings
-            # 2. Run AI analysis on them
-            # 3. Return enriched findings
-            # For now, return empty (agents are built in later prompts)
-            return {"agent_findings": []}
+            # Instantiate the actual agent class
+            agent_cls = self._get_agent_class(agent_name)
+            agent = agent_cls(llm=llm)
+
+            # Run the agent (static → AI → validate)
+            findings = await agent.execute(state)
+
+            logger.info(
+                f"node.agent.{agent_name}.done",
+                findings=len(findings),
+            )
+
+            # Convert AuditFinding objects to dicts for state
+            return {
+                "agent_findings": [
+                    f.model_dump() if hasattr(f, "model_dump") else f
+                    for f in findings
+                ],
+            }
 
         except Exception as exc:
             logger.error(
@@ -683,6 +693,24 @@ class AuditPipeline:
                 "agent_findings": [],
                 "errors": [f"Agent {agent_name} failed: {exc}"],
             }
+
+    @staticmethod
+    def _get_agent_class(agent_name: str):
+        """Import and return the agent class for the given name."""
+        if agent_name == "security":
+            from blanketaudit.agents.security_agent import SecurityAgent
+            return SecurityAgent
+        elif agent_name == "compliance":
+            from blanketaudit.agents.compliance_agent import ComplianceAgent
+            return ComplianceAgent
+        elif agent_name == "architecture":
+            from blanketaudit.agents.architecture_agent import ArchitectureAgent
+            return ArchitectureAgent
+        elif agent_name == "quality":
+            from blanketaudit.agents.quality_agent import QualityAgent
+            return QualityAgent
+        else:
+            raise ValueError(f"Unknown agent: {agent_name}")
 
     @staticmethod
     def _build_repo_files(state: AuditState) -> dict[str, str]:

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Understanding the Code - BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .flow-step {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.5rem; margin: 1.2rem 0; position: relative;
+    }
+    .flow-step::before {
+      content: attr(data-step);
+      position: absolute; top: -12px; left: 16px;
+      background: var(--accent); color: #fff; font-size: 0.75rem; font-weight: 700;
+      padding: 2px 10px; border-radius: 10px; letter-spacing: 0.04em;
+    }
+    .flow-arrow { text-align: center; color: var(--accent); font-size: 1.4rem; margin: 0.4rem 0; }
+    .file-ref { color: var(--blue); font-family: var(--mono); font-size: 0.85em; }
+    .tier-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.8rem; font-weight: 600; margin-right: 0.3rem;
+    }
+    .tier-1 { background: rgba(108,92,231,0.2); color: var(--accent); }
+    .tier-2 { background: rgba(96,165,250,0.2); color: var(--blue); }
+    .tier-3 { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+    .gate-box {
+      background: rgba(239,68,68,0.06); border-left: 3px solid var(--red);
+      padding: 0.8rem 1rem; margin: 0.6rem 0; border-radius: 0 6px 6px 0;
+    }
+    .gate-box strong { color: var(--red); }
+    .agent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .agent-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem;
+    }
+    .agent-card h4 { color: var(--accent); margin-bottom: 0.4rem; font-size: 1rem; }
+    .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    .output-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem; text-align: center;
+    }
+    .output-card .format { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .principle-list { list-style: none; padding: 0; }
+    .principle-list li {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+      padding: 0.7rem 1rem; margin: 0.4rem 0; font-size: 0.92rem;
+    }
+    .principle-list li strong { color: var(--accent); }
+    @media (max-width: 600px) {
+      .agent-grid, .output-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="nav">
+      <a href="index.html">Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="callgraph.html">Call Graph</a>
+      <a href="understanding_code.html" class="active">Understanding the Code</a>
+      <a href="local-setup.html">Setup</a>
+      <a href="samples.html">Samples</a>
+    </div>
+
+    <h1>Understanding the Code</h1>
+    <p>A plain-English walkthrough of how BlanketAudit works, from the moment you run a scan to the final PDF report. No jargon walls &mdash; just the flow.</p>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>The Big Picture</h2>
+    <p>BlanketAudit takes one or more code repositories as input and produces a detailed security, compliance, architecture, and quality report. The entire process is a <strong>7-tier pipeline</strong> where each tier feeds the next:</p>
+
+    <pre><code>You run a scan
+  &darr;
+Clone / load repos          <span class="comment">(Tier 1 &mdash; Connectors)</span>
+  &darr;
+Parse every file            <span class="comment">(Tier 2 &mdash; Ingestion)</span>
+  &darr;
+Extract methods &amp; calls    <span class="comment">(Tier 2.5 &mdash; Entity Extraction)</span>
+  &darr;
+Decide what to analyze      <span class="comment">(Tier 3 &mdash; Triage &amp; Orchestration)</span>
+  &darr;
+Run 4 AI agents in parallel <span class="comment">(Tier 4 &mdash; Analysis)</span>
+  &darr;
+Score, validate, merge      <span class="comment">(Tier 5 &mdash; Aggregation)</span>
+  &darr;
+Generate report             <span class="comment">(Tier 6 &mdash; Report)</span>
+  &darr;
+Deliver output              <span class="comment">(Tier 7 &mdash; Delivery)</span></code></pre>
+
+    <p>Let's walk through each step.</p>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Step-by-Step Flow</h2>
+
+    <!-- STEP 1 -->
+    <div class="flow-step" data-step="STEP 1 &mdash; START THE SCAN">
+      <h3>Entry Points: CLI or API</h3>
+      <p>You can kick off a scan two ways:</p>
+      <ul>
+        <li><strong>CLI</strong> &mdash; <code>blanketaudit scan ./my-repo --domain healthcare --framework hipaa</code><br>
+          <span class="file-ref">blanketaudit/cli/main.py</span></li>
+        <li><strong>API</strong> &mdash; <code>POST /api/v1/scan</code> with repo URLs and options<br>
+          <span class="file-ref">blanketaudit/api/app.py</span></li>
+      </ul>
+      <p>Both paths end up calling the same orchestrator pipeline. The CLI is for local use; the API is for CI/CD or a web frontend.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 2 -->
+    <div class="flow-step" data-step="STEP 2 &mdash; GET THE CODE">
+      <h3>Tier 1: Source Connectors</h3>
+      <p>The system needs code on disk to analyze. <strong>Connectors</strong> handle fetching it:</p>
+      <table>
+        <tr><th>Connector</th><th>What it does</th><th>File</th></tr>
+        <tr><td>Local</td><td>Reads a folder or extracts a zip</td><td><span class="file-ref">connectors/local_connector.py</span></td></tr>
+        <tr><td>GitHub</td><td>Clones via HTTPS with OAuth or PAT</td><td><span class="file-ref">connectors/github_connector.py</span></td></tr>
+        <tr><td>GitLab</td><td>Clones via HTTPS with Project Access Token</td><td><span class="file-ref">connectors/gitlab_connector.py</span></td></tr>
+        <tr><td>Bitbucket</td><td>Clones via HTTPS with App Password</td><td><span class="file-ref">connectors/bitbucket_connector.py</span></td></tr>
+      </table>
+      <p>Every connector returns the same thing: a <strong>local filesystem path</strong> where the code lives. The rest of the pipeline doesn't care where the code came from.</p>
+      <p><em>Safety:</em> Remote connectors block private IPs (SSRF protection) and enforce a 120-second clone timeout.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 3 -->
+    <div class="flow-step" data-step="STEP 3 &mdash; UNDERSTAND THE CODE">
+      <h3>Tier 2: Ingestion Engine</h3>
+      <p>Now the system reads and indexes every file in the repo:</p>
+      <ol>
+        <li><strong>File Indexer</strong> &mdash; Walks the directory tree, classifies each file (source, config, infra, test, docs), records language, line count, and computes a SHA-256 content hash.<br>
+          <span class="file-ref">ingestion/file_indexer.py</span></li>
+        <li><strong>AST Parser</strong> &mdash; Uses <strong>Tree-sitter</strong> to parse source files into Abstract Syntax Trees. Supports Python, TypeScript/JS, Java, Go, Rust, C#.<br>
+          <span class="file-ref">ingestion/ast_indexer.py</span></li>
+        <li><strong>Dependency Graph</strong> &mdash; Analyzes import/require statements to build a <em>file-level</em> graph: "which file imports which file." Fast, no deep AST walking needed.<br>
+          <span class="file-ref">ingestion/dependency_graph.py</span></li>
+        <li><strong>Manifest Parser</strong> &mdash; Reads <code>package.json</code>, <code>pom.xml</code>, <code>requirements.txt</code> etc. to extract dependency lists for CVE scanning later.<br>
+          <span class="file-ref">ingestion/manifest_parser.py</span></li>
+      </ol>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 4 -->
+    <div class="flow-step" data-step="STEP 4 &mdash; MAP FUNCTIONS &amp; CALLS">
+      <h3>Tier 2.5: Entity Extraction &amp; Call Graph</h3>
+      <p>This is where the system goes deeper than files &mdash; it maps out <strong>individual functions, classes, and who-calls-whom</strong>.</p>
+
+      <p><strong>Extractors</strong> (one per language/tech) walk the AST and pull out:</p>
+      <ul>
+        <li>Classes, methods, and their parameters</li>
+        <li>Function calls (which function calls which)</li>
+        <li>Entry points (API routes like <code>@app.post("/api/patients")</code>)</li>
+        <li>Imports and environment variable usage</li>
+      </ul>
+      <p><span class="file-ref">ingestion/extractors/python_extractor.py</span>, <span class="file-ref">typescript_extractor.py</span>, <span class="file-ref">java_extractor.py</span>, etc.</p>
+
+      <p>The <strong>Call Graph Builder</strong> then stitches all extracted calls into a method-level graph:</p>
+      <ul>
+        <li>Each node = a specific function (e.g., <code>patient-api::ClaimService.submit_claim()</code>)</li>
+        <li>Each edge = "this function calls that function"</li>
+        <li>Cross-repo edges match HTTP client calls to endpoint handlers</li>
+      </ul>
+      <p><span class="file-ref">callgraph/static_builder.py</span> &mdash; <span class="file-ref">callgraph/cross_repo_matcher.py</span></p>
+
+      <p><em>Why two graphs?</em> The file-level dependency graph (Step 3) is fast and answers "which files are related." The method-level call graph is more expensive and answers "which functions call which functions" &mdash; needed for blast radius and taint tracking.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 5 -->
+    <div class="flow-step" data-step="STEP 5 &mdash; PRIORITIZE FILES">
+      <h3>Tier 3: Triage (No AI &mdash; Pure Heuristics)</h3>
+      <p>Not every file deserves the same level of analysis. The triage system scores each file 0&ndash;100 based on signals like:</p>
+      <ul>
+        <li>Language relevance (Python source &gt; markdown docs)</li>
+        <li>File type (route handler &gt; utility &gt; test)</li>
+        <li>Naming patterns (<code>auth</code>, <code>payment</code>, <code>encrypt</code> score higher)</li>
+        <li>Import count (more imports = architecturally important)</li>
+        <li>Recent git changes (modified in last 30 days = more relevant)</li>
+      </ul>
+      <p><span class="file-ref">triage/file_scorer.py</span></p>
+
+      <p>Based on the score, each file gets a <strong>tier</strong>:</p>
+      <ul>
+        <li><span class="tier-badge tier-1">Tier 1</span> Score &gt; 60 &mdash; Full AI analysis with all policy checks</li>
+        <li><span class="tier-badge tier-2">Tier 2</span> Score 30&ndash;60 &mdash; Static tools + light AI summary</li>
+        <li><span class="tier-badge tier-3">Tier 3</span> Score &lt; 30 &mdash; Static tools only, no LLM calls</li>
+      </ul>
+      <p><span class="file-ref">triage/tier_assigner.py</span></p>
+
+      <p>Files are then grouped into <strong>batches</strong> that fit within token limits (150K tokens max per batch), so the LLM never gets overwhelmed.<br>
+        <span class="file-ref">triage/batch_assembler.py</span></p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 6 -->
+    <div class="flow-step" data-step="STEP 6 &mdash; ESTIMATE COST">
+      <h3>Cost Estimation &amp; Budget Check</h3>
+      <p>Before spending any money on LLM calls, the system projects the total cost:</p>
+      <ul>
+        <li>Counts tokens per file, per tier, per agent</li>
+        <li>Looks up pricing for the configured LLM provider/model</li>
+        <li>Returns a <strong>CostEstimate</strong> with total USD, per-agent breakdown, and a recommendation</li>
+      </ul>
+      <p><span class="file-ref">orchestrator/cost_estimator.py</span></p>
+      <p>If this is a <strong>dry-run</strong>, the scan stops here and returns the estimate. Otherwise, if the projected cost exceeds the configured budget (<code>max_scan_cost_usd</code>, default $15), the scan aborts.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 7 -->
+    <div class="flow-step" data-step="STEP 7 &mdash; RUN STATIC TOOLS">
+      <h3>Static Analysis (Deterministic, No AI)</h3>
+      <p>Three tools run in parallel to produce <strong>candidate findings</strong>:</p>
+      <table>
+        <tr><th>Tool</th><th>What it finds</th><th>File</th></tr>
+        <tr><td><strong>Semgrep</strong></td><td>Code vulnerabilities (SQL injection, XSS, etc.)</td><td><span class="file-ref">agents/tools/semgrep_tool.py</span></td></tr>
+        <tr><td><strong>Gitleaks</strong></td><td>Hardcoded secrets (API keys, passwords, tokens)</td><td><span class="file-ref">agents/tools/gitleaks_tool.py</span></td></tr>
+        <tr><td><strong>OSV-Scanner</strong></td><td>Known CVEs in dependencies</td><td><span class="file-ref">agents/tools/osv_tool.py</span></td></tr>
+      </table>
+      <p>These are <strong>deterministic</strong> &mdash; same code always produces the same results. They run regardless of whether an LLM is configured. Their output becomes input for the AI agents.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 8 -->
+    <div class="flow-step" data-step="STEP 8 &mdash; AI ANALYSIS (THE CORE)">
+      <h3>Tier 4: Four AI Agents in Parallel</h3>
+      <p>This is where the magic happens. Four specialized agents analyze the code simultaneously, each following the same pattern: <strong>static checks first, then AI reasoning on the candidates</strong>.</p>
+
+      <div class="agent-grid">
+        <div class="agent-card">
+          <h4>Security Agent</h4>
+          <p>Takes Semgrep, Gitleaks, and OSV results. Uses AI to filter false positives, assess real-world exploitability, and compute blast radius.</p>
+          <p><span class="file-ref">agents/security_agent.py</span></p>
+        </div>
+        <div class="agent-card">
+          <h4>Compliance Agent</h4>
+          <p>Checks code against compliance frameworks (HIPAA, SOC2, PCI-DSS, GDPR). Uses semantic search (Milvus) to find relevant code patterns, then AI maps them to specific control clauses.</p>
+          <p><span class="file-ref">agents/compliance_agent.py</span></p>
+        </div>
+        <div class="agent-card">
+          <h4>Architecture Agent</h4>
+          <p>Analyzes the dependency and call graphs. Detects layer violations, circular dependencies, coupling issues, and single points of failure.</p>
+          <p><span class="file-ref">agents/architecture_agent.py</span></p>
+        </div>
+        <div class="agent-card">
+          <h4>Quality Agent</h4>
+          <p>Evaluates code quality: cyclomatic complexity, dead code, test coverage gaps, maintainability problems, and technical debt patterns.</p>
+          <p><span class="file-ref">agents/quality_agent.py</span></p>
+        </div>
+      </div>
+
+      <p>Every agent follows the template in <span class="file-ref">agents/base_agent.py</span>:</p>
+      <pre><code>1. Run static checks          <span class="comment"># deterministic, always runs</span>
+2. Feed candidates to LLM     <span class="comment"># contextual AI reasoning</span>
+3. Validate LLM output         <span class="comment"># parse into Pydantic models</span>
+4. Return findings             <span class="comment"># or static-only if LLM fails</span></code></pre>
+
+      <p><strong>Key rule:</strong> If the LLM is unavailable or the budget runs out, every agent falls back to static-only analysis. One agent failing never kills the scan.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 9 -->
+    <div class="flow-step" data-step="STEP 9 &mdash; TRUST BUT VERIFY">
+      <h3>Hallucination Guardrails (4 Gates)</h3>
+      <p>AI can hallucinate &mdash; invent file paths, fabricate vulnerabilities, or exaggerate severity. Every AI-generated finding must pass through <strong>4 validation gates</strong> before it reaches the report:</p>
+
+      <div class="gate-box">
+        <strong>Gate 1: Schema Validation</strong> &mdash; Can the finding be parsed into a valid Pydantic model? Are compliance control IDs in the right format (e.g., <code>&sect;164.312</code> for HIPAA)?<br>
+        <span class="file-ref">validation/gate_schema.py</span>
+      </div>
+      <div class="gate-box">
+        <strong>Gate 2: Evidence Verification</strong> &mdash; Does the file actually exist? Are the line numbers valid? Does the code snippet match what's really in the file (80% fuzzy match)?<br>
+        <span class="file-ref">validation/gate_evidence.py</span>
+      </div>
+      <div class="gate-box">
+        <strong>Gate 3: Confidence Check</strong> &mdash; If the AI's confidence is below 0.7, the finding gets flagged as "REVIEW_NEEDED" instead of being stated as fact.<br>
+        <span class="file-ref">validation/gate_confidence.py</span>
+      </div>
+      <div class="gate-box">
+        <strong>Gate 4: Corroboration</strong> &mdash; A "critical" severity finding from only one agent gets demoted to "high." True criticals need evidence from multiple agents.<br>
+        <span class="file-ref">validation/gate_corroboration.py</span>
+      </div>
+
+      <p>The gates run sequentially via <span class="file-ref">validation/pipeline.py</span>. Static tool findings (Semgrep, Gitleaks, OSV) skip gates 2&ndash;4 since they're deterministic.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 10 -->
+    <div class="flow-step" data-step="STEP 10 &mdash; SCORE &amp; PRIORITIZE">
+      <h3>Tier 5: Finding Aggregation &amp; Scoring</h3>
+      <p>The validated findings are now assembled into a complete picture:</p>
+      <ol>
+        <li><strong>Deduplicate</strong> &mdash; Same file + same line + same category = one finding (keep highest confidence).<br>
+          <span class="file-ref">scoring/finding_merger.py</span></li>
+        <li><strong>Health Score</strong> &mdash; Calculate an overall 0&ndash;100 score across 8 categories. Formula: start at 100, subtract penalties (critical = &minus;25, high = &minus;10, medium = &minus;3, low = &minus;1). Grade: A &ge; 85, B &ge; 70, C &ge; 50, D &ge; 30, F &lt; 30.<br>
+          <span class="file-ref">scoring/risk_scorer.py</span></li>
+        <li><strong>Blast Radius</strong> &mdash; For each finding, compute how far it reaches: entry points affected, repos in the blast zone, estimated daily calls.<br>
+          <span class="file-ref">scoring/blast_radius.py</span></li>
+        <li><strong>Call Chain Trace</strong> &mdash; Trace the path from API entry point &rarr; through the code &rarr; to the vulnerability.<br>
+          <span class="file-ref">scoring/call_chain_tracer.py</span></li>
+        <li><strong>Dollar Impact</strong> &mdash; Estimate the financial risk of each finding (e.g., "$50,000 &ndash; $1,900,000").<br>
+          <span class="file-ref">scoring/dollar_impact_estimator.py</span></li>
+        <li><strong>Compliance Matrix</strong> &mdash; Map findings to framework controls and set PASS/PARTIAL/FAIL for each clause.<br>
+          <span class="file-ref">scoring/compliance_matrix_builder.py</span></li>
+        <li><strong>Remediation Roadmap</strong> &mdash; Group fixes into 30/60/90 day phases, prioritized by impact.<br>
+          <span class="file-ref">scoring/remediation_planner.py</span></li>
+        <li><strong>Executive Summary</strong> &mdash; AI generates 2 paragraphs + a list of immediate action items.<br>
+          <span class="file-ref">llm/prompts/executive_summary.py</span></li>
+      </ol>
+      <p>All of this is orchestrated by <span class="file-ref">scoring/report_assembler.py</span>, which packages everything into a single <code>AuditReport</code> Pydantic model.</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 11 -->
+    <div class="flow-step" data-step="STEP 11 &mdash; GENERATE THE REPORT">
+      <h3>Tier 6: Report Generation</h3>
+      <p>The <code>AuditReport</code> model contains everything needed. It gets rendered into multiple formats:</p>
+
+      <div class="output-grid">
+        <div class="output-card">
+          <div class="format">PDF</div>
+          <p>Dark-themed, print-ready. WeasyPrint converts HTML &rarr; PDF with SVG charts, syntax-highlighted code, and page numbers.</p>
+          <p><span class="file-ref">report/pdf_generator.py</span></p>
+        </div>
+        <div class="output-card">
+          <div class="format">HTML</div>
+          <p>Interactive report with expandable finding cards. Jinja2 templates render 9 sections.</p>
+          <p><span class="file-ref">report/html_generator.py</span></p>
+        </div>
+        <div class="output-card">
+          <div class="format">JSON</div>
+          <p>Machine-readable export. Includes a CI/CD summary mode with just critical findings.</p>
+          <p><span class="file-ref">report/json_exporter.py</span></p>
+        </div>
+        <div class="output-card">
+          <div class="format">SARIF</div>
+          <p>Standard format for IDE integrations and GitHub code scanning alerts.</p>
+          <p><span class="file-ref">report/sarif_exporter.py</span></p>
+        </div>
+      </div>
+
+      <h3>The 9 Report Sections</h3>
+      <table>
+        <tr><th>#</th><th>Section</th><th>What's in it</th></tr>
+        <tr><td>1</td><td>Cover Page</td><td>Project name, health score gauge, severity counts, repo list</td></tr>
+        <tr><td>2</td><td>Executive Summary</td><td>2 AI paragraphs + numbered urgent actions</td></tr>
+        <tr><td>3</td><td>Score Dashboard</td><td>Overall gauge + 8 category bars with scores</td></tr>
+        <tr><td>4</td><td>Critical Findings</td><td>Expandable cards with code, explanation, fix, call chain, blast radius</td></tr>
+        <tr><td>5</td><td>Compliance Matrix</td><td>PASS/PARTIAL/FAIL per control per framework</td></tr>
+        <tr><td>6</td><td>Call Graph Analysis</td><td>Entry points, cross-repo edges, cycles, dead code, SPOFs</td></tr>
+        <tr><td>7</td><td>Infrastructure Audit</td><td>Docker, K8s, CI/CD, Terraform findings</td></tr>
+        <tr><td>8</td><td>Remediation Roadmap</td><td>3-phase plan (30/60/90 days) with effort and score impact</td></tr>
+        <tr><td>9</td><td>User Benefits</td><td>ROI calculations, dollar amounts prevented (PDF only)</td></tr>
+      </table>
+      <p>Templates live in <span class="file-ref">report/templates/</span> (one per section).</p>
+    </div>
+    <div class="flow-arrow">&darr;</div>
+
+    <!-- STEP 12 -->
+    <div class="flow-step" data-step="STEP 12 &mdash; DELIVER">
+      <h3>Tier 7: Output Delivery</h3>
+      <p>The generated reports are delivered based on context:</p>
+      <ul>
+        <li><strong>CLI</strong> &mdash; Files saved to the local filesystem, summary printed to terminal</li>
+        <li><strong>API</strong> &mdash; Results stored in DB, available via <code>GET /api/v1/scan/{id}</code></li>
+        <li><strong>CI/CD</strong> &mdash; JSON summary with exit code (0 = pass, 1 = critical findings found)</li>
+        <li><strong>Scan history</strong> &mdash; Every scan is recorded in SQLite for trend tracking</li>
+      </ul>
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>How the LLM Layer Works</h2>
+    <p>All LLM access goes through a single abstraction layer &mdash; the rest of the codebase never imports provider SDKs directly.</p>
+
+    <pre><code><span class="comment"># Anywhere in the codebase:</span>
+<span class="kw">from</span> codeaudit.llm.provider <span class="kw">import</span> <span class="fn">get_llm</span>, <span class="fn">get_llm_for_agent</span>
+
+llm = <span class="fn">get_llm</span>()                    <span class="comment"># Returns a LangChain BaseChatModel</span>
+llm = <span class="fn">get_llm_for_agent</span>(<span class="str">"compliance"</span>) <span class="comment"># May return a more powerful model</span></code></pre>
+
+    <p><span class="file-ref">llm/provider.py</span> handles:</p>
+    <ul>
+      <li><strong>6 providers</strong>: Anthropic, OpenAI, Ollama, Groq, Google, Azure</li>
+      <li><strong>Per-agent model routing</strong>: Compliance gets a stronger model (e.g., Claude Opus), others get standard (e.g., Claude Sonnet)</li>
+      <li><strong>Cost tracking</strong>: Every call is metered &mdash; tokens counted, USD tracked, budget enforced (<span class="file-ref">llm/cost_tracker.py</span>)</li>
+      <li><strong>Circuit breaker</strong>: 5 failures in 60s = stop calling the LLM, fall back to static (<span class="file-ref">llm/resilience.py</span>)</li>
+      <li><strong>Prompt injection defense</strong>: All code sent to the LLM is wrapped in <code>&lt;untrusted_code&gt;</code> tags with explicit warnings (<span class="file-ref">llm/guardrails.py</span>)</li>
+    </ul>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>6 Design Principles</h2>
+    <p>Every piece of code follows these rules:</p>
+    <ul class="principle-list">
+      <li><strong>1. Dual-layer analysis</strong> &mdash; Static tools find candidates. AI applies reasoning. Static always runs first. AI never runs alone.</li>
+      <li><strong>2. Graceful degradation</strong> &mdash; If the LLM is down, every agent falls back to static-only. One failure never kills a scan.</li>
+      <li><strong>3. Cost-aware execution</strong> &mdash; Every scan starts with a cost estimate. Token budgets are enforced per-agent with hard abort thresholds.</li>
+      <li><strong>4. Reproducible audits</strong> &mdash; Every scan records a manifest with exact versions, commit SHAs, and config hashes. Scans can be replayed.</li>
+      <li><strong>5. Hallucination guardrails</strong> &mdash; 4 validation gates prevent AI-generated findings from reaching the report without verification.</li>
+      <li><strong>6. Incremental scanning</strong> &mdash; Subsequent scans only analyze changed files. Cache is keyed by SHA-256(content + policy_version).</li>
+    </ul>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Data Flow Diagram</h2>
+    <p>Here's how data transforms as it moves through the pipeline:</p>
+
+    <pre><code><span class="comment">Input:</span>   Git repos (source code, configs, infra files)
+           &darr;
+<span class="comment">Tier 1:</span>  RepositorySource &rarr; local filesystem paths
+           &darr;
+<span class="comment">Tier 2:</span>  FileMetadata[] + AST trees + dependency graph + manifest deps
+           &darr;
+<span class="comment">Tier 2.5:</span> ClassInfo[] + MethodInfo[] + CallInfo[] + CallGraph
+           &darr;
+<span class="comment">Tier 3:</span>  file_scores{} + file_tiers{} + batches[] + CostEstimate
+           &darr;
+<span class="comment">Static:</span>  Raw findings from Semgrep, Gitleaks, OSV
+           &darr;
+<span class="comment">Tier 4:</span>  AuditFinding[] (one per issue, with evidence + AI explanation)
+           &darr;
+<span class="comment">Gates:</span>  Validated AuditFinding[] (hallucinations removed/flagged)
+           &darr;
+<span class="comment">Tier 5:</span>  AuditReport {
+             health_score, executive_summary, findings[],
+             compliance_matrix[], call_graph_summary,
+             infra_findings[], remediation_phases[]
+           }
+           &darr;
+<span class="comment">Tier 6:</span>  PDF + HTML + JSON + SARIF files</code></pre>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Key Models</h2>
+    <p>The entire system revolves around a few Pydantic models defined in <span class="file-ref">models/</span>:</p>
+    <table>
+      <tr><th>Model</th><th>Purpose</th><th>File</th></tr>
+      <tr><td><code>AuditFinding</code></td><td>One issue: title, severity, evidence, code snippet, AI explanation, fix, compliance refs, blast radius, call chain, dollar impact</td><td><span class="file-ref">models/finding.py</span></td></tr>
+      <tr><td><code>HealthScore</code></td><td>Overall 0&ndash;100 score, letter grade, 8 category scores, severity counts</td><td><span class="file-ref">models/scoring.py</span></td></tr>
+      <tr><td><code>ComplianceMatrix</code></td><td>Per-framework control statuses (PASS/PARTIAL/FAIL per clause)</td><td><span class="file-ref">models/compliance.py</span></td></tr>
+      <tr><td><code>CallGraphSummary</code></td><td>Entry points, cross-repo edges, cycles, dead code, SPOFs</td><td><span class="file-ref">models/callgraph.py</span></td></tr>
+      <tr><td><code>RemediationPhase</code></td><td>30/60/90 day fix plan with tasks, effort, and score impact</td><td><span class="file-ref">models/roadmap.py</span></td></tr>
+      <tr><td><code>AuditReport</code></td><td>Top-level container: holds everything above, maps 1:1 to report sections</td><td><span class="file-ref">models/report.py</span></td></tr>
+      <tr><td><code>ScanManifest</code></td><td>Exact versions, commit SHAs, config hash for reproducibility</td><td><span class="file-ref">models/manifest.py</span></td></tr>
+    </table>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Storage Options</h2>
+    <p>The system works with or without external databases, thanks to in-memory fallbacks:</p>
+    <table>
+      <tr><th>Store</th><th>Production</th><th>Fallback</th><th>Used for</th></tr>
+      <tr><td>Graph</td><td>Neo4j</td><td>In-memory dict</td><td>Call graph, entity relationships</td></tr>
+      <tr><td>Vector</td><td>Milvus</td><td>In-memory search</td><td>Code embeddings, compliance clause RAG</td></tr>
+      <tr><td>Relational</td><td>PostgreSQL / SQLite</td><td>In-memory store</td><td>Scan history, cache, findings</td></tr>
+    </table>
+    <p><span class="file-ref">storage/memory_fallback.py</span> provides zero-infrastructure fallbacks for all stores.</p>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>The Orchestrator</h2>
+    <p>The pipeline is built with <strong>LangGraph</strong> (a state machine framework). Each step is a "node" that reads from and writes to a shared <code>AuditState</code>.</p>
+    <p><span class="file-ref">orchestrator/pipeline.py</span> &mdash; <span class="file-ref">orchestrator/state.py</span></p>
+
+    <pre><code><span class="comment"># Simplified pipeline flow:</span>
+ingest_repos &rarr; triage_files &rarr; estimate_cost
+  &rarr; <span class="kw">[budget check]</span>
+  &rarr; run_static_analysis
+  &rarr; <span class="kw">[4 agents in parallel]</span>
+  &rarr; validate_findings
+  &rarr; score_and_prioritize
+  &rarr; generate_report
+  &rarr; record_manifest</code></pre>
+
+    <p>If LangGraph is not available, a <code>SimplePipeline</code> fallback runs the same steps sequentially.</p>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Quick Reference: Key Files</h2>
+    <pre><code>blanketaudit/
+  cli/main.py                  <span class="comment"># CLI entry point</span>
+  api/app.py                   <span class="comment"># API entry point</span>
+  orchestrator/pipeline.py     <span class="comment"># The main pipeline (LangGraph)</span>
+  orchestrator/cost_estimator.py <span class="comment"># Dry-run cost projection</span>
+  connectors/*.py              <span class="comment"># Git repo cloning</span>
+  ingestion/file_indexer.py    <span class="comment"># Walk &amp; classify files</span>
+  ingestion/ast_indexer.py     <span class="comment"># Tree-sitter parsing</span>
+  ingestion/extractors/*.py    <span class="comment"># Language-specific entity extraction</span>
+  callgraph/static_builder.py  <span class="comment"># Build method-level call graph</span>
+  triage/file_scorer.py        <span class="comment"># Score files 0-100</span>
+  agents/base_agent.py         <span class="comment"># Agent template (static &rarr; AI &rarr; validate)</span>
+  agents/security_agent.py     <span class="comment"># Semgrep + Gitleaks + OSV + AI</span>
+  agents/compliance_agent.py   <span class="comment"># Policy checks + RAG + AI</span>
+  agents/architecture_agent.py <span class="comment"># Graphs + patterns + AI</span>
+  agents/quality_agent.py      <span class="comment"># Complexity + coverage + AI</span>
+  agents/tools/*.py            <span class="comment"># Semgrep, Gitleaks, OSV, AST tools</span>
+  validation/pipeline.py       <span class="comment"># 4 hallucination gates</span>
+  scoring/report_assembler.py  <span class="comment"># Assemble AuditReport</span>
+  scoring/risk_scorer.py       <span class="comment"># Health score calculation</span>
+  report/pdf_generator.py      <span class="comment"># HTML &rarr; PDF (WeasyPrint)</span>
+  report/html_generator.py     <span class="comment"># Jinja2 templates &rarr; HTML</span>
+  models/*.py                  <span class="comment"># All Pydantic data models</span>
+  llm/provider.py              <span class="comment"># LLM abstraction layer</span>
+  config.py                    <span class="comment"># Settings &amp; configuration</span></code></pre>
+
+    <p style="margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;">
+      BlanketAudit v2.0 &mdash; Understanding the Code
+    </p>
+
+  </div>
+</body>
+</html>

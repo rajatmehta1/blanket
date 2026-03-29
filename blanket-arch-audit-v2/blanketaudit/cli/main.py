@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env before anything reads env vars
+
 import typer
 from rich.console import Console
 from rich.table import Table

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Running AI Agents - BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .provider-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.5rem; margin: 1.2rem 0;
+    }
+    .provider-card h3 { margin-top: 0; }
+    .provider-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .cost-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .cost-free { background: rgba(52,211,153,0.15); color: var(--green); }
+    .cost-cheap { background: rgba(96,165,250,0.15); color: var(--blue); }
+    .cost-mid { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .cost-high { background: rgba(249,115,22,0.15); color: var(--orange); }
+    .step-num {
+      display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center;
+      background: var(--accent); color: #fff; border-radius: 50%; font-size: 0.82rem;
+      font-weight: 700; margin-right: 0.5rem; flex-shrink: 0;
+    }
+    .step-row { display: flex; align-items: flex-start; margin: 0.8rem 0; }
+    .step-row p { margin: 0; }
+    .comparison-table { font-size: 0.88rem; }
+    .comparison-table td, .comparison-table th { padding: 0.6rem 0.8rem; }
+    .comparison-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    .tip-box {
+      background: rgba(108,92,231,0.08); border-left: 3px solid var(--accent);
+      padding: 0.8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0;
+    }
+    .tip-box strong { color: var(--accent); }
+    .warn-box {
+      background: rgba(251,191,36,0.08); border-left: 3px solid var(--yellow);
+      padding: 0.8rem 1rem; margin: 1rem 0; border-radius: 0 6px 6px 0;
+    }
+    .warn-box strong { color: var(--yellow); }
+    .env-table td:first-child { font-family: var(--mono); font-size: 0.84em; white-space: nowrap; }
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; margin: 1rem 0; }
+    .pricing-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem; text-align: center;
+    }
+    .pricing-card .model { font-family: var(--mono); font-size: 0.85rem; color: var(--accent); margin-bottom: 0.3rem; }
+    .pricing-card .price { font-size: 0.82rem; color: var(--text-muted); }
+    @media (max-width: 700px) { .pricing-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="nav">
+      <a href="index.html">Home</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="understanding_code.html">Understanding the Code</a>
+      <a href="run-agents.html" class="active">Running AI Agents</a>
+      <a href="local-setup.html">Setup</a>
+      <a href="samples.html">Samples</a>
+    </div>
+
+    <h1>Running AI Agents</h1>
+    <p>How to configure BlanketAudit to use different LLM providers &mdash; Groq, OpenAI, Claude, Ollama, Google, or no AI at all.</p>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Quick Start (Pick Your Provider)</h2>
+    <p>The fastest way to get going: set two environment variables and run the scan.</p>
+
+    <!-- GROQ -->
+    <div class="provider-card">
+      <div class="provider-header">
+        <h3>Groq</h3>
+        <span class="cost-tag cost-cheap">$0.59 / 1M tokens &mdash; cheapest cloud option</span>
+      </div>
+      <div class="step-row"><span class="step-num">1</span><p>Get an API key from <strong>console.groq.com</strong></p></div>
+      <div class="step-row"><span class="step-num">2</span><p>Set environment variables:</p></div>
+      <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=groq
+<span class="kw">export</span> GROQ_API_KEY=gsk_your_key_here</code></pre>
+      <div class="step-row"><span class="step-num">3</span><p>Run the scan:</p></div>
+      <pre><code>blanketaudit scan ./your-repo --domain healthcare --framework hipaa</code></pre>
+      <p>Default model: <code>llama-3.1-70b-versatile</code>. Very fast inference, great for iteration.</p>
+    </div>
+
+    <!-- OPENAI -->
+    <div class="provider-card">
+      <div class="provider-header">
+        <h3>OpenAI</h3>
+        <span class="cost-tag cost-mid">$0.15&ndash;$10 / 1M tokens</span>
+      </div>
+      <div class="step-row"><span class="step-num">1</span><p>Get an API key from <strong>platform.openai.com</strong></p></div>
+      <div class="step-row"><span class="step-num">2</span><p>Set environment variables:</p></div>
+      <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=openai
+<span class="kw">export</span> OPENAI_API_KEY=sk-your_key_here</code></pre>
+      <div class="step-row"><span class="step-num">3</span><p>Run the scan:</p></div>
+      <pre><code>blanketaudit scan ./your-repo --domain healthcare --framework hipaa</code></pre>
+      <p>Default model: <code>gpt-4o-mini</code> (cheap). For better compliance analysis, the system auto-upgrades the compliance agent to <code>gpt-4o</code>.</p>
+    </div>
+
+    <!-- ANTHROPIC -->
+    <div class="provider-card">
+      <div class="provider-header">
+        <h3>Anthropic (Claude)</h3>
+        <span class="cost-tag cost-high">$3&ndash;$15 / 1M tokens &mdash; highest quality</span>
+      </div>
+      <div class="step-row"><span class="step-num">1</span><p>Get an API key from <strong>console.anthropic.com</strong></p></div>
+      <div class="step-row"><span class="step-num">2</span><p>Set environment variables:</p></div>
+      <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=anthropic
+<span class="kw">export</span> ANTHROPIC_API_KEY=sk-ant-your_key_here</code></pre>
+      <div class="step-row"><span class="step-num">3</span><p>Run the scan:</p></div>
+      <pre><code>blanketaudit scan ./your-repo --domain healthcare --framework hipaa</code></pre>
+      <p>Default model: <code>claude-sonnet-4-20250514</code>. Compliance agent auto-upgrades to <code>claude-opus-4-20250514</code> for deeper regulatory analysis.</p>
+    </div>
+
+    <!-- OLLAMA -->
+    <div class="provider-card">
+      <div class="provider-header">
+        <h3>Ollama (Local &amp; Free)</h3>
+        <span class="cost-tag cost-free">FREE &mdash; runs on your machine</span>
+      </div>
+      <div class="step-row"><span class="step-num">1</span><p>Install Ollama from <strong>ollama.ai</strong> and pull a model:</p></div>
+      <pre><code>ollama pull llama3.1
+ollama pull nomic-embed-text   <span class="comment"># for embeddings (optional)</span>
+ollama serve                   <span class="comment"># start the server</span></code></pre>
+      <div class="step-row"><span class="step-num">2</span><p>Set environment variables:</p></div>
+      <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=ollama
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__PROVIDER=ollama</code></pre>
+      <div class="step-row"><span class="step-num">3</span><p>Run the scan:</p></div>
+      <pre><code>blanketaudit scan ./your-repo --domain healthcare --framework hipaa</code></pre>
+      <p>No API key needed. Default model: <code>llama3.1</code>. Runs entirely on your hardware &mdash; great for air-gapped or privacy-sensitive environments.</p>
+      <div class="tip-box">
+        <strong>Docker shortcut:</strong> Run <code>docker compose -f docker-compose.onprem.yml up</code> to get Ollama + the API + Neo4j in one command, zero API keys.
+      </div>
+    </div>
+
+    <!-- GOOGLE -->
+    <div class="provider-card">
+      <div class="provider-header">
+        <h3>Google Gemini</h3>
+        <span class="cost-tag cost-cheap">$0.10&ndash;$1.25 / 1M tokens</span>
+      </div>
+      <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=google
+<span class="kw">export</span> GOOGLE_API_KEY=your_key_here</code></pre>
+      <pre><code>blanketaudit scan ./your-repo --domain healthcare --framework hipaa</code></pre>
+      <p>Default: <code>gemini-2.0-flash</code>. Compliance auto-upgrades to <code>gemini-2.5-pro</code>.</p>
+    </div>
+
+    <!-- STATIC ONLY -->
+    <div class="provider-card">
+      <div class="provider-header">
+        <h3>Static Only (No AI)</h3>
+        <span class="cost-tag cost-free">FREE &mdash; no LLM calls</span>
+      </div>
+      <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=none</code></pre>
+      <pre><code>blanketaudit scan ./your-repo --domain healthcare --framework hipaa</code></pre>
+      <p>Uses only Semgrep, Gitleaks, and OSV-Scanner. No AI reasoning, no API keys, completely free. Good for CI/CD gating.</p>
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Provider Comparison</h2>
+
+    <table class="comparison-table">
+      <thead>
+        <tr><th>Provider</th><th>Default Model</th><th>Input Cost</th><th>Output Cost</th><th>API Key</th><th>Best For</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Groq</strong></td><td><code>llama-3.1-70b-versatile</code></td><td>$0.59/1M</td><td>$0.79/1M</td><td>GROQ_API_KEY</td><td>Fast iteration, budget-friendly</td></tr>
+        <tr><td><strong>OpenAI</strong></td><td><code>gpt-4o-mini</code></td><td>$0.15/1M</td><td>$0.60/1M</td><td>OPENAI_API_KEY</td><td>Balanced cost &amp; quality</td></tr>
+        <tr><td><strong>Claude</strong></td><td><code>claude-sonnet-4-20250514</code></td><td>$3.00/1M</td><td>$15.00/1M</td><td>ANTHROPIC_API_KEY</td><td>Best analysis quality</td></tr>
+        <tr><td><strong>Google</strong></td><td><code>gemini-2.0-flash</code></td><td>$0.10/1M</td><td>$0.40/1M</td><td>GOOGLE_API_KEY</td><td>Cheapest cloud option</td></tr>
+        <tr><td><strong>Ollama</strong></td><td><code>llama3.1</code></td><td>Free</td><td>Free</td><td>None</td><td>Privacy, air-gapped, local dev</td></tr>
+        <tr><td><strong>Static</strong></td><td>N/A</td><td>Free</td><td>Free</td><td>None</td><td>CI/CD gating, zero cost</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Configuration Methods</h2>
+    <p>Three ways to configure the system (highest priority wins):</p>
+
+    <h3>1. Environment Variables (Recommended for Quick Use)</h3>
+    <p>All settings use the <code>BLANKETAUDIT_</code> prefix. Use <code>__</code> (double underscore) for nested values.</p>
+    <pre><code><span class="comment"># Provider &amp; model</span>
+<span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=openai
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=gpt-4o-mini
+<span class="kw">export</span> BLANKETAUDIT_LLM__COMPLIANCE_MODEL=gpt-4o
+<span class="kw">export</span> OPENAI_API_KEY=sk-...
+
+<span class="comment"># Cost controls</span>
+<span class="kw">export</span> BLANKETAUDIT_COST__MAX_SCAN_COST_USD=10.00
+<span class="kw">export</span> BLANKETAUDIT_COST__PER_AGENT_TOKEN_BUDGET=500000
+
+<span class="comment"># Embeddings (optional)</span>
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__PROVIDER=openai
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__MODEL=text-embedding-3-small</code></pre>
+
+    <h3>2. audit.yaml Config File (Recommended for Projects)</h3>
+    <p>Create an <code>audit.yaml</code> in your project root:</p>
+    <pre><code><span class="comment"># audit.yaml</span>
+scan:
+  repos:
+    - url: github.com/myorg/api-service
+      branch: main
+    - url: github.com/myorg/payment-service
+      branch: main
+
+frameworks: [hipaa, soc2]
+domain: healthcare
+
+llm:
+  provider: anthropic
+  model: <span class="str">""</span>                        <span class="comment"># empty = auto-select per provider</span>
+  compliance_model: <span class="str">""</span>             <span class="comment"># auto-selects higher-capability model</span>
+  temperature: 0.0
+  agent_model_overrides:          <span class="comment"># optional: per-agent model routing</span>
+    compliance: claude-opus-4-20250514
+    security: claude-sonnet-4-20250514
+
+cost:
+  max_scan_cost_usd: 15.00
+  per_agent_token_budget: 500000
+  abort_on_budget: true
+
+output:
+  formats: [pdf, json]
+  path: ./audit-report
+  min_severity: low</code></pre>
+    <p>Then run: <code>blanketaudit scan --config audit.yaml</code></p>
+
+    <h3>3. CLI Flags (Highest Priority)</h3>
+    <pre><code>blanketaudit scan ./repo \
+  --domain healthcare \
+  --framework hipaa \
+  --framework soc2 \
+  --format pdf \
+  --format json \
+  --output ./reports \
+  --name "My Project" \
+  --max-cost 10.0</code></pre>
+
+    <div class="tip-box">
+      <strong>Precedence:</strong> CLI flags &gt; environment variables &gt; audit.yaml &gt; defaults. So you can set your provider in audit.yaml and override the cost limit on the command line.
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Per-Agent Model Routing</h2>
+    <p>Different agents can use different models. The compliance agent often needs a more powerful (and expensive) model for regulatory reasoning.</p>
+
+    <h3>How the System Picks a Model</h3>
+    <pre><code><span class="comment"># Resolution order (first match wins):</span>
+1. agent_model_overrides.<span class="fn">agent_name</span>   <span class="comment"># explicit per-agent override</span>
+2. compliance_model                    <span class="comment"># if agent is "compliance"</span>
+3. Provider default for compliance     <span class="comment"># e.g., claude-opus for anthropic</span>
+4. model                               <span class="comment"># the standard model setting</span>
+5. Provider default                    <span class="comment"># e.g., claude-sonnet for anthropic</span></code></pre>
+
+    <h3>Example: Mix Cheap &amp; Powerful</h3>
+    <pre><code><span class="comment"># audit.yaml &mdash; use cheap model for most agents, powerful for compliance</span>
+llm:
+  provider: anthropic
+  model: claude-sonnet-4-20250514        <span class="comment"># $3/1M &mdash; used by security, architecture, quality</span>
+  compliance_model: claude-opus-4-20250514  <span class="comment"># $15/1M &mdash; only used by compliance agent</span></code></pre>
+
+    <pre><code><span class="comment"># Or go fully granular:</span>
+llm:
+  provider: openai
+  agent_model_overrides:
+    compliance: gpt-4o              <span class="comment"># most capable, for regulations</span>
+    security: gpt-4o-mini           <span class="comment"># good enough for vuln analysis</span>
+    architecture: gpt-4o-mini
+    quality: gpt-4o-mini</code></pre>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Cost Controls</h2>
+    <p>Every scan has built-in cost protection. Here's how to control spending:</p>
+
+    <h3>Dry Run (Estimate Before Spending)</h3>
+    <pre><code>blanketaudit scan ./your-repo --dry-run</code></pre>
+    <p>This scans and triages all files, then shows the estimated cost <strong>without making any LLM calls</strong>. Output includes:</p>
+    <ul>
+      <li>Total estimated USD</li>
+      <li>Per-agent token and cost breakdown</li>
+      <li>File tier distribution (how many files get full AI vs. static-only)</li>
+      <li>Model routing (which model each agent will use)</li>
+    </ul>
+
+    <h3>Budget Limits</h3>
+    <table class="env-table">
+      <tr><th>Setting</th><th>Default</th><th>What It Does</th></tr>
+      <tr><td>max_scan_cost_usd</td><td>$15.00</td><td>Hard limit per scan. Aborts if exceeded.</td></tr>
+      <tr><td>per_agent_token_budget</td><td>500,000</td><td>Token limit per agent. At 80% &rarr; demotes remaining files to static-only. At 100% &rarr; stops LLM calls.</td></tr>
+      <tr><td>abort_on_budget</td><td>true</td><td>Whether to abort or continue with static-only when budget is hit.</td></tr>
+      <tr><td>require_dry_run</td><td>false</td><td>Force a dry-run estimate before every scan.</td></tr>
+    </table>
+
+    <pre><code><span class="comment"># Set a tight budget via env vars</span>
+<span class="kw">export</span> BLANKETAUDIT_COST__MAX_SCAN_COST_USD=5.00
+<span class="kw">export</span> BLANKETAUDIT_COST__PER_AGENT_TOKEN_BUDGET=200000
+
+<span class="comment"># Or via CLI flag</span>
+blanketaudit scan ./repo --max-cost 5.0</code></pre>
+
+    <div class="warn-box">
+      <strong>Budget safety:</strong> If an agent hits its token budget, it automatically falls back to static-only analysis for remaining files. The scan still completes &mdash; you just get less AI reasoning on lower-priority files.
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Model Pricing Reference</h2>
+    <p>Cost per 1 million tokens (as of March 2026):</p>
+
+    <h3>Anthropic</h3>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="model">claude-opus-4</div>
+        <div class="price">$15 in / $75 out</div>
+      </div>
+      <div class="pricing-card">
+        <div class="model">claude-sonnet-4</div>
+        <div class="price">$3 in / $15 out</div>
+      </div>
+      <div class="pricing-card">
+        <div class="model">claude-haiku-4.5</div>
+        <div class="price">$0.80 in / $4 out</div>
+      </div>
+    </div>
+
+    <h3>OpenAI</h3>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="model">gpt-4o</div>
+        <div class="price">$2.50 in / $10 out</div>
+      </div>
+      <div class="pricing-card">
+        <div class="model">gpt-4o-mini</div>
+        <div class="price">$0.15 in / $0.60 out</div>
+      </div>
+      <div class="pricing-card">
+        <div class="model">gpt-4-turbo</div>
+        <div class="price">$10 in / $30 out</div>
+      </div>
+    </div>
+
+    <h3>Groq / Google / Local</h3>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="model">llama-3.1-70b (Groq)</div>
+        <div class="price">$0.59 in / $0.79 out</div>
+      </div>
+      <div class="pricing-card">
+        <div class="model">gemini-2.0-flash</div>
+        <div class="price">$0.10 in / $0.40 out</div>
+      </div>
+      <div class="pricing-card">
+        <div class="model">llama3.1 (Ollama)</div>
+        <div class="price">Free / Free</div>
+      </div>
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>All Environment Variables</h2>
+    <p>Complete reference for every env var the system reads:</p>
+
+    <table class="env-table">
+      <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3" style="color:var(--accent); padding-top:1rem;"><strong>LLM Provider</strong></td></tr>
+        <tr><td>BLANKETAUDIT_LLM__PROVIDER</td><td>none</td><td>LLM provider: anthropic, openai, ollama, groq, google, azure, none</td></tr>
+        <tr><td>BLANKETAUDIT_LLM__MODEL</td><td>(auto)</td><td>Model name. Empty = auto-select per provider.</td></tr>
+        <tr><td>BLANKETAUDIT_LLM__COMPLIANCE_MODEL</td><td>(auto)</td><td>Override model for compliance agent.</td></tr>
+        <tr><td>BLANKETAUDIT_LLM__TEMPERATURE</td><td>0.0</td><td>LLM temperature (0 = deterministic).</td></tr>
+        <tr><td>BLANKETAUDIT_LLM__MAX_RETRIES</td><td>3</td><td>Retry count for failed LLM calls.</td></tr>
+        <tr><td>BLANKETAUDIT_LLM__TIMEOUT_SECONDS</td><td>120</td><td>Timeout per LLM call.</td></tr>
+
+        <tr><td colspan="3" style="color:var(--accent); padding-top:1rem;"><strong>API Keys</strong></td></tr>
+        <tr><td>ANTHROPIC_API_KEY</td><td>&mdash;</td><td>Anthropic API key (sk-ant-...)</td></tr>
+        <tr><td>OPENAI_API_KEY</td><td>&mdash;</td><td>OpenAI or Azure OpenAI API key</td></tr>
+        <tr><td>GROQ_API_KEY</td><td>&mdash;</td><td>Groq API key</td></tr>
+        <tr><td>GOOGLE_API_KEY</td><td>&mdash;</td><td>Google Gemini API key</td></tr>
+        <tr><td>GITHUB_TOKEN</td><td>&mdash;</td><td>GitHub PAT for private repo cloning</td></tr>
+        <tr><td>GITLAB_TOKEN</td><td>&mdash;</td><td>GitLab token for private repo cloning</td></tr>
+
+        <tr><td colspan="3" style="color:var(--accent); padding-top:1rem;"><strong>Cost Controls</strong></td></tr>
+        <tr><td>BLANKETAUDIT_COST__MAX_SCAN_COST_USD</td><td>15.00</td><td>Hard dollar limit per scan.</td></tr>
+        <tr><td>BLANKETAUDIT_COST__PER_AGENT_TOKEN_BUDGET</td><td>500000</td><td>Token limit per agent.</td></tr>
+        <tr><td>BLANKETAUDIT_COST__ABORT_ON_BUDGET</td><td>true</td><td>Abort or fallback when budget hit.</td></tr>
+        <tr><td>BLANKETAUDIT_COST__REQUIRE_DRY_RUN</td><td>false</td><td>Force cost estimate before every scan.</td></tr>
+
+        <tr><td colspan="3" style="color:var(--accent); padding-top:1rem;"><strong>Embeddings</strong></td></tr>
+        <tr><td>BLANKETAUDIT_EMBEDDING__PROVIDER</td><td>none</td><td>Embedding provider: openai, ollama, huggingface, voyage, none</td></tr>
+        <tr><td>BLANKETAUDIT_EMBEDDING__MODEL</td><td>(auto)</td><td>Embedding model name.</td></tr>
+
+        <tr><td colspan="3" style="color:var(--accent); padding-top:1rem;"><strong>Storage</strong></td></tr>
+        <tr><td>BLANKETAUDIT_NEO4J_URI</td><td>bolt://localhost:7687</td><td>Neo4j connection URI.</td></tr>
+        <tr><td>BLANKETAUDIT_MILVUS_URI</td><td>http://localhost:19530</td><td>Milvus vector DB URI.</td></tr>
+        <tr><td>BLANKETAUDIT_SQLITE_PATH</td><td>blanketaudit.db</td><td>SQLite database path.</td></tr>
+      </tbody>
+    </table>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>CLI Commands Reference</h2>
+
+    <h3>Scan</h3>
+    <pre><code><span class="comment"># Basic scan</span>
+blanketaudit scan ./my-repo
+
+<span class="comment"># Scan with all options</span>
+blanketaudit scan ./repo1 ./repo2 \
+  --config audit.yaml \
+  --domain healthcare \
+  --framework hipaa \
+  --framework soc2 \
+  --format pdf \
+  --format json \
+  --format sarif \
+  --output ./reports \
+  --name <span class="str">"My Project"</span> \
+  --max-cost 10.0
+
+<span class="comment"># Remote repos</span>
+blanketaudit scan --repo github.com/org/service --repo github.com/org/api
+
+<span class="comment"># Dry run (estimate cost only)</span>
+blanketaudit scan ./repo --dry-run
+
+<span class="comment"># CI/CD mode (JSON output, non-interactive)</span>
+blanketaudit scan ./repo --json</code></pre>
+
+    <h3>Other Commands</h3>
+    <pre><code><span class="comment"># Check that your provider is configured correctly</span>
+blanketaudit providers --check
+
+<span class="comment"># List all 88 policies</span>
+blanketaudit policies --list
+
+<span class="comment"># Filter policies by category</span>
+blanketaudit policies --category security
+
+<span class="comment"># Validate policy YAML files</span>
+blanketaudit policies --validate
+
+<span class="comment"># Re-generate report from a previous scan</span>
+blanketaudit report SCAN_ID --format pdf</code></pre>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>API Mode</h2>
+    <p>For web frontends or CI/CD integrations, run the API server:</p>
+
+    <pre><code><span class="comment"># Start the API</span>
+uvicorn blanketaudit.api.app:app --host 0.0.0.0 --port 8000
+
+<span class="comment"># Or via Docker</span>
+docker compose up</code></pre>
+
+    <h3>Key Endpoints</h3>
+    <table>
+      <tr><th>Method</th><th>Endpoint</th><th>What It Does</th></tr>
+      <tr><td>GET</td><td><code>/health</code></td><td>Provider status, circuit breaker state</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/scan</code></td><td>Start an async scan (returns scan_id)</td></tr>
+      <tr><td>POST</td><td><code>/api/v1/scan/cost-estimate</code></td><td>Dry-run cost projection</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/scan/{id}</code></td><td>Get scan status &amp; results</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/scan/{id}/report</code></td><td>Download report (JSON or SARIF)</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/scans</code></td><td>List recent scans</td></tr>
+      <tr><td>GET</td><td><code>/api/v1/policies</code></td><td>List loaded policies</td></tr>
+    </table>
+
+    <h3>Example: Start a Scan via API</h3>
+    <pre><code>curl -X POST http://localhost:8000/api/v1/scan \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "project_name": "my-project",
+    "domain": "healthcare",
+    "frameworks": ["hipaa", "soc2"],
+    "repos": [
+      {"url": "github.com/org/api-service", "branch": "main"}
+    ],
+    "max_cost_usd": 10.0
+  }'</span>
+
+<span class="comment"># Response: {"scan_id": "abc-123", "status": "queued"}</span>
+
+<span class="comment"># Check status</span>
+curl http://localhost:8000/api/v1/scan/abc-123</code></pre>
+
+    <p>Swagger UI is available at <code>http://localhost:8000/docs</code> for interactive testing.</p>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Common Recipes</h2>
+
+    <h3>Cheapest Possible Cloud Scan</h3>
+    <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=groq
+<span class="kw">export</span> GROQ_API_KEY=gsk_...
+<span class="kw">export</span> BLANKETAUDIT_COST__MAX_SCAN_COST_USD=2.00
+blanketaudit scan ./repo --framework hipaa</code></pre>
+
+    <h3>Best Quality (Money No Object)</h3>
+    <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=anthropic
+<span class="kw">export</span> ANTHROPIC_API_KEY=sk-ant-...
+<span class="kw">export</span> BLANKETAUDIT_LLM__MODEL=claude-sonnet-4-20250514
+<span class="kw">export</span> BLANKETAUDIT_LLM__COMPLIANCE_MODEL=claude-opus-4-20250514
+blanketaudit scan ./repo --framework hipaa --framework soc2 --format pdf</code></pre>
+
+    <h3>Fully Offline / Air-Gapped</h3>
+    <pre><code><span class="comment"># Pull models while you have internet</span>
+ollama pull llama3.1
+ollama pull nomic-embed-text
+
+<span class="comment"># Then disconnect and run</span>
+<span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=ollama
+<span class="kw">export</span> BLANKETAUDIT_EMBEDDING__PROVIDER=ollama
+blanketaudit scan ./repo --framework hipaa</code></pre>
+
+    <h3>CI/CD Pipeline (GitHub Actions)</h3>
+    <pre><code><span class="comment"># .github/workflows/audit.yml</span>
+- name: Run BlanketAudit
+  run: blanketaudit scan . --json --max-cost 5.0
+  env:
+    BLANKETAUDIT_LLM__PROVIDER: openai
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    BLANKETAUDIT_COST__MAX_SCAN_COST_USD: <span class="str">"5.00"</span></code></pre>
+
+    <h3>Static Only (Zero Cost, No AI)</h3>
+    <pre><code><span class="kw">export</span> BLANKETAUDIT_LLM__PROVIDER=none
+blanketaudit scan ./repo --format json
+<span class="comment"># Uses Semgrep + Gitleaks + OSV-Scanner only</span></code></pre>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>How the 4 Agents Use the LLM</h2>
+    <p>Each agent follows the same pattern: <strong>static tools first, then AI reasoning</strong>. If the LLM is unavailable, agents fall back to static-only.</p>
+
+    <table>
+      <tr><th>Agent</th><th>Static Tools</th><th>AI Does</th><th>Recommended Model</th></tr>
+      <tr>
+        <td><strong>Security</strong></td>
+        <td>Semgrep, Gitleaks, OSV</td>
+        <td>Filters false positives, assesses exploitability, computes blast radius</td>
+        <td>Standard (Sonnet / GPT-4o-mini)</td>
+      </tr>
+      <tr>
+        <td><strong>Compliance</strong></td>
+        <td>Policy rules, Milvus RAG search</td>
+        <td>Maps code patterns to regulatory controls, assesses PASS/FAIL</td>
+        <td>High-capability (Opus / GPT-4o)</td>
+      </tr>
+      <tr>
+        <td><strong>Architecture</strong></td>
+        <td>Dep graph, call graph, topology</td>
+        <td>Detects design violations, coupling, circular deps, SPOFs</td>
+        <td>Standard (Sonnet / GPT-4o-mini)</td>
+      </tr>
+      <tr>
+        <td><strong>Quality</strong></td>
+        <td>Complexity metrics, coverage parser</td>
+        <td>Identifies maintainability issues, dead code, tech debt patterns</td>
+        <td>Standard (Sonnet / GPT-4o-mini)</td>
+      </tr>
+    </table>
+
+    <div class="tip-box">
+      <strong>Why compliance needs a stronger model:</strong> Regulatory reasoning requires understanding legal language, mapping code patterns to specific control clauses (e.g., HIPAA &sect;164.312), and making nuanced PASS/PARTIAL/FAIL judgments. The other agents work well with standard models.
+    </div>
+
+    <!-- ───────────────────────────────────────── -->
+    <h2>Troubleshooting</h2>
+
+    <table>
+      <tr><th>Problem</th><th>Fix</th></tr>
+      <tr><td>Scan runs but no AI findings</td><td>Check <code>blanketaudit providers --check</code> to verify your API key works.</td></tr>
+      <tr><td>"BudgetExceededError" mid-scan</td><td>Increase <code>BLANKETAUDIT_COST__MAX_SCAN_COST_USD</code> or use a cheaper model.</td></tr>
+      <tr><td>Ollama connection refused</td><td>Make sure <code>ollama serve</code> is running on port 11434.</td></tr>
+      <tr><td>Slow Ollama performance</td><td>Use a smaller model (<code>llama3.1:8b</code> instead of 70b), or ensure GPU acceleration is enabled.</td></tr>
+      <tr><td>Rate limit errors (429)</td><td>The system auto-retries 3 times with exponential backoff. If persistent, reduce <code>per_agent_token_budget</code>.</td></tr>
+      <tr><td>Circuit breaker tripped</td><td>5 LLM failures in 60s triggers the breaker. It auto-recovers after 120s. Check API key and provider status.</td></tr>
+      <tr><td>Only static findings, no AI analysis</td><td>Provider is set to <code>none</code>, or the circuit breaker tripped. Check <code>BLANKETAUDIT_LLM__PROVIDER</code>.</td></tr>
+    </table>
+
+    <p style="margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;">
+      BlanketAudit v2.0 &mdash; Running AI Agents
+    </p>
+
+  </div>
+</body>
+</html>
