@@ -4,6 +4,13 @@ category: quality
 severity: medium
 description: Detects Kubernetes pod specs missing CPU or memory resource limits
 frameworks: []
+file_patterns:
+  - '**/*.yaml'
+  - '**/*.yml'
+  - '**/k8s/**'
+  - '**/kubernetes/**'
+  - '**/manifests/**'
+  - '**/helm/**'
 static_checks:
   - tool: regex
     regex: 'kind:\s*(?:Pod|Deployment|StatefulSet|DaemonSet)(?![\s\S]*?limits:)'

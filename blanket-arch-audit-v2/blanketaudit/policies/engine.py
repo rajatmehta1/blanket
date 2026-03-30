@@ -6,6 +6,7 @@ then ai_analysis (LLM) that filters false positives and adds context.
 
 from __future__ import annotations
 
+import fnmatch
 import re
 from pathlib import Path
 from typing import Any
@@ -179,14 +180,18 @@ class PolicyEngine:
         """
         candidates: list[StaticCandidate] = []
 
+        # Filter files by policy's file_patterns (if specified).
+        # This prevents e.g. Docker policies from scanning .py files.
+        filtered_contents = self._filter_files(policy, file_contents)
+
         for check in policy.static_checks:
             if check.tool == "regex" and check.regex:
                 candidates.extend(
-                    self._run_regex_check(policy, check, file_contents)
+                    self._run_regex_check(policy, check, filtered_contents)
                 )
             elif check.tool == "ast" and check.pattern:
                 candidates.extend(
-                    self._run_ast_check(policy, check, file_contents)
+                    self._run_ast_check(policy, check, filtered_contents)
                 )
             # semgrep, gitleaks, osv are run via subprocess tools
             # (handled by agent tools, not inline here)
@@ -197,6 +202,30 @@ class PolicyEngine:
             count=len(candidates),
         )
         return candidates
+
+    @staticmethod
+    def _filter_files(
+        policy: Policy,
+        file_contents: dict[str, str],
+    ) -> dict[str, str]:
+        """Filter file_contents to only files matching policy.file_patterns.
+
+        If policy.file_patterns is empty, all files are included (backward compat).
+        """
+        if not policy.file_patterns:
+            return file_contents
+
+        filtered: dict[str, str] = {}
+        for file_path, content in file_contents.items():
+            # Normalize path separators for cross-platform matching
+            normalized = file_path.replace("\\", "/")
+            for pattern in policy.file_patterns:
+                if fnmatch.fnmatch(normalized, pattern) or fnmatch.fnmatch(
+                    normalized.split("/")[-1], pattern.split("/")[-1]
+                ):
+                    filtered[file_path] = content
+                    break
+        return filtered
 
     def _run_regex_check(
         self,

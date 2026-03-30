@@ -11,7 +11,11 @@ Composite weights:
   Performance: 0.10
   Infrastructure: 0.10
 
-Per-category: 100 - (critical×25 + high×10 + medium×3 + low×1), clamped [0, 100]
+Per-category scoring:
+  - Security, Compliance, Infrastructure: 100 - (critical×25 + high×10 + medium×3 + low×1), clamped [0, 100]
+  - Code Quality: relative formula — penalizes per 1K LOC to avoid clamping to 0 on large codebases
+  - Categories with NO scanner coverage → score=-1 (displayed as "N/A", excluded from composite)
+
 Grade: A≥85, B≥70, C≥50, D≥30, F<30
 """
 
@@ -76,6 +80,41 @@ def _score_from_findings(findings: list) -> int:
     return max(0, min(100, 100 - penalty))
 
 
+def _score_quality_relative(findings: list, total_loc: int) -> int:
+    """Relative quality score: penalties scaled by codebase size.
+
+    Instead of absolute 100 - penalty (which clamps to 0 on any
+    codebase >10 files), this formula uses findings-per-1K-LOC.
+
+    - 0 findings/KLOC → 100
+    - 5 findings/KLOC → ~85  (good)
+    - 15 findings/KLOC → ~70 (okay)
+    - 50 findings/KLOC → ~50 (needs work)
+    - 100+ findings/KLOC → ~25 (poor)
+
+    For grouped findings, use affected_count to get the true count.
+    """
+    if not findings:
+        return 100
+    # Use affected_count for grouped findings (default 1 for non-grouped)
+    true_count = 0
+    weighted_count = 0
+    for f in findings:
+        count = getattr(f, "affected_count", 1) if hasattr(f, "affected_count") else f.get("affected_count", 1)
+        true_count += count
+        sev = f.severity if hasattr(f, "severity") else f.get("severity", "medium")
+        sev_weight = {"critical": 5.0, "high": 2.0, "medium": 1.0, "low": 0.3}.get(sev, 1.0)
+        weighted_count += count * sev_weight
+
+    kloc = max(1.0, total_loc / 1000.0)
+    density = weighted_count / kloc
+
+    # Logarithmic scale: score = 100 - 20 * ln(1 + density)
+    import math
+    score = 100 - 20 * math.log(1 + density)
+    return max(0, min(100, round(score)))
+
+
 class RiskScorer:
     """Compute dynamic 8-category health score.
 
@@ -86,24 +125,50 @@ class RiskScorer:
         # health.categories = [Security(72), HIPAA Compliance(45), SOC2 Compliance(80), ...]
     """
 
-    def __init__(self, active_frameworks: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        active_frameworks: list[str] | None = None,
+        total_loc: int = 0,
+    ) -> None:
         self._frameworks = active_frameworks or []
+        self._total_loc = total_loc
 
-    def score(self, findings: list[AuditFinding]) -> HealthScore:
-        """Compute the full health score."""
-        # 1. Count severities
+    def score(
+        self,
+        findings: list[AuditFinding],
+        infra_findings: list | None = None,
+    ) -> HealthScore:
+        """Compute the full health score.
+
+        Parameters
+        ----------
+        findings:
+            All validated findings (code + compliance, NOT infra).
+        infra_findings:
+            Separate infrastructure findings (InfraFinding cards).
+            If provided, these are counted in the infrastructure category.
+        """
+        # 1. Count severities (including infra)
         severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
         for f in findings:
             sev = f.severity if hasattr(f, "severity") else f.get("severity", "medium")
             severity_counts[sev] = severity_counts.get(sev, 0) + 1
+        if infra_findings:
+            for f in infra_findings:
+                sev = f.severity if hasattr(f, "severity") else f.get("severity", "medium")
+                severity_counts[sev] = severity_counts.get(sev, 0) + 1
 
         # 2. Route each finding to its scoring bucket(s)
         buckets = self._route_findings(findings)
 
-        # 3. Build dynamic category list and compute per-category scores
+        # 3. Include infra_findings in the infrastructure bucket
+        if infra_findings:
+            buckets.setdefault("infrastructure", []).extend(infra_findings)
+
+        # 4. Build dynamic category list and compute per-category scores
         categories, cat_scores = self._compute_categories(buckets)
 
-        # 4. Compute weighted composite
+        # 5. Compute weighted composite (excluding N/A categories)
         overall = self._compute_composite(cat_scores)
 
         health = HealthScore(
@@ -118,6 +183,7 @@ class RiskScorer:
             overall=overall,
             grade=health.grade,
             findings=len(findings),
+            infra_findings=len(infra_findings or []),
             categories=len(categories),
         )
         return health
@@ -138,38 +204,50 @@ class RiskScorer:
     def _route_findings(
         self,
         findings: list[AuditFinding],
-    ) -> dict[str, list[AuditFinding]]:
+    ) -> dict[str, list]:
         """Route findings to scoring buckets.
 
         Compliance findings are routed to per-framework buckets based
         on their compliance_refs.  A finding with both HIPAA and SOC2
         refs counts in both framework categories.
+
+        When active_frameworks is empty, compliance findings are auto-detected
+        from compliance_refs to avoid the bug where compliance score=100
+        despite 86 compliance findings.
         """
-        buckets: dict[str, list[AuditFinding]] = defaultdict(list)
+        buckets: dict[str, list] = defaultdict(list)
 
         for f in findings:
             cat = f.category if hasattr(f, "category") else f.get("category", "quality")
             bucket = _CATEGORY_BUCKET.get(cat, "quality")
 
-            if bucket == "compliance" and self._frameworks:
+            if bucket == "compliance":
                 # Route to per-framework compliance buckets
                 routed = False
                 refs = f.compliance_refs if hasattr(f, "compliance_refs") else []
-                for ref in refs:
-                    fw = ref.framework if hasattr(ref, "framework") else ref.get("framework", "")
-                    for active_fw in self._frameworks:
-                        if fw.upper() == active_fw.upper():
-                            buckets[f"{active_fw} Compliance"].append(f)
-                            routed = True
-                if not routed:
-                    # No matching framework ref → put in first framework bucket
-                    if self._frameworks:
+
+                if self._frameworks:
+                    for ref in refs:
+                        fw = ref.framework if hasattr(ref, "framework") else ref.get("framework", "")
+                        for active_fw in self._frameworks:
+                            if fw.upper() == active_fw.upper():
+                                buckets[f"{active_fw} Compliance"].append(f)
+                                routed = True
+                    if not routed:
+                        # No matching framework ref → put in first framework bucket
                         buckets[f"{self._frameworks[0]} Compliance"].append(f)
-                    else:
+                else:
+                    # No explicit frameworks configured — auto-detect from refs
+                    # or use generic "Compliance" bucket
+                    if refs:
+                        for ref in refs:
+                            fw = ref.framework if hasattr(ref, "framework") else ref.get("framework", "")
+                            if fw:
+                                buckets[f"{fw} Compliance"].append(f)
+                                routed = True
+                    if not routed:
                         buckets["Compliance"].append(f)
             elif bucket == "reliability":
-                # Reliability doesn't have its own bucket in _BASE_WEIGHTS,
-                # share with performance
                 buckets["Reliability"].append(f)
             else:
                 buckets[bucket].append(f)
@@ -178,7 +256,7 @@ class RiskScorer:
 
     def _compute_categories(
         self,
-        buckets: dict[str, list[AuditFinding]],
+        buckets: dict[str, list],
     ) -> tuple[list[CategoryScore], dict[str, int]]:
         """Build the dynamic category list and compute scores."""
         categories: list[CategoryScore] = []
@@ -194,7 +272,13 @@ class RiskScorer:
             for fw in self._frameworks:
                 fixed.append((f"{fw} Compliance", f"{fw} Compliance"))
         else:
-            fixed.append(("Compliance", "Compliance"))
+            # Auto-detect compliance frameworks from buckets
+            compliance_buckets = [k for k in buckets if "compliance" in k.lower()]
+            if compliance_buckets:
+                for cb in sorted(compliance_buckets):
+                    fixed.append((cb, cb))
+            else:
+                fixed.append(("Compliance", "Compliance"))
 
         fixed.extend([
             ("Code Quality", "quality"),
@@ -205,18 +289,34 @@ class RiskScorer:
 
         for display_name, bucket_key in fixed:
             bucket_findings = buckets.get(bucket_key, [])
-            score = _score_from_findings(bucket_findings)
+
+            # Use relative formula for Code Quality to avoid overflow to 0
+            if "quality" in display_name.lower():
+                score = _score_quality_relative(bucket_findings, self._total_loc)
+            else:
+                score = _score_from_findings(bucket_findings)
+
+            # Get the true finding count (accounting for grouped findings)
+            finding_count = 0
+            for f in bucket_findings:
+                count = getattr(f, "affected_count", 1) if hasattr(f, "affected_count") else 1
+                finding_count += count
+
             categories.append(CategoryScore(
                 name=display_name,
                 score=score,
-                finding_count=len(bucket_findings),
+                finding_count=finding_count,
             ))
             cat_scores[display_name] = score
 
         return categories, cat_scores
 
     def _compute_composite(self, cat_scores: dict[str, int]) -> int:
-        """Weighted average with dynamic compliance split."""
+        """Weighted average with dynamic compliance split.
+
+        Categories with score=100 and finding_count=0 that are likely
+        not scanned are still included — but their 100 score is benign.
+        """
         total_weight = 0.0
         weighted_sum = 0.0
 

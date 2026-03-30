@@ -87,7 +87,10 @@ class BaseAgent(abc.ABC):
         )
 
         # Step 2: AI reasoning (if LLM available and budget allows)
+        # PRIORITY: Sort candidates so critical/high are enriched first.
+        # If budget runs out, low-severity findings degrade gracefully to static-only.
         if self._should_run_ai():
+            candidates = self._prioritize_for_ai(candidates)
             try:
                 enriched = await self.run_ai_analysis(state, candidates)
                 if enriched is not None:
@@ -132,6 +135,22 @@ class BaseAgent(abc.ABC):
             logger.info(f"agent.{self.name}.budget_demoting")
             return False
         return True
+
+    @staticmethod
+    def _prioritize_for_ai(candidates: list[AuditFinding]) -> list[AuditFinding]:
+        """Sort candidates so critical/high findings are enriched first.
+
+        When the token budget is limited, this ensures the most severe
+        findings get AI explanations before budget exhaustion.
+        """
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        return sorted(
+            candidates,
+            key=lambda f: (
+                severity_order.get(f.severity, 4),
+                -f.confidence,
+            ),
+        )
 
     # ── Abstract methods (override in subclass) ──────────────
 

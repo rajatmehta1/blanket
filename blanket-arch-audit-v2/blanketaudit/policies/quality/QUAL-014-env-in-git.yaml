@@ -4,6 +4,12 @@ category: quality
 severity: critical
 description: Detects .env files containing secrets committed to version control
 frameworks: []
+file_patterns:
+  - '**/.env'
+  - '**/.env.*'
+  - '**/*.env'
+  - '**/env.local'
+  - '**/env.production'
 static_checks:
   - tool: regex
     regex: '^(API_KEY|SECRET|PASSWORD|TOKEN|PRIVATE_KEY|DATABASE_URL)\s*='

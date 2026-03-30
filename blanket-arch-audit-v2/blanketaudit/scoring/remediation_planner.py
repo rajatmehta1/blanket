@@ -63,48 +63,32 @@ class RemediationPlanner:
         phases: list[RemediationPhase] = []
         resolved_ids: set[str] = set()
 
-        if phase1:
+        phase_configs = [
+            ("URGENT — Days 1-14", "Days 1-14", phase1),
+            ("SHORT-TERM — Days 15-45", "Days 15-45", phase2),
+            ("MEDIUM-TERM — Days 46-90", "Days 46-90", phase3),
+        ]
+
+        for title, date_range, phase_findings in phase_configs:
+            if not phase_findings:
+                continue
+
             tasks, effort, new_score = self._build_phase_tasks(
-                phase1, findings, current_score, resolved_ids,
+                phase_findings, findings, current_score, resolved_ids,
             )
+            # Ensure new_score is monotonically increasing (fixing issues cannot
+            # make the score worse). Clamp to at least current_score.
+            new_score = max(new_score, current_score)
             impact = new_score - current_score
             phases.append(RemediationPhase(
-                title="URGENT — Days 1-14",
-                date_range="Days 1-14",
+                title=title,
+                date_range=date_range,
                 items=tasks,
                 total_effort=f"{effort:.0f} hours",
-                score_target=f"{current_score} → {new_score} (+{impact} points)",
+                score_target=f"{current_score} -> {new_score} (+{impact} points)",
             ))
             current_score = new_score
-            resolved_ids.update(f.id for f in phase1)
-
-        if phase2:
-            tasks, effort, new_score = self._build_phase_tasks(
-                phase2, findings, current_score, resolved_ids,
-            )
-            impact = new_score - current_score
-            phases.append(RemediationPhase(
-                title="SHORT-TERM — Days 15-45",
-                date_range="Days 15-45",
-                items=tasks,
-                total_effort=f"{effort:.0f} hours",
-                score_target=f"{current_score} → {new_score} (+{impact} points)",
-            ))
-            current_score = new_score
-            resolved_ids.update(f.id for f in phase2)
-
-        if phase3:
-            tasks, effort, new_score = self._build_phase_tasks(
-                phase3, findings, current_score, resolved_ids,
-            )
-            impact = new_score - current_score
-            phases.append(RemediationPhase(
-                title="MEDIUM-TERM — Days 46-90",
-                date_range="Days 46-90",
-                items=tasks,
-                total_effort=f"{effort:.0f} hours",
-                score_target=f"{current_score} → {new_score} (+{impact} points)",
-            ))
+            resolved_ids.update(f.id for f in phase_findings)
 
         logger.info(
             "remediation.planned",
@@ -185,10 +169,22 @@ class RemediationPlanner:
             except Exception:
                 pass
 
-        # Fallback: simple penalty-based calculation
+        # Fallback: relative penalty calculation.
+        # Uses percentage of resolved findings to estimate score improvement.
+        # This avoids the old bug where 100 - sum(penalties) went deeply
+        # negative for large codebases, producing impossible projections.
         remaining = [f for f in all_findings if f.id not in exclude_ids]
-        penalty = sum(_SEVERITY_IMPACT.get(f.severity, 1) for f in remaining)
-        return max(0, min(100, 100 - penalty))
+        total = len(all_findings)
+        if total == 0:
+            return 100
+        resolved_fraction = 1.0 - (len(remaining) / total)
+        # Weighted: critical/high resolutions count more
+        total_weight = sum(_SEVERITY_IMPACT.get(f.severity, 1) for f in all_findings) or 1
+        remaining_weight = sum(_SEVERITY_IMPACT.get(f.severity, 1) for f in remaining)
+        resolved_weight_fraction = 1.0 - (remaining_weight / total_weight)
+        # Score scales from current (0% resolved) to 100 (100% resolved)
+        # Use a conservative estimate: don't promise 100 until everything is fixed
+        return max(0, min(100, round(resolved_weight_fraction * 100)))
 
 
 # Fallback severity → score impact estimate

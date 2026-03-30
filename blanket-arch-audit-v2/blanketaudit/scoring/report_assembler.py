@@ -283,19 +283,28 @@ class ReportAssembler:
         infra_builder = InfraFindingBuilder()
         infra_findings, code_findings = infra_builder.extract(findings)
 
-        # 4. Build compliance matrix
+        # 4. Auto-detect active frameworks from compliance_refs if not explicitly set.
+        # This fixes the bug where frameworks=[] causes empty compliance matrix
+        # even when findings have SOC2/HIPAA/etc. compliance_refs.
+        if not frameworks:
+            frameworks = self._detect_frameworks(findings)
+
+        # 5. Build compliance matrix (now uses detected frameworks)
         matrix_builder = ComplianceMatrixBuilder()
         compliance_matrix = matrix_builder.build(findings, frameworks)
 
-        # 5. Score
-        scorer = RiskScorer(active_frameworks=frameworks)
-        health_score = scorer.score(findings)
+        # 6. Score — pass infra_findings separately so infrastructure category
+        # reflects them (fixes Infrastructure=100 despite 136 infra findings)
+        files = state.get("files", [])
+        total_loc = sum(f.get("loc", 0) for f in files) if files else 0
+        scorer = RiskScorer(active_frameworks=frameworks, total_loc=total_loc)
+        health_score = scorer.score(findings, infra_findings=infra_findings)
 
-        # 6. Build remediation roadmap
-        planner = RemediationPlanner()
+        # 7. Build remediation roadmap — pass the scorer for accurate simulation
+        planner = RemediationPlanner(scorer=scorer)
         remediation_phases = planner.plan(findings, health_score)
 
-        # 7. Generate executive summary
+        # 8. Generate executive summary
         aggregator = FindingAggregator(active_frameworks=frameworks, llm=self._llm)
         summary_dict = await aggregator._generate_summary(findings, health_score)
         executive_summary = ExecutiveSummary(
@@ -303,25 +312,46 @@ class ReportAssembler:
             immediate_actions=summary_dict.get("immediate_actions", []),
         )
 
-        # 8. Call graph summary (from state or empty)
+        # 9. Call graph summary (from state or empty)
         call_graph_summary = self._build_call_graph_summary(state)
 
-        # 9. Scan manifest
+        # 10. Scan manifest (auto-populated)
         scan_manifest = self._build_manifest(state)
 
-        # 10. Compute aggregate metrics
-        files = state.get("files", [])
-        total_loc = sum(f.get("loc", 0) for f in files) if files else 0
+        # 11. Compute aggregate metrics
         total_methods = self._count_methods(state)
 
-        # 11. Assemble the report
+        # 12. Assemble the report
+        # Auto-generate tagline if missing
+        project_name = state.get("project_name", "Unknown")
+        tagline = state.get("project_tagline", "")
+        if not tagline and project_name != "Unknown":
+            tagline = f"Architecture Audit — {project_name}"
+
+        # Auto-populate scan_duration from pipeline timing
+        scan_duration = state.get("scan_duration", "")
+        if not scan_duration and state.get("scan_start_time"):
+            import time
+            elapsed = time.time() - state["scan_start_time"]
+            mins, secs = divmod(int(elapsed), 60)
+            scan_duration = f"{mins} min {secs} sec" if mins else f"{secs} sec"
+
+        # Auto-populate llm_model from config
+        llm_model = state.get("llm_model", "")
+        if not llm_model:
+            config = state.get("config", {})
+            if isinstance(config, dict):
+                llm_config = config.get("llm", {})
+                if isinstance(llm_config, dict):
+                    llm_model = llm_config.get("model", "")
+
         report = {
-            "project_name": state.get("project_name", "Unknown"),
-            "project_tagline": state.get("project_tagline", ""),
+            "project_name": project_name,
+            "project_tagline": tagline,
             "domain": state.get("domain", "general"),
             "repos": self._build_repo_list(state),
             "scan_date": datetime.now().strftime("%B %d, %Y"),
-            "scan_duration": state.get("scan_duration", ""),
+            "scan_duration": scan_duration,
             "total_files": len(files),
             "total_lines": self._format_lines(total_loc),
             "total_methods": total_methods,
@@ -337,7 +367,7 @@ class ReportAssembler:
             "remediation_phases": [p.model_dump() for p in remediation_phases],
             "scan_manifest": scan_manifest,
             "llm_provider": state.get("llm_provider", state.get("config", {}).get("llm", {}).get("provider", "none")),
-            "llm_model": state.get("llm_model", ""),
+            "llm_model": llm_model,
             "active_frameworks": frameworks,
         }
 
@@ -350,6 +380,24 @@ class ReportAssembler:
         return report
 
     # ── Helpers ──────────────────────────────────────────────
+
+    @staticmethod
+    def _detect_frameworks(findings: list[AuditFinding]) -> list[str]:
+        """Auto-detect active compliance frameworks from finding compliance_refs.
+
+        Fixes the bug where frameworks=[] causes empty compliance matrix
+        even when findings reference SOC2, HIPAA, etc.
+        """
+        frameworks: set[str] = set()
+        for f in findings:
+            for ref in f.compliance_refs:
+                fw = ref.framework if hasattr(ref, "framework") else ref.get("framework", "")
+                if fw:
+                    frameworks.add(fw)
+        detected = sorted(frameworks)
+        if detected:
+            logger.info("report_assembler.frameworks_detected", frameworks=detected)
+        return detected
 
     @staticmethod
     def _get_findings(state: dict) -> list[AuditFinding]:
@@ -368,16 +416,43 @@ class ReportAssembler:
 
     @staticmethod
     def _build_repo_list(state: dict) -> list[dict]:
-        """Build repo summary list for the cover page."""
+        """Build repo summary list for the cover page.
+
+        Populates file count and line count from state rather than
+        hardcoding zeros (fixes empty repos[0].files/lines in report).
+        """
+        files = state.get("files", [])
+        total_files = len(files)
+        total_loc = sum(f.get("loc", 0) for f in files) if files else 0
+
+        # Detect primary language from file extensions
+        lang_counts: dict[str, int] = {}
+        ext_map = {
+            ".py": "Python", ".ts": "TypeScript", ".js": "JavaScript",
+            ".java": "Java", ".go": "Go", ".rs": "Rust", ".cs": "C#",
+        }
+        for f in files:
+            path = f.get("path", "")
+            for ext, lang in ext_map.items():
+                if path.endswith(ext):
+                    lang_counts[lang] = lang_counts.get(lang, 0) + 1
+                    break
+        primary_lang = max(lang_counts, key=lang_counts.get) if lang_counts else ""
+
         repos = []
         for rp in state.get("repo_paths", []):
             repos.append({
                 "name": rp.get("repo_name", ""),
-                "lang": "",
-                "files": 0,
-                "lines": 0,
+                "lang": primary_lang,
+                "files": total_files,
+                "lines": total_loc,
             })
-        return repos or [{"name": state.get("project_name", ""), "lang": "", "files": 0, "lines": 0}]
+        return repos or [{
+            "name": state.get("project_name", ""),
+            "lang": primary_lang,
+            "files": total_files,
+            "lines": total_loc,
+        }]
 
     @staticmethod
     def _build_call_graph_summary(state: dict) -> Any:
@@ -396,22 +471,133 @@ class ReportAssembler:
 
     @staticmethod
     def _build_manifest(state: dict) -> dict:
-        """Build or retrieve scan manifest."""
+        """Build or retrieve scan manifest with auto-populated fields.
+
+        Fixes the CTO review issue: empty scan manifest undermines
+        reproducibility. Now auto-populates model ID, tool versions,
+        repo commit SHAs, and scan duration from available state.
+        """
         if "scan_manifest" in state and state["scan_manifest"]:
             m = state["scan_manifest"]
-            return m if isinstance(m, dict) else m.model_dump() if hasattr(m, "model_dump") else {}
+            manifest = m if isinstance(m, dict) else m.model_dump() if hasattr(m, "model_dump") else {}
+            # Fill in any missing fields
+            return ReportAssembler._enrich_manifest(manifest, state)
 
+        import hashlib
+        import uuid
         from datetime import datetime, timezone
-        return {
-            "scan_id": state.get("scan_id", ""),
+
+        manifest = {
+            "scan_id": state.get("scan_id", str(uuid.uuid4())[:8]),
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "policy_versions": {},
+            "policy_versions": ReportAssembler._get_policy_versions(state),
             "prompt_versions": {},
-            "model_ids": {},
-            "tool_versions": {},
-            "repo_commits": {},
-            "config_hash": "",
+            "model_ids": ReportAssembler._get_model_ids(state),
+            "tool_versions": ReportAssembler._get_tool_versions(),
+            "repo_commits": ReportAssembler._get_repo_commits(state),
+            "config_hash": ReportAssembler._compute_config_hash(state),
         }
+        return manifest
+
+    @staticmethod
+    def _enrich_manifest(manifest: dict, state: dict) -> dict:
+        """Fill in empty fields of an existing manifest."""
+        if not manifest.get("model_ids"):
+            manifest["model_ids"] = ReportAssembler._get_model_ids(state)
+        if not manifest.get("tool_versions"):
+            manifest["tool_versions"] = ReportAssembler._get_tool_versions()
+        if not manifest.get("repo_commits"):
+            manifest["repo_commits"] = ReportAssembler._get_repo_commits(state)
+        if not manifest.get("config_hash"):
+            manifest["config_hash"] = ReportAssembler._compute_config_hash(state)
+        return manifest
+
+    @staticmethod
+    def _get_model_ids(state: dict) -> dict:
+        """Extract model IDs from state/config."""
+        ids = {}
+        llm_provider = state.get("llm_provider", "")
+        llm_model = state.get("llm_model", "")
+        if llm_provider:
+            ids["llm_provider"] = llm_provider
+        if llm_model:
+            ids["llm_model"] = llm_model
+        config = state.get("config", {})
+        if isinstance(config, dict):
+            llm_config = config.get("llm", {})
+            if isinstance(llm_config, dict):
+                if llm_config.get("model"):
+                    ids["llm_model"] = llm_config["model"]
+                if llm_config.get("provider"):
+                    ids["llm_provider"] = llm_config["provider"]
+        return ids
+
+    @staticmethod
+    def _get_tool_versions() -> dict:
+        """Detect installed tool versions."""
+        versions = {}
+        try:
+            import blanketaudit
+            versions["blanketaudit"] = getattr(blanketaudit, "__version__", "dev")
+        except Exception:
+            versions["blanketaudit"] = "dev"
+
+        # Try to detect semgrep, gitleaks versions
+        import shutil
+        for tool in ["semgrep", "gitleaks", "osv-scanner"]:
+            if shutil.which(tool):
+                versions[tool] = "installed"
+
+        return versions
+
+    @staticmethod
+    def _get_repo_commits(state: dict) -> dict:
+        """Extract git commit SHAs from repo paths."""
+        import subprocess
+        commits = {}
+        for repo in state.get("repo_paths", []):
+            local_path = repo.get("local_path", "")
+            repo_name = repo.get("repo_name", "")
+            if local_path and repo_name:
+                try:
+                    result = subprocess.run(
+                        ["git", "rev-parse", "HEAD"],
+                        cwd=local_path,
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if result.returncode == 0:
+                        commits[repo_name] = result.stdout.strip()[:12]
+                except Exception:
+                    pass
+        return commits
+
+    @staticmethod
+    def _compute_config_hash(state: dict) -> str:
+        """Compute a hash of the scan configuration for reproducibility."""
+        import hashlib
+        import json
+        config = state.get("config", {})
+        try:
+            config_str = json.dumps(config, sort_keys=True, default=str)
+            return hashlib.sha256(config_str.encode()).hexdigest()[:16]
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _get_policy_versions(state: dict) -> dict:
+        """Compute policy file hashes."""
+        import hashlib
+        from pathlib import Path
+        versions = {}
+        try:
+            policy_dir = Path(__file__).parent.parent / "policies"
+            if policy_dir.exists():
+                for yaml_file in sorted(policy_dir.rglob("*.yaml"))[:50]:
+                    content = yaml_file.read_bytes()
+                    versions[yaml_file.stem] = hashlib.sha256(content).hexdigest()[:8]
+        except Exception:
+            pass
+        return versions
 
     @staticmethod
     def _count_methods(state: dict) -> int:

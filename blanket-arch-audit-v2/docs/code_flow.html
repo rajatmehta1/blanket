@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Flow &amp; Invocation Map - BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* Flow diagram styles */
+    .flow-chain {
+      position: relative; padding-left: 2.5rem; margin: 1.5rem 0;
+      border-left: 3px solid var(--accent);
+    }
+    .flow-chain .node {
+      position: relative; margin-bottom: 1.2rem; padding: 1rem 1.2rem;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    }
+    .flow-chain .node::before {
+      content: ''; position: absolute; left: -2.85rem; top: 1.2rem;
+      width: 12px; height: 12px; background: var(--accent); border-radius: 50%;
+      border: 2px solid var(--bg);
+    }
+    .flow-chain .node.static::before { background: var(--green); }
+    .flow-chain .node.ai::before { background: var(--blue); }
+    .flow-chain .node.validate::before { background: var(--red); }
+    .flow-chain .node.report::before { background: var(--yellow); }
+
+    .call-sig {
+      font-family: var(--mono); font-size: 0.85rem; color: var(--accent);
+      background: rgba(108,92,231,0.1); padding: 0.3rem 0.6rem; border-radius: 4px;
+      display: inline-block; margin-bottom: 0.4rem;
+    }
+    .returns {
+      font-family: var(--mono); font-size: 0.8rem; color: var(--green);
+      margin-top: 0.3rem;
+    }
+    .file-ref { color: var(--blue); font-family: var(--mono); font-size: 0.82em; }
+    .desc { color: var(--text-muted); font-size: 0.9rem; margin: 0.3rem 0 0; }
+
+    .arrow-label {
+      text-align: center; color: var(--text-muted); font-size: 0.8rem;
+      margin: 0.3rem 0; font-style: italic;
+    }
+
+    /* Step-by-step table */
+    .step-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .step-table th { background: rgba(108,92,231,0.15); color: var(--accent); font-weight: 600; }
+    .step-table td:first-child { font-family: var(--mono); font-size: 0.82rem; white-space: nowrap; width: 40px; text-align: center; color: var(--accent); font-weight: 700; }
+    .step-table td:nth-child(2) { font-family: var(--mono); font-size: 0.82rem; color: var(--blue); }
+    .step-table td:nth-child(3) { font-family: var(--mono); font-size: 0.82rem; color: var(--green); }
+    .step-table td:nth-child(5) { font-family: var(--mono); font-size: 0.82rem; color: var(--text-muted); }
+
+    /* Parallel box */
+    .parallel-box {
+      border: 2px dashed rgba(108,92,231,0.3); border-radius: 10px;
+      padding: 1rem; margin: 1rem 0; background: rgba(108,92,231,0.03);
+    }
+    .parallel-box .label {
+      color: var(--accent); font-size: 0.8rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.8rem;
+    }
+    .parallel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+    .parallel-grid .node { margin-bottom: 0; }
+
+    /* Legend */
+    .legend { display: flex; gap: 1.5rem; margin: 1rem 0; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    .toc { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1.5rem 0; }
+    .toc h3 { margin-top: 0; color: var(--accent); }
+    .toc ol { padding-left: 1.5rem; }
+    .toc li { margin: 0.3rem 0; }
+    .toc a { color: var(--text); font-size: 0.92rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="index.html">Home</a>
+    <a href="understanding_code.html">Understanding Code</a>
+    <a href="code_flow.html" class="active">Code Flow</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="run-agents.html">Run Agents</a>
+    <a href="callgraph.html">Call Graph</a>
+    <a href="samples.html">Samples</a>
+  </nav>
+
+  <h1>Code-to-Code Invocation Map</h1>
+  <p>This document traces <strong>exactly which class and method calls which</strong>, from the moment you type <code>blanketaudit scan</code> to when the PDF report hits your disk. Use this to debug any stage of the pipeline.</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Pipeline / Orchestration</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Static Analysis</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> AI Agent</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Validation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div> Report Output</div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <h3>Contents</h3>
+    <ol>
+      <li><a href="#overview">High-Level Pipeline Overview</a></li>
+      <li><a href="#step-by-step">Step-by-Step Method Invocation Table</a></li>
+      <li><a href="#cli">Stage 1: CLI Entry Point</a></li>
+      <li><a href="#ingest">Stage 2: File Ingestion</a></li>
+      <li><a href="#triage">Stage 3: Triage &amp; Cost Estimation</a></li>
+      <li><a href="#static">Stage 4: Static Analysis</a></li>
+      <li><a href="#agents">Stage 5: AI Agent Execution</a></li>
+      <li><a href="#validation">Stage 6: Hallucination Validation Gates</a></li>
+      <li><a href="#scoring">Stage 7: Scoring &amp; Report Assembly</a></li>
+      <li><a href="#output">Stage 8: Report File Generation</a></li>
+    </ol>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="overview">1. High-Level Pipeline Overview</h2>
+  <!-- ============================================================ -->
+
+  <pre><code>
+<span class="kw">User runs:</span>  blanketaudit scan ./my-repos --format pdf,html --framework hipaa
+
+<span class="fn">scan()</span>                          <span class="comment"># cli/main.py &mdash; parses CLI args</span>
+  &rarr; <span class="fn">_run_scan()</span>                 <span class="comment"># cli/main.py &mdash; creates pipeline, calls run()</span>
+    &rarr; <span class="fn">AuditPipeline.build()</span>    <span class="comment"># orchestrator/pipeline.py &mdash; wires all stages</span>
+    &rarr; <span class="fn">AuditPipeline.run()</span>     <span class="comment"># orchestrator/pipeline.py &mdash; executes stages in order</span>
+      &rarr; <span class="fn">ingest_node()</span>          <span class="comment"># indexes all files in repos</span>
+      &rarr; <span class="fn">triage_node()</span>          <span class="comment"># scores files, assigns tiers</span>
+      &rarr; <span class="fn">estimate_node()</span>        <span class="comment"># projects LLM cost</span>
+      &rarr; <span class="fn">static_node()</span>          <span class="comment"># semgrep + gitleaks + osv</span>
+      &rarr; <span class="fn">security_node()</span>        <span class="comment"># SecurityAgent.execute()</span>
+      &rarr; <span class="fn">compliance_node()</span>      <span class="comment"># ComplianceAgent.execute()</span>
+      &rarr; <span class="fn">architecture_node()</span>    <span class="comment"># ArchitectureAgent.execute()</span>
+      &rarr; <span class="fn">quality_node()</span>         <span class="comment"># QualityAgent.execute()</span>
+      &rarr; <span class="fn">validate_node()</span>        <span class="comment"># 4 hallucination gates</span>
+      &rarr; <span class="fn">score_node()</span>           <span class="comment"># risk scoring + health grade</span>
+      &rarr; <span class="fn">report_node()</span>          <span class="comment"># ReportAssembler.assemble()</span>
+      &rarr; <span class="fn">manifest_node()</span>        <span class="comment"># records scan metadata</span>
+  &rarr; <span class="fn">_output_results()</span>          <span class="comment"># cli/main.py &mdash; generates PDF/HTML/JSON files</span>
+</code></pre>
+
+  <!-- ============================================================ -->
+  <h2 id="step-by-step">2. Step-by-Step Method Invocation Table</h2>
+  <p>Every method invoked from start to finish, in execution order. One sentence per method.</p>
+  <!-- ============================================================ -->
+
+  <table class="step-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>File</th>
+        <th>Class.method()</th>
+        <th>What it does (one sentence)</th>
+        <th>Calls next</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>cli/main.py</td>
+        <td>scan()</td>
+        <td>Typer CLI entry point that parses command-line flags (paths, format, framework, dry-run) and kicks off the scan.</td>
+        <td>_run_scan()</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>cli/main.py</td>
+        <td>_run_scan()</td>
+        <td>Creates an <code>AuditPipeline</code> instance, calls <code>build()</code> to wire stages, then <code>run()</code> to execute them.</td>
+        <td>AuditPipeline.build(), .run()</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>AuditPipeline.build()</td>
+        <td>Registers all pipeline nodes (ingest, triage, estimate, static, agents, validate, score, report, manifest) in execution order.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>AuditPipeline.run()</td>
+        <td>Runs each registered node sequentially, passing the shared <code>AuditState</code> dict between them.</td>
+        <td>ingest_node()</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>ingest_node()</td>
+        <td>Walks each repo directory and indexes every file (language, LOC, imports, content hash) into <code>FileMetadata</code> objects.</td>
+        <td>FileIndexer.index_project()</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>ingestion/file_indexer.py</td>
+        <td>FileIndexer.index_project()</td>
+        <td>Recursively walks the repo tree (skipping .git, node_modules), classifies each file by type/language, and computes metadata.</td>
+        <td>&mdash; (returns list[FileMetadata])</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>triage_node()</td>
+        <td>Scores every file 0-100 using heuristics (no LLM) and assigns each to Tier 1/2/3 to control how deeply it's analyzed.</td>
+        <td>FileScorer.score_all(), TierAssigner.assign()</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>triage/file_scorer.py</td>
+        <td>FileScorer.score_all()</td>
+        <td>Scores each file based on language, file type, security-relevant patterns, recency, and import fan-out.</td>
+        <td>_score_file() per file</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>triage/file_scorer.py</td>
+        <td>FileScorer._score_file()</td>
+        <td>Computes the 0-100 relevance score for a single file by summing weighted heuristic factors.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>triage/tier_assigner.py</td>
+        <td>TierAssigner.assign()</td>
+        <td>Maps each file's score to a tier: Tier 1 (&gt;75) = full AI, Tier 2 (50-75) = light AI, Tier 3 (&lt;50) = static only.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>estimate_node()</td>
+        <td>Projects the total LLM token usage and dollar cost without making any actual LLM calls.</td>
+        <td>CostEstimator.estimate()</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td>orchestrator/cost_estimator.py</td>
+        <td>CostEstimator.estimate()</td>
+        <td>Calculates estimated tokens per file (size/4 + overhead) and multiplies by model pricing to produce a cost projection.</td>
+        <td>&mdash; (returns CostEstimate)</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>_check_budget()</td>
+        <td>If <code>--dry-run</code> or estimated cost exceeds budget, aborts the scan early and skips to manifest.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>14</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>static_node()</td>
+        <td>Runs external static analysis tools (Semgrep, Gitleaks, OSV) on each repo and converts raw output to <code>AuditFinding</code> objects.</td>
+        <td>run_semgrep(), run_gitleaks(), run_osv_scan()</td>
+      </tr>
+      <tr>
+        <td>15</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>security_node()</td>
+        <td>Creates a <code>SecurityAgent</code> and calls <code>execute()</code> to run security-focused static+AI analysis.</td>
+        <td>SecurityAgent.execute()</td>
+      </tr>
+      <tr>
+        <td>16</td>
+        <td>agents/base_agent.py</td>
+        <td>BaseAgent.execute()</td>
+        <td>Template method that runs <code>run_static_checks()</code> first, then optionally <code>run_ai_analysis()</code> if LLM is available and budget allows.</td>
+        <td>run_static_checks(), _should_run_ai(), run_ai_analysis()</td>
+      </tr>
+      <tr>
+        <td>17</td>
+        <td>agents/security_agent.py</td>
+        <td>SecurityAgent.run_static_checks()</td>
+        <td>Runs Semgrep SAST rules, Gitleaks secret detection, and OSV CVE scanning, then converts results to findings with evidence.</td>
+        <td>_run_semgrep(), _run_gitleaks(), _run_osv()</td>
+      </tr>
+      <tr>
+        <td>18</td>
+        <td>agents/base_agent.py</td>
+        <td>BaseAgent._should_run_ai()</td>
+        <td>Checks if LLM is available, token budget has room, and the agent hasn't been demoted to static-only mode.</td>
+        <td>&mdash; (returns bool)</td>
+      </tr>
+      <tr>
+        <td>19</td>
+        <td>agents/security_agent.py</td>
+        <td>SecurityAgent.run_ai_analysis()</td>
+        <td>Sends static candidates to LLM to filter false positives, add blast radius, generate fix code, and map compliance controls.</td>
+        <td>&mdash; (returns list[AuditFinding])</td>
+      </tr>
+      <tr>
+        <td>20</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>compliance_node()</td>
+        <td>Creates a <code>ComplianceAgent</code> and calls <code>execute()</code> to map code patterns to regulatory controls.</td>
+        <td>ComplianceAgent.execute()</td>
+      </tr>
+      <tr>
+        <td>21</td>
+        <td>agents/compliance_agent.py</td>
+        <td>ComplianceAgent.run_static_checks()</td>
+        <td>Loads compliance policy YAML files for active frameworks and runs regex/AST pattern matching against the codebase.</td>
+        <td>PolicyEngine.load_policies()</td>
+      </tr>
+      <tr>
+        <td>22</td>
+        <td>agents/compliance_agent.py</td>
+        <td>ComplianceAgent.run_ai_analysis()</td>
+        <td>Uses LLM to classify each compliance control as PASS/PARTIAL/FAIL and generate detailed audit assessments.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>23</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>architecture_node()</td>
+        <td>Creates an <code>ArchitectureAgent</code> and calls <code>execute()</code> to analyze structural patterns and coupling.</td>
+        <td>ArchitectureAgent.execute()</td>
+      </tr>
+      <tr>
+        <td>24</td>
+        <td>agents/architecture_agent.py</td>
+        <td>ArchitectureAgent.run_static_checks()</td>
+        <td>Builds a file-level dependency graph, detects circular dependencies, infers layers, and identifies God classes.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>25</td>
+        <td>agents/architecture_agent.py</td>
+        <td>ArchitectureAgent.run_ai_analysis()</td>
+        <td>Uses LLM to assess coupling patterns, suggest refactoring strategies, and estimate abstraction improvements.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>26</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>quality_node()</td>
+        <td>Creates a <code>QualityAgent</code> and calls <code>execute()</code> to assess code quality metrics and tech debt.</td>
+        <td>QualityAgent.execute()</td>
+      </tr>
+      <tr>
+        <td>27</td>
+        <td>agents/quality_agent.py</td>
+        <td>QualityAgent.run_static_checks()</td>
+        <td>Measures cyclomatic complexity, detects dead code and silent exceptions, identifies long functions, and runs quality policies.</td>
+        <td>PolicyEngine.load_policies()</td>
+      </tr>
+      <tr>
+        <td>28</td>
+        <td>agents/quality_agent.py</td>
+        <td>QualityAgent.run_ai_analysis()</td>
+        <td>Uses LLM to estimate tech debt hours, prioritize refactoring opportunities, and assess overall maintainability.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>29</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>validate_node()</td>
+        <td>Runs all findings through the 4 hallucination validation gates to filter out unreliable AI-generated results.</td>
+        <td>ValidationPipeline.validate()</td>
+      </tr>
+      <tr>
+        <td>30</td>
+        <td>validation/pipeline.py</td>
+        <td>ValidationPipeline.validate()</td>
+        <td>Orchestrates Gates 1-4 sequentially: schema check, evidence check, confidence check, corroboration check.</td>
+        <td>SchemaGate, EvidenceGate, ConfidenceGate, CorroborationGate</td>
+      </tr>
+      <tr>
+        <td>31</td>
+        <td>validation/gate_schema.py</td>
+        <td>SchemaGate.validate()</td>
+        <td>Parses raw dict into a Pydantic <code>AuditFinding</code> model and validates control IDs against the known whitelist.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>32</td>
+        <td>validation/gate_evidence.py</td>
+        <td>EvidenceGate.validate()</td>
+        <td>Verifies that each evidence file_path exists in the repo and that line numbers and code snippets match the actual file.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>33</td>
+        <td>validation/gate_confidence.py</td>
+        <td>ConfidenceGate.validate()</td>
+        <td>Flags findings with confidence &lt; 0.7 as REVIEW_NEEDED so they appear visually distinct in the report.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>34</td>
+        <td>validation/gate_corroboration.py</td>
+        <td>CorroborationGate.validate()</td>
+        <td>Demotes critical findings that come from only one agent to high severity (criticals need corroboration).</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>35</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>score_node()</td>
+        <td>Computes severity counts, calculates the 8-category health score, and assigns a letter grade (A-F).</td>
+        <td>RiskScorer.score()</td>
+      </tr>
+      <tr>
+        <td>36</td>
+        <td>scoring/risk_scorer.py</td>
+        <td>RiskScorer.score()</td>
+        <td>Scores 8 categories (Security, Compliance per framework, Quality, Performance, Infrastructure) using weighted penalty formulas.</td>
+        <td>_score_from_findings()</td>
+      </tr>
+      <tr>
+        <td>37</td>
+        <td>scoring/risk_scorer.py</td>
+        <td>RiskScorer._score_from_findings()</td>
+        <td>For one category, computes <code>100 - (critical*25 + high*10 + medium*3 + low*1)</code>, clamped to [0,100].</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>38</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>report_node()</td>
+        <td>Calls <code>ReportAssembler.assemble()</code> to build the complete <code>AuditReport</code> model from all pipeline state.</td>
+        <td>ReportAssembler.assemble()</td>
+      </tr>
+      <tr>
+        <td>39</td>
+        <td>scoring/report_assembler.py</td>
+        <td>ReportAssembler.assemble()</td>
+        <td>Orchestrates deduplication, scoring, executive summary generation, and packages everything into an <code>AuditReport</code>.</td>
+        <td>FindingMerger, RiskScorer, RemediationPlanner</td>
+      </tr>
+      <tr>
+        <td>40</td>
+        <td>scoring/finding_merger.py</td>
+        <td>FindingMerger.merge()</td>
+        <td>Deduplicates findings (same file+line+category = one finding) and groups root-cause duplicates into single entries.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>41</td>
+        <td>scoring/remediation_planner.py</td>
+        <td>RemediationPlanner.plan()</td>
+        <td>Creates a 3-phase (30/60/90 day) remediation roadmap, assigning critical findings first and estimating score impact per task.</td>
+        <td>_build_phase_tasks(), _simulate_impact()</td>
+      </tr>
+      <tr>
+        <td>42</td>
+        <td>scoring/report_assembler.py</td>
+        <td>ReportAssembler._generate_summary()</td>
+        <td>Generates a 2-paragraph executive summary with immediate action items, using LLM if available or a template fallback.</td>
+        <td>_generate_summary_llm() or _generate_summary_template()</td>
+      </tr>
+      <tr>
+        <td>43</td>
+        <td>orchestrator/pipeline.py</td>
+        <td>manifest_node()</td>
+        <td>Records the scan manifest (scan_id, repo commits, policy versions, model IDs) for reproducibility.</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>44</td>
+        <td>cli/main.py</td>
+        <td>_output_results()</td>
+        <td>Displays a Rich summary table in the terminal and triggers report file generation in requested formats.</td>
+        <td>_generate_reports()</td>
+      </tr>
+      <tr>
+        <td>45</td>
+        <td>cli/main.py</td>
+        <td>_generate_reports()</td>
+        <td>Iterates over requested output formats (pdf, html, json, sarif) and calls the corresponding generator for each.</td>
+        <td>PDFReportGenerator, HTMLGenerator, etc.</td>
+      </tr>
+      <tr>
+        <td>46</td>
+        <td>report/pdf_generator.py</td>
+        <td>PDFReportGenerator.generate_to_file()</td>
+        <td>Renders 9 Jinja2 HTML section templates, combines them with CSS, and converts to PDF via WeasyPrint.</td>
+        <td>render_html(), WeasyPrint</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================ -->
+  <h2 id="cli">3. Stage 1: CLI Entry Point</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node">
+      <div class="call-sig">scan(paths, --config, --framework, --dry-run, --format, --output)</div>
+      <div class="file-ref">cli/main.py &mdash; Typer command function</div>
+      <p class="desc">The Typer CLI entry point. Parses all command-line arguments, detects CI mode (<code>_is_ci()</code>), and calls <code>load_config()</code> to merge audit.yaml + env vars + CLI flags into a settings dict.</p>
+      <div class="returns">&rarr; calls _run_scan(state, settings, dry_run, ci_mode)</div>
+    </div>
+
+    <div class="node">
+      <div class="call-sig">_run_async(coro)</div>
+      <div class="file-ref">cli/main.py</div>
+      <p class="desc">Thin wrapper around <code>asyncio.run()</code> since the pipeline is async but Typer commands are sync.</p>
+    </div>
+
+    <div class="node">
+      <div class="call-sig">_run_scan(state, settings, dry_run, ci_mode)</div>
+      <div class="file-ref">cli/main.py</div>
+      <p class="desc">Creates an <code>AuditPipeline</code> object, calls <code>.build()</code> to register all nodes, then <code>.run(state)</code> to execute the full pipeline.</p>
+      <div class="returns">&rarr; returns completed state dict with report</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="ingest">4. Stage 2: File Ingestion</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node">
+      <div class="call-sig">AuditPipeline.ingest_node(state)</div>
+      <div class="file-ref">orchestrator/pipeline.py</div>
+      <p class="desc">For each repo source in the state, calls <code>FileIndexer.index_project()</code> to scan and catalog every file.</p>
+      <div class="returns">&rarr; state["files"] = list[FileMetadata]</div>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">FileIndexer.index_project(repo_path, repo_name)</div>
+      <div class="file-ref">ingestion/file_indexer.py</div>
+      <p class="desc">Walks the directory tree, skipping .git/node_modules/__pycache__. For each file: detects language, counts LOC, extracts imports, computes content hash (SHA-256), and builds a <code>FileMetadata</code> object.</p>
+      <div class="returns">&rarr; list[FileMetadata] with path, language, loc, imports, hash</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="triage">5. Stage 3: Triage &amp; Cost Estimation</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node">
+      <div class="call-sig">AuditPipeline.triage_node(state)</div>
+      <div class="file-ref">orchestrator/pipeline.py</div>
+      <p class="desc">Orchestrates file scoring and tier assignment. Determines which files get full AI analysis vs static-only.</p>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">FileScorer.score_all(files) &rarr; dict[str, int]</div>
+      <div class="file-ref">triage/file_scorer.py</div>
+      <p class="desc">Scores each file 0-100 based on: language weight (Python/Java=15), file type (SOURCE=10), security patterns (auth/payment=+15), handler patterns (+10), recency (+5), import fan-out (+10). <strong>No LLM used.</strong></p>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">TierAssigner.assign(files, scores) &rarr; dict[str, int]</div>
+      <div class="file-ref">triage/tier_assigner.py</div>
+      <p class="desc">Maps scores to tiers: <strong>Tier 1</strong> (score &gt; 75) = full AI + all policies. <strong>Tier 2</strong> (50-75) = static + light AI. <strong>Tier 3</strong> (&lt; 50) = static only, zero LLM calls.</p>
+    </div>
+
+    <div class="node">
+      <div class="call-sig">CostEstimator.estimate(files, tiers) &rarr; CostEstimate</div>
+      <div class="file-ref">orchestrator/cost_estimator.py</div>
+      <p class="desc">Projects total token usage (file_bytes/4 + overhead) and dollar cost per agent. Used by <code>--dry-run</code> to show cost before spending. If over budget, pipeline aborts here.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="static">6. Stage 4: Static Analysis Tools</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node static">
+      <div class="call-sig">AuditPipeline.static_node(state)</div>
+      <div class="file-ref">orchestrator/pipeline.py</div>
+      <p class="desc">Runs 3 external tools on each repo, then normalizes all raw tool output into <code>AuditFinding</code> objects with <code>source="static"</code>.</p>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">run_semgrep(repo_path) &rarr; list[dict]</div>
+      <div class="file-ref">agents/tools/semgrep_tool.py</div>
+      <p class="desc">Runs Semgrep SAST with security rulesets. Returns raw findings with rule_id, severity, file, line, code snippet.</p>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">run_gitleaks(repo_path) &rarr; list[dict]</div>
+      <div class="file-ref">agents/tools/gitleaks_tool.py</div>
+      <p class="desc">Scans for hardcoded secrets (API keys, passwords, tokens) in code and git history.</p>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">run_osv_scan(repo_path) &rarr; list[dict]</div>
+      <div class="file-ref">agents/tools/osv_tool.py</div>
+      <p class="desc">Checks dependency manifests (package.json, requirements.txt) against the OSV vulnerability database for known CVEs.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="agents">7. Stage 5: AI Agent Execution (4 Agents)</h2>
+  <p>All 4 agents follow the same <strong>Template Method Pattern</strong> defined in <code>BaseAgent</code>. The pattern is: <code>static checks FIRST &rarr; AI enrichment SECOND</code>.</p>
+  <!-- ============================================================ -->
+
+  <h3>BaseAgent Template (inherited by all 4 agents)</h3>
+  <div class="flow-chain">
+    <div class="node">
+      <div class="call-sig">BaseAgent.execute(state) &rarr; list[AuditFinding]</div>
+      <div class="file-ref">agents/base_agent.py</div>
+      <p class="desc">Template method: (1) call <code>run_static_checks()</code>, (2) check <code>_should_run_ai()</code>, (3) if yes, call <code>run_ai_analysis()</code> with static candidates. Never raises &mdash; catches all errors and falls back to static-only.</p>
+    </div>
+  </div>
+
+  <pre><code>
+<span class="comment"># BaseAgent.execute() pseudo-code (agents/base_agent.py)</span>
+
+<span class="kw">async def</span> <span class="fn">execute</span>(self, state):
+    <span class="comment"># Step 1: Always run static checks (deterministic, no LLM)</span>
+    candidates = <span class="kw">await</span> self.<span class="fn">run_static_checks</span>(state)
+
+    <span class="comment"># Step 2: Should we invoke AI?</span>
+    <span class="kw">if</span> <span class="kw">not</span> self.<span class="fn">_should_run_ai</span>():
+        <span class="kw">return</span> candidates  <span class="comment"># static-only fallback</span>
+
+    <span class="comment"># Step 3: Send static candidates to LLM for enrichment</span>
+    prioritized = self.<span class="fn">_prioritize_for_ai</span>(candidates)
+    ai_findings = <span class="kw">await</span> self.<span class="fn">run_ai_analysis</span>(state, prioritized)
+
+    <span class="kw">return</span> ai_findings
+</code></pre>
+
+  <div class="parallel-box">
+    <div class="label">4 Agents Run (sequentially or in parallel)</div>
+    <div class="parallel-grid">
+
+      <div class="node ai">
+        <h4 style="color:var(--accent); margin:0 0 0.3rem">Security Agent</h4>
+        <div class="file-ref">agents/security_agent.py</div>
+        <p class="desc"><strong>Static:</strong> Semgrep SAST + Gitleaks secrets + OSV CVEs<br>
+        <strong>AI:</strong> Filters false positives, adds blast radius, generates fix code, maps to compliance controls</p>
+      </div>
+
+      <div class="node ai">
+        <h4 style="color:var(--accent); margin:0 0 0.3rem">Compliance Agent</h4>
+        <div class="file-ref">agents/compliance_agent.py</div>
+        <p class="desc"><strong>Static:</strong> Policy YAML regex/AST checks + Milvus RAG search<br>
+        <strong>AI:</strong> Maps code to regulatory controls (HIPAA/SOC2/PCI/GDPR), classifies PASS/PARTIAL/FAIL</p>
+      </div>
+
+      <div class="node ai">
+        <h4 style="color:var(--accent); margin:0 0 0.3rem">Architecture Agent</h4>
+        <div class="file-ref">agents/architecture_agent.py</div>
+        <p class="desc"><strong>Static:</strong> Builds dependency graph, detects circular deps, infers layers, finds God classes<br>
+        <strong>AI:</strong> Assesses coupling, suggests refactoring, estimates layer improvements</p>
+      </div>
+
+      <div class="node ai">
+        <h4 style="color:var(--accent); margin:0 0 0.3rem">Quality Agent</h4>
+        <div class="file-ref">agents/quality_agent.py</div>
+        <p class="desc"><strong>Static:</strong> Cyclomatic complexity, dead code, silent exceptions, long functions, coverage<br>
+        <strong>AI:</strong> Estimates tech debt hours, prioritizes refactoring, assesses maintainability</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="validation">8. Stage 6: Hallucination Validation (4 Gates)</h2>
+  <p>Every AI-generated finding passes through 4 sequential gates. A finding that fails a gate is either rejected or downgraded.</p>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node validate">
+      <div class="call-sig">ValidationPipeline.validate(findings, repo_files)</div>
+      <div class="file-ref">validation/pipeline.py</div>
+      <p class="desc">Orchestrator that runs each finding through all 4 gates in order. Static-only findings skip Gates 2-4.</p>
+    </div>
+
+    <div class="node validate">
+      <div class="call-sig">Gate 1: SchemaGate.validate(raw_dict)</div>
+      <div class="file-ref">validation/gate_schema.py</div>
+      <p class="desc"><strong>Parse &amp; Validate:</strong> Converts raw dict &rarr; Pydantic <code>AuditFinding</code>. Validates control IDs exist in the whitelist. Rejects malformed findings.</p>
+    </div>
+
+    <div class="node validate">
+      <div class="call-sig">Gate 2: EvidenceGate.validate(finding, repo_files)</div>
+      <div class="file-ref">validation/gate_evidence.py</div>
+      <p class="desc"><strong>Reality Check:</strong> Verifies file_path exists in the repo, line numbers are within bounds, and code_snippet matches actual file content (&ge;80% fuzzy match).</p>
+    </div>
+
+    <div class="node validate">
+      <div class="call-sig">Gate 3: ConfidenceGate.validate(finding)</div>
+      <div class="file-ref">validation/gate_confidence.py</div>
+      <p class="desc"><strong>Confidence Filter:</strong> If confidence &lt; 0.7, marks finding as REVIEW_NEEDED. Never rejects &mdash; just flags for human review.</p>
+    </div>
+
+    <div class="node validate">
+      <div class="call-sig">Gate 4: CorroborationGate.validate(all_findings)</div>
+      <div class="file-ref">validation/gate_corroboration.py</div>
+      <p class="desc"><strong>Cross-Check:</strong> Critical severity from a single agent &rarr; demoted to high. Criticals need confirmation from 2+ agents.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="scoring">9. Stage 7: Scoring &amp; Report Assembly</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node report">
+      <div class="call-sig">ReportAssembler.assemble(state) &rarr; AuditReport</div>
+      <div class="file-ref">scoring/report_assembler.py</div>
+      <p class="desc">Master orchestrator for report data. Calls merger, scorer, planner, and summary generator, then packages everything into the final <code>AuditReport</code> Pydantic model.</p>
+    </div>
+
+    <div class="node report">
+      <div class="call-sig">FindingMerger.merge(findings) &rarr; list[AuditFinding]</div>
+      <div class="file-ref">scoring/finding_merger.py</div>
+      <p class="desc"><strong>Level 1 (Exact Dedup):</strong> Same file + line_start + line_end + category = one finding (keep highest confidence).<br>
+      <strong>Level 2 (Root-Cause):</strong> Same policy_id + category = one representative with <code>affected_locations[]</code>.</p>
+    </div>
+
+    <div class="node report">
+      <div class="call-sig">RiskScorer.score(findings, frameworks) &rarr; HealthScore</div>
+      <div class="file-ref">scoring/risk_scorer.py</div>
+      <p class="desc">Computes 8 category scores using: <code>100 - (critical&times;25 + high&times;10 + medium&times;3 + low&times;1)</code>. Weighted composite: Security 35%, Compliance 30%, Quality 15%, Performance 10%, Infra 10%. Grade: A&ge;85, B&ge;70, C&ge;50, D&ge;30, F&lt;30.</p>
+    </div>
+
+    <div class="node report">
+      <div class="call-sig">RemediationPlanner.plan(findings, health_score) &rarr; list[RemediationPhase]</div>
+      <div class="file-ref">scoring/remediation_planner.py</div>
+      <p class="desc">Builds a 3-phase roadmap:<br>
+      <strong>Phase 1 (Days 1-14):</strong> All critical + top 5 high<br>
+      <strong>Phase 2 (Days 15-45):</strong> Remaining high + top 10 medium<br>
+      <strong>Phase 3 (Days 46-90):</strong> Remaining medium + all low<br>
+      Each task has estimated effort hours and score impact ("+4 points").</p>
+    </div>
+
+    <div class="node report">
+      <div class="call-sig">ReportAssembler._generate_summary() &rarr; ExecutiveSummary</div>
+      <div class="file-ref">scoring/report_assembler.py</div>
+      <p class="desc">Generates 2 AI paragraphs + 3-5 immediate action items. Falls back to a template-based summary if LLM is unavailable.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2 id="output">10. Stage 8: Report File Generation</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node report">
+      <div class="call-sig">_output_results(result, ci_mode, formats, output_dir)</div>
+      <div class="file-ref">cli/main.py</div>
+      <p class="desc">Displays a Rich-formatted summary in the terminal, then calls <code>_generate_reports()</code> for each requested format.</p>
+    </div>
+
+    <div class="node report">
+      <div class="call-sig">_generate_reports(report, formats, output_dir)</div>
+      <div class="file-ref">cli/main.py</div>
+      <p class="desc">Loops over requested formats (pdf, html, json, sarif) and invokes the corresponding generator class for each.</p>
+    </div>
+  </div>
+
+  <div class="parallel-box">
+    <div class="label">Report Generators (one per requested format)</div>
+    <div class="parallel-grid">
+
+      <div class="node report">
+        <h4 style="color:var(--yellow); margin:0 0 0.3rem">PDF</h4>
+        <div class="call-sig">PDFReportGenerator.generate_to_file()</div>
+        <div class="file-ref">report/pdf_generator.py</div>
+        <p class="desc">Renders 9 Jinja2 HTML templates (cover, exec summary, dashboard, findings, compliance, callgraph, infra, remediation, benefits) &rarr; combines with CSS &rarr; converts to PDF via WeasyPrint.</p>
+      </div>
+
+      <div class="node report">
+        <h4 style="color:var(--yellow); margin:0 0 0.3rem">HTML</h4>
+        <div class="call-sig">HTMLGenerator.generate_to_file()</div>
+        <div class="file-ref">report/html_generator.py</div>
+        <p class="desc">Generates a standalone interactive HTML report with JavaScript for collapsible finding cards and filtering.</p>
+      </div>
+
+      <div class="node report">
+        <h4 style="color:var(--yellow); margin:0 0 0.3rem">JSON</h4>
+        <div class="call-sig">JSONExporter.export()</div>
+        <div class="file-ref">report/json_exporter.py</div>
+        <p class="desc">Serializes the full <code>AuditReport</code> model to machine-readable JSON for CI/CD integration.</p>
+      </div>
+
+      <div class="node report">
+        <h4 style="color:var(--yellow); margin:0 0 0.3rem">SARIF</h4>
+        <div class="call-sig">SARIFExporter.export()</div>
+        <div class="file-ref">report/sarif_exporter.py</div>
+        <p class="desc">Converts findings to SARIF format for VS Code problem panel and GitHub code scanning alerts.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2>Policy Engine (Used by Agents)</h2>
+  <!-- ============================================================ -->
+
+  <div class="flow-chain">
+    <div class="node static">
+      <div class="call-sig">PolicyEngine.load_policies(policy_dir, categories, frameworks)</div>
+      <div class="file-ref">policies/engine.py</div>
+      <p class="desc">Recursively loads all <code>*.yaml</code> policy files from the policy directory, validates each against the policy schema, and filters by category (security/compliance/architecture/quality) and active frameworks (HIPAA/SOC2/PCI-DSS).</p>
+    </div>
+
+    <div class="node static">
+      <div class="call-sig">validate_policy_dict(policy_dict)</div>
+      <div class="file-ref">policies/schema.py</div>
+      <p class="desc">Validates a policy YAML dict against the JSON schema: checks required fields (id, name, severity, category), validates <code>static_checks</code> patterns, and ensures <code>ai_analysis</code> instructions are present.</p>
+    </div>
+  </div>
+
+  <blockquote>
+    <strong>Dual-Layer Pattern:</strong> Each policy YAML has both <code>static_checks</code> (regex/AST patterns that run deterministically) and <code>ai_analysis</code> (instructions for LLM contextual reasoning). Static always runs first. AI only runs if LLM is available and budget allows.
+  </blockquote>
+
+  <!-- ============================================================ -->
+  <h2>Data Flow: What Passes Between Stages</h2>
+  <!-- ============================================================ -->
+
+  <table>
+    <thead>
+      <tr><th>From</th><th>To</th><th>Data Passed</th><th>Type</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>CLI scan()</td><td>Pipeline.run()</td><td>Initial state: repo paths, frameworks, flags</td><td>dict</td></tr>
+      <tr><td>ingest_node</td><td>triage_node</td><td>state["files"] &mdash; all indexed files</td><td>list[FileMetadata]</td></tr>
+      <tr><td>triage_node</td><td>estimate_node</td><td>state["file_scores"], state["file_tiers"]</td><td>dict[str,int]</td></tr>
+      <tr><td>estimate_node</td><td>_check_budget</td><td>state["cost_estimate"]</td><td>CostEstimate</td></tr>
+      <tr><td>static_node</td><td>agent nodes</td><td>state["static_findings"]</td><td>list[AuditFinding]</td></tr>
+      <tr><td>4 agent nodes</td><td>validate_node</td><td>state["agent_findings"] (merged list)</td><td>list[AuditFinding]</td></tr>
+      <tr><td>validate_node</td><td>score_node</td><td>state["validated_findings"]</td><td>list[AuditFinding]</td></tr>
+      <tr><td>score_node</td><td>report_node</td><td>state["health_score"], state["compliance_matrix"]</td><td>HealthScore, list[ComplianceMatrix]</td></tr>
+      <tr><td>report_node</td><td>CLI _output_results</td><td>state["report"]</td><td>AuditReport</td></tr>
+      <tr><td>_output_results</td><td>generators</td><td>AuditReport model</td><td>AuditReport &rarr; PDF/HTML/JSON/SARIF</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============================================================ -->
+  <h2>Quick Reference: Key Files</h2>
+  <!-- ============================================================ -->
+
+  <table>
+    <thead>
+      <tr><th>Component</th><th>File</th><th>Key Class/Function</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>CLI</td><td>cli/main.py</td><td>scan(), _run_scan(), _output_results()</td><td>Entry point, output</td></tr>
+      <tr><td>Pipeline</td><td>orchestrator/pipeline.py</td><td>AuditPipeline</td><td>Wires &amp; runs all stages</td></tr>
+      <tr><td>State</td><td>orchestrator/state.py</td><td>AuditState (TypedDict)</td><td>Shared data between stages</td></tr>
+      <tr><td>Ingestion</td><td>ingestion/file_indexer.py</td><td>FileIndexer</td><td>Walk &amp; catalog files</td></tr>
+      <tr><td>Triage</td><td>triage/file_scorer.py</td><td>FileScorer</td><td>Score files 0-100</td></tr>
+      <tr><td>Triage</td><td>triage/tier_assigner.py</td><td>TierAssigner</td><td>Assign AI analysis depth</td></tr>
+      <tr><td>Cost</td><td>orchestrator/cost_estimator.py</td><td>CostEstimator</td><td>Project LLM spend</td></tr>
+      <tr><td>Agent Base</td><td>agents/base_agent.py</td><td>BaseAgent</td><td>Template: static &rarr; AI</td></tr>
+      <tr><td>Security</td><td>agents/security_agent.py</td><td>SecurityAgent</td><td>SAST + secrets + CVEs</td></tr>
+      <tr><td>Compliance</td><td>agents/compliance_agent.py</td><td>ComplianceAgent</td><td>Regulatory control mapping</td></tr>
+      <tr><td>Architecture</td><td>agents/architecture_agent.py</td><td>ArchitectureAgent</td><td>Deps, coupling, layers</td></tr>
+      <tr><td>Quality</td><td>agents/quality_agent.py</td><td>QualityAgent</td><td>Complexity, dead code</td></tr>
+      <tr><td>Policies</td><td>policies/engine.py</td><td>PolicyEngine</td><td>Load &amp; execute YAML rules</td></tr>
+      <tr><td>Validation</td><td>validation/pipeline.py</td><td>ValidationPipeline</td><td>4 hallucination gates</td></tr>
+      <tr><td>Scoring</td><td>scoring/risk_scorer.py</td><td>RiskScorer</td><td>8-category health score</td></tr>
+      <tr><td>Dedup</td><td>scoring/finding_merger.py</td><td>FindingMerger</td><td>Deduplicate findings</td></tr>
+      <tr><td>Roadmap</td><td>scoring/remediation_planner.py</td><td>RemediationPlanner</td><td>30/60/90 day plan</td></tr>
+      <tr><td>Assembly</td><td>scoring/report_assembler.py</td><td>ReportAssembler</td><td>Build AuditReport model</td></tr>
+      <tr><td>PDF</td><td>report/pdf_generator.py</td><td>PDFReportGenerator</td><td>HTML &rarr; PDF via WeasyPrint</td></tr>
+      <tr><td>Models</td><td>models/finding.py</td><td>AuditFinding, Evidence</td><td>Core data structures</td></tr>
+      <tr><td>Models</td><td>models/report.py</td><td>AuditReport</td><td>Top-level report model</td></tr>
+    </tbody>
+  </table>
+
+  <hr style="border-color: var(--border); margin: 3rem 0 1rem;">
+  <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">
+    BlanketAudit &mdash; Code Flow Reference &mdash; Generated 2026-03-29
+  </p>
+
+</div>
+</body>
+</html>

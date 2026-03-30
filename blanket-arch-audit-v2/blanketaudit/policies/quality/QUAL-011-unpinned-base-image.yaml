@@ -4,6 +4,11 @@ category: quality
 severity: medium
 description: Detects Dockerfiles using :latest or untagged base images causing non-reproducible builds
 frameworks: []
+file_patterns:
+  - '**/Dockerfile*'
+  - '**/dockerfile*'
+  - '**/*.dockerfile'
+  - '**/Containerfile*'
 static_checks:
   - tool: regex
     regex: '^FROM\s+\S+(:latest\s*$|\s*$)'

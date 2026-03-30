@@ -1,0 +1,551 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page {
+    size: A4;
+    margin: 24mm 20mm 20mm 20mm;
+    @bottom-center {
+      content: "Blanket Audit — codeintel — March 29, 2026";
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7pt;
+      color: #64748b;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0b0f1a;
+    color: #e2e8f0;
+    font-family: 'Sora', 'Segoe UI', system-ui, sans-serif;
+    font-size: 10pt;
+    line-height: 1.5;
+  }
+
+  /* ── Header Bar ── */
+  .header {
+    display: table;
+    width: 100%;
+    border-bottom: 3px solid #6C5CE7;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .header-left {
+    display: table-cell;
+    vertical-align: bottom;
+    width: 60%;
+  }
+  .header-right {
+    display: table-cell;
+    vertical-align: bottom;
+    text-align: right;
+    width: 40%;
+  }
+  .header h1 {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #e2e8f0;
+    letter-spacing: -0.5px;
+  }
+  .header h1 span { color: #6C5CE7; }
+  .header .subtitle {
+    font-size: 9pt;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .header .meta-chip {
+    display: inline-block;
+    background: #131825;
+    border: 1px solid #232b40;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 7.5pt;
+    font-family: 'JetBrains Mono', monospace;
+    color: #94a3b8;
+    margin-left: 4px;
+  }
+
+  /* ── Score Hero ── */
+  .score-hero {
+    display: table;
+    width: 100%;
+    background: #131825;
+    border: 1px solid #232b40;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+  }
+  .score-gauge {
+    display: table-cell;
+    width: 90px;
+    vertical-align: middle;
+    text-align: center;
+  }
+  .score-gauge .big {
+    font-size: 32pt;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .score-gauge .grade {
+    font-size: 14pt;
+    font-weight: 700;
+    display: block;
+    margin-top: -4px;
+  }
+  .score-details {
+    display: table-cell;
+    vertical-align: middle;
+    padding-left: 18px;
+  }
+  .severity-row {
+    display: inline-block;
+    margin-right: 12px;
+    font-size: 8.5pt;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .sev-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 8pt;
+  }
+  .sev-critical { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
+  .sev-high { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid #f97316; }
+  .sev-medium { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid #fbbf24; }
+  .sev-low { background: rgba(100,116,139,0.12); color: #64748b; border: 1px solid #64748b; }
+
+  /* ── Category Bars ── */
+  .cat-section { margin-bottom: 14px; }
+  .cat-section h2 {
+    font-size: 10pt;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .cat-row {
+    display: table;
+    width: 100%;
+    margin-bottom: 3px;
+    font-size: 8.5pt;
+  }
+  .cat-name {
+    display: table-cell;
+    width: 130px;
+    text-align: right;
+    padding-right: 8px;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8pt;
+    vertical-align: middle;
+  }
+  .cat-bar-bg {
+    display: table-cell;
+    vertical-align: middle;
+    height: 14px;
+  }
+  .cat-bar-inner {
+    background: #1a2035;
+    border-radius: 3px;
+    height: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cat-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+  .cat-val {
+    display: table-cell;
+    width: 40px;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 8.5pt;
+    vertical-align: middle;
+    padding-left: 6px;
+  }
+
+  /* ── Top Findings ── */
+  .findings-section { margin-bottom: 14px; }
+  .findings-section h2 {
+    font-size: 10pt;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .finding-row {
+    display: table;
+    width: 100%;
+    background: #131825;
+    border: 1px solid #232b40;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    font-size: 8.5pt;
+  }
+  .finding-sev {
+    display: table-cell;
+    width: 60px;
+    vertical-align: middle;
+  }
+  .finding-title {
+    display: table-cell;
+    vertical-align: middle;
+    color: #e2e8f0;
+    font-weight: 500;
+  }
+  .finding-impact {
+    display: table-cell;
+    width: 100px;
+    text-align: right;
+    vertical-align: middle;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8pt;
+    color: #f97316;
+  }
+
+  /* ── Actions Box ── */
+  .actions-box {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-left: 4px solid #ef4444;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+  .actions-box h3 {
+    font-size: 9pt;
+    font-weight: 600;
+    color: #ef4444;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .actions-box ol {
+    padding-left: 16px;
+    font-size: 8.5pt;
+    color: #e2e8f0;
+  }
+  .actions-box li { margin-bottom: 2px; }
+
+  /* ── Compliance Strip ── */
+  .compliance-strip {
+    display: table;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .compliance-strip h2 {
+    font-size: 10pt;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .fw-chip {
+    display: inline-block;
+    background: #131825;
+    border: 1px solid #232b40;
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+    font-size: 8pt;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .fw-pass { border-color: #34d399; color: #34d399; }
+  .fw-partial { border-color: #fbbf24; color: #fbbf24; }
+  .fw-fail { border-color: #ef4444; color: #ef4444; }
+
+  /* ── Remediation Summary ── */
+  .remediation-summary {
+    display: table;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .phase-card {
+    display: inline-block;
+    width: 31%;
+    background: #131825;
+    border: 1px solid #232b40;
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-right: 2%;
+    vertical-align: top;
+    font-size: 8pt;
+  }
+  .phase-card:last-child { margin-right: 0; }
+  .phase-card h4 {
+    font-size: 8.5pt;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .phase-card .effort {
+    font-family: 'JetBrains Mono', monospace;
+    color: #6C5CE7;
+    font-weight: 600;
+  }
+  .phase-card .target {
+    font-family: 'JetBrains Mono', monospace;
+    color: #34d399;
+    font-size: 7.5pt;
+  }
+
+  /* ── ROI Box ── */
+  .roi-box {
+    background: rgba(108,92,231,0.08);
+    border: 1px solid rgba(108,92,231,0.3);
+    border-left: 4px solid #6C5CE7;
+    border-radius: 6px;
+    padding: 10px 14px;
+  }
+  .roi-box h3 {
+    font-size: 9pt;
+    font-weight: 600;
+    color: #6C5CE7;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .roi-box p {
+    font-size: 8.5pt;
+    color: #e2e8f0;
+  }
+
+  /* Color helpers */
+  .color-red { color: #ef4444; }
+  .color-orange { color: #f97316; }
+  .color-yellow { color: #fbbf24; }
+  .color-green { color: #34d399; }
+  .color-accent { color: #6C5CE7; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1><span>Blanket Audit</span> — Executive Brief</h1>
+    <div class="subtitle">codeintel</div>
+  </div>
+  <div class="header-right">
+    <span class="meta-chip">March 29, 2026</span>
+    <span class="meta-chip">73 files</span>
+    <span class="meta-chip">8k LOC</span>
+    <span class="meta-chip">1 repo</span>
+  </div>
+</div>
+
+<!-- SCORE HERO -->
+<div class="score-hero">
+  <div class="score-gauge">
+    <span class="big color-yellow">69</span>
+    <span class="grade color-yellow">/100 (C)</span>
+  </div>
+  <div class="score-details">
+    <div style="margin-bottom:4px;">
+      <span class="severity-row"><span class="sev-badge sev-critical">CRITICAL</span> 0</span>
+      <span class="severity-row"><span class="sev-badge sev-high">HIGH</span> 218</span>
+      <span class="severity-row"><span class="sev-badge sev-medium">MEDIUM</span> 1203</span>
+      <span class="severity-row"><span class="sev-badge sev-low">LOW</span> 298</span>
+    </div>
+    <div style="font-size:8.5pt;color:#94a3b8;">
+      1583 findings across 6 categories
+       | AI: groq
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY BARS -->
+<div class="cat-section">
+  <h2>Risk Dashboard</h2>
+  
+  <div class="cat-row">
+    <span class="cat-name">Security</span>
+    <span class="cat-bar-bg">
+      <div class="cat-bar-inner">
+        <div class="cat-bar-fill" style="width:46%;background:#f97316;"></div>
+      </div>
+    </span>
+    <span class="cat-val" style="color:#f97316;">46</span>
+  </div>
+  
+  <div class="cat-row">
+    <span class="cat-name">Compliance</span>
+    <span class="cat-bar-bg">
+      <div class="cat-bar-inner">
+        <div class="cat-bar-fill" style="width:100%;background:#34d399;"></div>
+      </div>
+    </span>
+    <span class="cat-val" style="color:#34d399;">100</span>
+  </div>
+  
+  <div class="cat-row">
+    <span class="cat-name">Code Quality</span>
+    <span class="cat-bar-bg">
+      <div class="cat-bar-inner">
+        <div class="cat-bar-fill" style="width:0%;background:#ef4444;"></div>
+      </div>
+    </span>
+    <span class="cat-val" style="color:#ef4444;">0</span>
+  </div>
+  
+  <div class="cat-row">
+    <span class="cat-name">Performance</span>
+    <span class="cat-bar-bg">
+      <div class="cat-bar-inner">
+        <div class="cat-bar-fill" style="width:100%;background:#34d399;"></div>
+      </div>
+    </span>
+    <span class="cat-val" style="color:#34d399;">100</span>
+  </div>
+  
+  <div class="cat-row">
+    <span class="cat-name">Reliability</span>
+    <span class="cat-bar-bg">
+      <div class="cat-bar-inner">
+        <div class="cat-bar-fill" style="width:100%;background:#34d399;"></div>
+      </div>
+    </span>
+    <span class="cat-val" style="color:#34d399;">100</span>
+  </div>
+  
+  <div class="cat-row">
+    <span class="cat-name">Infrastructure</span>
+    <span class="cat-bar-bg">
+      <div class="cat-bar-inner">
+        <div class="cat-bar-fill" style="width:100%;background:#34d399;"></div>
+      </div>
+    </span>
+    <span class="cat-val" style="color:#34d399;">100</span>
+  </div>
+  
+</div>
+
+<!-- IMMEDIATE ACTIONS -->
+
+<div class="actions-box">
+  <h3>Immediate Actions Required</h3>
+  <ol>
+    
+    <li>Address BLK-001: Circular Import Dependencies</li>
+    
+    <li>Address BLK-002: Circular Import Dependencies</li>
+    
+    <li>Address BLK-003: Circular Import Dependencies</li>
+    
+  </ol>
+</div>
+
+
+<!-- TOP FINDINGS (max 5) -->
+<div class="findings-section">
+  <h2>Top Priority Findings</h2>
+  
+  <div class="finding-row">
+    <span class="finding-sev">
+      <span class="sev-badge sev-high">HIGH</span>
+    </span>
+    <span class="finding-title">Circular Import Dependencies</span>
+    <span class="finding-impact">
+      
+    </span>
+  </div>
+  
+  <div class="finding-row">
+    <span class="finding-sev">
+      <span class="sev-badge sev-high">HIGH</span>
+    </span>
+    <span class="finding-title">Circular Import Dependencies</span>
+    <span class="finding-impact">
+      
+    </span>
+  </div>
+  
+  <div class="finding-row">
+    <span class="finding-sev">
+      <span class="sev-badge sev-high">HIGH</span>
+    </span>
+    <span class="finding-title">Circular Import Dependencies</span>
+    <span class="finding-impact">
+      
+    </span>
+  </div>
+  
+  <div class="finding-row">
+    <span class="finding-sev">
+      <span class="sev-badge sev-high">HIGH</span>
+    </span>
+    <span class="finding-title">Circular Import Dependencies</span>
+    <span class="finding-impact">
+      
+    </span>
+  </div>
+  
+  <div class="finding-row">
+    <span class="finding-sev">
+      <span class="sev-badge sev-high">HIGH</span>
+    </span>
+    <span class="finding-title">Circular Import Dependencies</span>
+    <span class="finding-impact">
+      
+    </span>
+  </div>
+  
+</div>
+
+<!-- COMPLIANCE SNAPSHOT -->
+
+
+<!-- REMEDIATION ROADMAP -->
+
+<div style="margin-bottom:14px;">
+  <h2 style="font-size:10pt;font-weight:600;margin-bottom:6px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Remediation Roadmap</h2>
+  
+  <div class="phase-card">
+    <h4>URGENT — Days 1-14</h4>
+    <div><span class="effort">10 hours</span> estimated effort</div>
+    <div class="target">Score: 69 → 0 (+-69 points)</div>
+    <div style="color:#94a3b8;">5 tasks</div>
+  </div>
+  
+  <div class="phase-card">
+    <h4>SHORT-TERM — Days 15-45</h4>
+    <div><span class="effort">446 hours</span> estimated effort</div>
+    <div class="target">Score: 0 → 0 (+0 points)</div>
+    <div style="color:#94a3b8;">223 tasks</div>
+  </div>
+  
+  <div class="phase-card">
+    <h4>MEDIUM-TERM — Days 46-90</h4>
+    <div><span class="effort">2964 hours</span> estimated effort</div>
+    <div class="target">Score: 0 → 100 (+100 points)</div>
+    <div style="color:#94a3b8;">1491 tasks</div>
+  </div>
+  
+</div>
+
+
+<!-- ROI / VALUE PROPOSITION -->
+<div class="roi-box">
+  <h3>Why This Matters</h3>
+  <p>
+    This automated audit analyzed 73 files (8k lines of code)
+    ,
+    identifying 1583 actionable findings.
+    
+    
+    The 90-day remediation roadmap requires an estimated 10 hours + 446 hours + 2964 hours of engineering effort
+    to bring the health score to 100/100.
+    
+  </p>
+</div>
+
+</body>
+</html>

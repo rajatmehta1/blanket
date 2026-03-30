@@ -63,6 +63,11 @@ class Policy(BaseModel):
     description: str = ""
     frameworks: list[str] = []  # e.g., ["PCI-DSS-6.5.1", "HIPAA-164.312-a-1"]
 
+    # File type filtering: if set, regex/ast checks only run against files
+    # whose paths match at least one of these glob patterns.
+    # This prevents e.g. Docker policies from scanning Python source files.
+    file_patterns: list[str] = []
+
     # Dual-layer checks
     static_checks: list[StaticCheck] = []
     ai_analysis: AIAnalysis | None = None

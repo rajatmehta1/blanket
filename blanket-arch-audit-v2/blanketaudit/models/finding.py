@@ -120,6 +120,12 @@ class AuditFinding(BaseModel):
     blast_radius: BlastRadius | None = None
     call_chain: list[CallChainStep] = []
 
+    # Grouping: when multiple findings share the same root cause (e.g., 743x
+    # "High Cyclomatic Complexity"), they are collapsed into a single finding
+    # with the worst-case instance as representative and all locations listed here.
+    affected_locations: list[Evidence] = []
+    affected_count: int = 1
+
     @field_validator("confidence")
     @classmethod
     def validate_confidence(cls, v: float) -> float:

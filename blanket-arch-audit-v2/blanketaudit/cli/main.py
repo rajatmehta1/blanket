@@ -263,6 +263,57 @@ def _generate_reports(report: dict, formats: list[str], output_dir: Path) -> Non
         except Exception as exc:
             console.print(f"  [red]✗[/red] {fmt}: {exc}")
 
+    # Always generate the executive one-pager alongside the full report
+    try:
+        from blanketaudit.report.onepager_generator import generate_executive_onepager
+        onepager_path = output_dir / "executive-brief.pdf"
+        generate_executive_onepager(report, output_path=onepager_path)
+        console.print(f"  [green]✓[/green] Executive Brief: {onepager_path}")
+    except Exception as exc:
+        console.print(f"  [yellow]⚠[/yellow] Executive Brief: {exc}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# brief command — generate board-ready one-pager from existing report
+# ═══════════════════════════════════════════════════════════════
+
+
+@app.command()
+def brief(
+    report_json: Path = typer.Argument(
+        ..., help="Path to an existing report.json file.",
+    ),
+    output_path: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output PDF path (default: executive-brief.pdf).",
+    ),
+    html_only: bool = typer.Option(
+        False, "--html", help="Generate HTML instead of PDF.",
+    ),
+) -> None:
+    """Generate a board-ready executive one-pager from an existing report.json.
+
+    This creates a 1-2 page PDF that a non-technical executive can read
+    in under 2 minutes: health score, top findings, compliance posture,
+    and remediation roadmap summary.
+    """
+    if not report_json.exists():
+        console.print(f"[red]Error:[/red] File not found: {report_json}")
+        raise typer.Exit(EXIT_ERROR)
+
+    report_data = json.loads(report_json.read_text(encoding="utf-8"))
+
+    if html_only:
+        from blanketaudit.report.onepager_generator import generate_executive_onepager_html
+        html = generate_executive_onepager_html(report_data)
+        out = output_path or report_json.parent / "executive-brief.html"
+        out.write_text(html, encoding="utf-8")
+        console.print(f"[green]✓[/green] Executive Brief (HTML): {out}")
+    else:
+        from blanketaudit.report.onepager_generator import generate_executive_onepager
+        out = output_path or report_json.parent / "executive-brief.pdf"
+        generate_executive_onepager(report_data, output_path=out)
+        console.print(f"[green]✓[/green] Executive Brief (PDF): {out}")
+
 
 # ═══════════════════════════════════════════════════════════════
 # report command

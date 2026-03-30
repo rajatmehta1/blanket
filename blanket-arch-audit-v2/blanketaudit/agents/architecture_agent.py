@@ -148,7 +148,18 @@ class ArchitectureAgent(BaseAgent):
         return layer_map
 
     def _build_import_graph(self, state: AuditState) -> dict[str, set[str]]:
-        """Build file→imports graph from analysis contexts."""
+        """Build file→imports graph from analysis contexts.
+
+        Only includes imports that resolve to files within the project.
+        Third-party and stdlib imports are excluded to prevent false positives.
+        """
+        # Build set of known project files for resolution
+        known_files: set[str] = set()
+        for f in state.get("files", []):
+            path = f.get("path", "") if isinstance(f, dict) else getattr(f, "path", "")
+            if path:
+                known_files.add(path)
+
         graph: dict[str, set[str]] = defaultdict(set)
         for ctx in state.get("analysis_contexts", []):
             if isinstance(ctx, dict):
@@ -167,7 +178,13 @@ class ArchitectureAgent(BaseAgent):
                 if source and module:
                     # Convert module to approximate file path
                     target = module.replace(".", "/") + ".py"
-                    graph[source].add(target)
+                    # Only include edges to files that actually exist in the project.
+                    # This filters out stdlib (os, sys) and third-party (fastapi,
+                    # pydantic) imports that can never form real cycles.
+                    if target in known_files or any(
+                        kf.endswith(target) for kf in known_files
+                    ):
+                        graph[source].add(target)
 
         return dict(graph)
 

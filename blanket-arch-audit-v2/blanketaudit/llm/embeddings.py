@@ -68,7 +68,12 @@ def get_embeddings(
         if cfg.provider is EmbeddingProvider.OLLAMA:
             from langchain_community.embeddings import OllamaEmbeddings  # type: ignore[import-untyped]
 
-            return OllamaEmbeddings(model=model, **kwargs)
+            llm_cfg = settings.llm
+            ollama_kwargs: dict[str, Any] = {"model": model}
+            if llm_cfg.base_url:
+                ollama_kwargs["base_url"] = llm_cfg.base_url
+            ollama_kwargs.update(kwargs)
+            return OllamaEmbeddings(**ollama_kwargs)
 
         if cfg.provider is EmbeddingProvider.HUGGINGFACE:
             from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore[import-untyped]

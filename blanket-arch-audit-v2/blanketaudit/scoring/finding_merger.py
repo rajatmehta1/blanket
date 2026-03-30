@@ -1,8 +1,12 @@
-"""Deduplication and cross-framework compliance mapping.
+"""Deduplication, root-cause grouping, and cross-framework compliance mapping.
 
-Design doc Tier 5: same file+line+category = one finding (keep highest
-confidence).  One finding can map to multiple compliance controls across
-frameworks.
+Design doc Tier 5 + CTO review fix:
+  Level 1: Exact dedup — same file+line+category = one finding (keep highest confidence)
+  Level 2: Root-cause grouping — same policy_id+title = one representative finding
+           with an affected_locations[] array and affected_count.
+           This turns "743x High Cyclomatic Complexity" into "1 finding, 743 locations".
+
+One finding can map to multiple compliance controls across frameworks.
 """
 
 from __future__ import annotations
@@ -12,7 +16,7 @@ from typing import Any
 
 import structlog
 
-from blanketaudit.models.finding import AuditFinding, ComplianceRef
+from blanketaudit.models.finding import AuditFinding, ComplianceRef, Evidence
 
 logger = structlog.get_logger()
 
@@ -64,6 +68,25 @@ _KEYWORD_TO_TOPIC: dict[str, str] = {
     "api key": "secrets", "hardcoded": "secrets",
 }
 
+# Finding titles that should be grouped at the repo/module level (one per root cause)
+# rather than per-location. These are high-volume static findings.
+_GROUPABLE_POLICY_IDS = {
+    "QUAL-001",   # High Cyclomatic Complexity
+    "QUAL-002",   # Dead Functions
+    "QUAL-007",   # Oversized Source Files
+    "QUAL-008",   # Missing Docstrings
+    "QUAL-018",   # Long Functions
+    "ARCH-001",   # Circular Import Dependencies
+    "ARCH-002",   # God Class Anti-Pattern
+    "ARCH-006",   # Monolith Anti-Pattern
+    "ARCH-007",   # Dead Code Module
+    "ARCH-015",   # Missing API Versioning
+    "QUAL-006",   # Copy-Paste Code
+    "QUAL-009",   # Stale TODOs
+    "QUAL-016",   # Missing Logging
+    "QUAL-017",   # Magic Numbers
+}
+
 
 def _dedup_key(finding: AuditFinding) -> str:
     """Build a dedup key from file + line range + category."""
@@ -73,11 +96,22 @@ def _dedup_key(finding: AuditFinding) -> str:
     return f"{ev.file_path}::{ev.line_start}-{ev.line_end}::{finding.category}"
 
 
+def _group_key(finding: AuditFinding) -> str:
+    """Build a group key for root-cause grouping: policy_id + category.
+
+    Findings with the same policy trigger are collapsed into one
+    representative finding with affected_locations[].
+    """
+    return f"{finding.policy_id}::{finding.category}"
+
+
 class FindingMerger:
     """Deduplicate findings and apply cross-framework compliance mapping.
 
-    Dedup rule: same file + line range + category = one finding,
-    keep the one with the highest confidence.
+    Two-level dedup:
+      Level 1: Exact dedup — same file + line + category = one finding
+      Level 2: Root-cause grouping — same policy_id + category = one representative
+               with affected_locations[] (only for known high-volume policy IDs)
     """
 
     def __init__(self, active_frameworks: list[str] | None = None) -> None:
@@ -86,21 +120,26 @@ class FindingMerger:
         )
 
     def merge(self, findings: list[AuditFinding]) -> list[AuditFinding]:
-        """Deduplicate and enrich findings with cross-framework refs."""
-        # Step 1: Dedup
+        """Deduplicate, group, and enrich findings with cross-framework refs."""
+        # Step 1: Exact dedup (same file+line+category)
         deduped = self._dedup(findings)
+        logger.info("merger.deduped", input=len(findings), after_dedup=len(deduped))
 
-        # Step 2: Cross-framework mapping
+        # Step 2: Root-cause grouping (collapse high-volume same-policy findings)
+        grouped = self._group_by_root_cause(deduped)
+        logger.info("merger.grouped", after_group=len(grouped))
+
+        # Step 3: Cross-framework mapping
         if self._active_frameworks:
-            deduped = [self._add_cross_framework_refs(f) for f in deduped]
+            grouped = [self._add_cross_framework_refs(f) for f in grouped]
 
         logger.info(
             "merger.done",
             input=len(findings),
-            output=len(deduped),
-            deduped=len(findings) - len(deduped),
+            output=len(grouped),
+            deduped=len(findings) - len(grouped),
         )
-        return deduped
+        return grouped
 
     def _dedup(self, findings: list[AuditFinding]) -> list[AuditFinding]:
         """Keep highest-confidence finding per dedup key."""
@@ -133,6 +172,94 @@ class FindingMerger:
 
         return result
 
+    def _group_by_root_cause(
+        self,
+        findings: list[AuditFinding],
+    ) -> list[AuditFinding]:
+        """Collapse same-policy findings into one representative with affected_locations[].
+
+        Only groups findings whose policy_id is in _GROUPABLE_POLICY_IDS.
+        Findings with AI enrichment are never collapsed (they have unique analysis).
+        """
+        ungroupable: list[AuditFinding] = []
+        groups: dict[str, list[AuditFinding]] = defaultdict(list)
+
+        for f in findings:
+            # Don't group findings that already have AI enrichment
+            has_ai = bool(f.ai_explanation and f.ai_explanation.strip())
+            if f.policy_id in _GROUPABLE_POLICY_IDS and not has_ai:
+                groups[_group_key(f)].append(f)
+            else:
+                ungroupable.append(f)
+
+        grouped: list[AuditFinding] = []
+        for key, group in groups.items():
+            if len(group) == 1:
+                grouped.append(group[0])
+                continue
+
+            # Pick the worst-severity finding as representative
+            severity_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+            group.sort(key=lambda f: (severity_rank.get(f.severity, 4), -f.confidence))
+            representative = group[0]
+
+            # Collect all evidence locations
+            all_locations: list[Evidence] = []
+            seen_locations: set[str] = set()
+            for f in group:
+                for ev in f.evidence:
+                    loc_key = f"{ev.file_path}::{ev.line_start}"
+                    if loc_key not in seen_locations:
+                        seen_locations.add(loc_key)
+                        all_locations.append(ev)
+
+            # Merge all compliance refs
+            all_refs: list[ComplianceRef] = []
+            seen_clauses: set[str] = set()
+            for f in group:
+                for ref in f.compliance_refs:
+                    key_str = f"{ref.framework}::{ref.clause}"
+                    if key_str not in seen_clauses:
+                        seen_clauses.add(key_str)
+                        all_refs.append(ref)
+
+            # Update the representative with grouped data
+            # Rewrite title to show count: "High Cyclomatic Complexity (743 locations)"
+            base_title = representative.title
+            # Strip any existing function-specific detail for a cleaner group title
+            policy_name = _POLICY_DISPLAY_NAMES.get(
+                representative.policy_id,
+                representative.title.split(":")[0].strip(),
+            )
+            group_title = f"{policy_name} ({len(group)} locations)"
+
+            # Build a summary description
+            file_set = {ev.file_path for ev in all_locations}
+            top_files = sorted(file_set)[:5]
+            file_summary = ", ".join(top_files)
+            if len(file_set) > 5:
+                file_summary += f", ... and {len(file_set) - 5} more files"
+
+            group_desc = (
+                f"{len(group)} instances of {policy_name} detected across "
+                f"{len(file_set)} files: {file_summary}."
+            )
+
+            # Sum effort hours
+            total_effort = sum(f.effort_hours for f in group) or len(group) * 0.5
+
+            representative = representative.model_copy(update={
+                "title": group_title,
+                "description": group_desc,
+                "affected_locations": all_locations,
+                "affected_count": len(group),
+                "compliance_refs": all_refs if all_refs else representative.compliance_refs,
+                "effort_hours": total_effort,
+            })
+            grouped.append(representative)
+
+        return ungroupable + grouped
+
     def _add_cross_framework_refs(self, finding: AuditFinding) -> AuditFinding:
         """Add compliance refs from other frameworks based on keywords."""
         title_lower = finding.title.lower()
@@ -163,3 +290,22 @@ class FindingMerger:
         if len(new_refs) > len(finding.compliance_refs):
             return finding.model_copy(update={"compliance_refs": new_refs})
         return finding
+
+
+# Display names for policy IDs (used in grouped finding titles)
+_POLICY_DISPLAY_NAMES: dict[str, str] = {
+    "QUAL-001": "High Cyclomatic Complexity",
+    "QUAL-002": "Dead Functions",
+    "QUAL-007": "Oversized Source Files",
+    "QUAL-008": "Missing Docstrings on Public API",
+    "QUAL-018": "Long Functions",
+    "ARCH-001": "Circular Import Dependencies",
+    "ARCH-002": "God Class Anti-Pattern",
+    "ARCH-006": "Monolith Anti-Pattern",
+    "ARCH-007": "Dead Code Module",
+    "ARCH-015": "Missing API Versioning",
+    "QUAL-006": "Copy-Paste Code",
+    "QUAL-009": "Stale TODOs",
+    "QUAL-016": "Missing Logging",
+    "QUAL-017": "Magic Numbers",
+}

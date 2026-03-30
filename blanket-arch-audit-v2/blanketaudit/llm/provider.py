@@ -76,11 +76,15 @@ def _build_llm(
         if provider is LLMProvider.OLLAMA:
             from langchain_community.chat_models import ChatOllama  # type: ignore[import-untyped]
 
-            return ChatOllama(
-                model=model,
-                temperature=temperature,
-                **extra,
-            )
+            cfg = get_settings().llm
+            ollama_kwargs: dict[str, Any] = {
+                "model": model,
+                "temperature": temperature,
+            }
+            if cfg.base_url:
+                ollama_kwargs["base_url"] = cfg.base_url
+            ollama_kwargs.update(extra)
+            return ChatOllama(**ollama_kwargs)
 
         if provider is LLMProvider.GROQ:
             from langchain_groq import ChatGroq  # type: ignore[import-untyped]

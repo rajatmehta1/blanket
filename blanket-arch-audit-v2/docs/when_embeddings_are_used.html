@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>When Are Embeddings Used? - BlanketAudit</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .scenario-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.2rem 1.5rem; margin: 1rem 0;
+    }
+    .scenario-card h4 { color: var(--accent); margin-bottom: 0.4rem; }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.03em; margin-right: 0.4rem;
+    }
+    .badge-yes { background: rgba(52,211,153,0.15); color: var(--green); }
+    .badge-no  { background: rgba(239,68,68,0.12); color: var(--red); }
+    .badge-optional { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .decision-table td, .decision-table th { text-align: left; padding: 0.6rem 1rem; }
+    .decision-table th { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .config-block {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.2rem 1.5rem; margin: 1rem 0;
+    }
+    .config-block h4 { color: var(--green); margin-bottom: 0.6rem; }
+    .flow-arrow { text-align: center; color: var(--accent); font-size: 1.4rem; margin: 0.4rem 0; }
+    .callout {
+      border-left: 3px solid var(--accent); background: var(--accent-dim);
+      padding: 0.8rem 1.2rem; border-radius: 0 6px 6px 0; margin: 1rem 0;
+    }
+    .callout-warn {
+      border-left-color: var(--yellow); background: rgba(251,191,36,0.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="nav">
+      <a href="understanding_code.html">Code Flow</a>
+      <a href="when_embeddings_are_used.html" class="active">Embeddings Guide</a>
+    </nav>
+
+    <h1>When Are Embeddings Used?</h1>
+    <p>Embeddings are <strong>only</strong> used by the <strong>Compliance Agent</strong> for semantic search (RAG) against compliance clause databases via Milvus. If you're not running compliance scans, you don't need them at all.</p>
+
+    <!-- ── How It Works ─────────────────────────── -->
+    <h2>How Embeddings Fit in the Pipeline</h2>
+
+    <div class="scenario-card">
+      <h4>Compliance Agent &mdash; Semantic Search (RAG)</h4>
+      <p>The compliance agent embeds code snippets and compliance clause text into vectors, then uses similarity search in Milvus to find which code sections relate to which compliance controls (e.g., HIPAA &sect;164.312, SOC2 CC6.1, PCI-DSS Req 6.5).</p>
+      <p style="margin-bottom:0;">
+        <code>Code snippet</code> &rarr; <strong>Embedding model</strong> &rarr; <code>Vector</code> &rarr; <strong>Milvus similarity search</strong> &rarr; <code>Matching compliance clauses</code>
+      </p>
+    </div>
+
+    <div class="callout">
+      <strong>Key point:</strong> The other three agents (Security, Architecture, Quality) do <em>not</em> use embeddings. They rely on static tools (Semgrep, Gitleaks, OSV, AST) + direct LLM prompting.
+    </div>
+
+    <!-- ── Decision Table ───────────────────────── -->
+    <h2>Do You Need Embeddings?</h2>
+
+    <table class="decision-table">
+      <thead>
+        <tr>
+          <th>Scan Type</th>
+          <th>Command Example</th>
+          <th>Embeddings?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Security + Architecture + Quality only</td>
+          <td><code>blanketaudit scan ./repo --domain fintech</code></td>
+          <td><span class="badge badge-no">NOT NEEDED</span></td>
+        </tr>
+        <tr>
+          <td>With compliance framework(s)</td>
+          <td><code>blanketaudit scan ./repo --framework hipaa</code></td>
+          <td><span class="badge badge-yes">NEEDED</span></td>
+        </tr>
+        <tr>
+          <td>Multiple frameworks</td>
+          <td><code>blanketaudit scan ./repo --framework hipaa soc2 pci-dss</code></td>
+          <td><span class="badge badge-yes">NEEDED</span></td>
+        </tr>
+        <tr>
+          <td>Static-only mode (no AI)</td>
+          <td><code>BLANKETAUDIT_LLM__PROVIDER=none blanketaudit scan ./repo</code></td>
+          <td><span class="badge badge-no">NOT NEEDED</span></td>
+        </tr>
+        <tr>
+          <td>Compliance agent disabled</td>
+          <td>Set <code>agents.compliance.enabled: false</code> in audit.yaml</td>
+          <td><span class="badge badge-no">NOT NEEDED</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Provider Options ─────────────────────── -->
+    <h2>Embedding Provider Options</h2>
+    <p>When you <em>do</em> need embeddings, you have four choices. Two are free and run locally.</p>
+
+    <table class="decision-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Model</th>
+          <th>Cost</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>HuggingFace</strong></td>
+          <td><code>all-MiniLM-L6-v2</code></td>
+          <td><span class="badge badge-yes">FREE</span></td>
+          <td>Runs on your CPU. No API key. No network needed.</td>
+        </tr>
+        <tr>
+          <td><strong>Ollama</strong></td>
+          <td><code>nomic-embed-text</code></td>
+          <td><span class="badge badge-yes">FREE</span></td>
+          <td>Requires Ollama running (local or remote laptop).</td>
+        </tr>
+        <tr>
+          <td><strong>OpenAI</strong></td>
+          <td><code>text-embedding-3-small</code></td>
+          <td><span class="badge badge-optional">PAID</span></td>
+          <td>Requires <code>OPENAI_API_KEY</code>. Fast, high quality.</td>
+        </tr>
+        <tr>
+          <td><strong>Voyage</strong></td>
+          <td><code>voyage-3</code></td>
+          <td><span class="badge badge-optional">PAID</span></td>
+          <td>Requires Voyage API key. Code-optimized embeddings.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Configuration Examples ────────────────── -->
+    <h2>Configuration Examples</h2>
+
+    <div class="config-block">
+      <h4>Option 1: No embeddings needed (no compliance scan)</h4>
+      <p>If you're only running security/architecture/quality scans with Groq, leave embeddings off:</p>
+<pre><code><span class="comment"># .env</span>
+<span class="kw">BLANKETAUDIT_LLM__PROVIDER</span>=<span class="str">groq</span>
+<span class="kw">BLANKETAUDIT_LLM__MODEL</span>=<span class="str">llama-3.3-70b-versatile</span>
+<span class="comment"># No embedding config needed &mdash; defaults to "none"</span></code></pre>
+    </div>
+
+    <div class="config-block">
+      <h4>Option 2: Local HuggingFace embeddings (free, no API)</h4>
+      <p>Best for compliance scans when you don't want any external API dependency:</p>
+<pre><code><span class="comment"># .env</span>
+<span class="kw">BLANKETAUDIT_LLM__PROVIDER</span>=<span class="str">groq</span>
+<span class="kw">BLANKETAUDIT_LLM__MODEL</span>=<span class="str">llama-3.3-70b-versatile</span>
+<span class="kw">BLANKETAUDIT_EMBEDDING__PROVIDER</span>=<span class="str">huggingface</span>
+<span class="kw">BLANKETAUDIT_EMBEDDING__MODEL</span>=<span class="str">all-MiniLM-L6-v2</span></code></pre>
+      <div class="callout callout-warn">
+        <strong>First run:</strong> HuggingFace will download the model (~80 MB) once, then it's cached locally.
+      </div>
+    </div>
+
+    <div class="config-block">
+      <h4>Option 3: Ollama embeddings on a remote laptop</h4>
+      <p>Use this if you already have Ollama running on another machine:</p>
+<pre><code><span class="comment"># .env</span>
+<span class="kw">BLANKETAUDIT_LLM__PROVIDER</span>=<span class="str">ollama</span>
+<span class="kw">BLANKETAUDIT_LLM__MODEL</span>=<span class="str">llama3.1</span>
+<span class="kw">BLANKETAUDIT_LLM__BASE_URL</span>=<span class="str">http://192.168.1.50:11434</span>
+<span class="kw">BLANKETAUDIT_EMBEDDING__PROVIDER</span>=<span class="str">ollama</span>
+<span class="kw">BLANKETAUDIT_EMBEDDING__MODEL</span>=<span class="str">nomic-embed-text</span>
+
+<span class="comment"># On the remote laptop, pull the embedding model too:</span>
+<span class="comment"># ollama pull nomic-embed-text</span></code></pre>
+    </div>
+
+    <div class="config-block">
+      <h4>Option 4: Mix providers (Groq LLM + local embeddings)</h4>
+      <p>Use Groq for fast LLM inference, and free local embeddings for compliance RAG:</p>
+<pre><code><span class="comment"># .env</span>
+<span class="kw">BLANKETAUDIT_LLM__PROVIDER</span>=<span class="str">groq</span>
+<span class="kw">BLANKETAUDIT_LLM__MODEL</span>=<span class="str">llama-3.3-70b-versatile</span>
+<span class="kw">BLANKETAUDIT_EMBEDDING__PROVIDER</span>=<span class="str">huggingface</span>
+<span class="kw">BLANKETAUDIT_EMBEDDING__MODEL</span>=<span class="str">all-MiniLM-L6-v2</span></code></pre>
+      <p style="margin-bottom:0;">This is the <strong>recommended setup</strong> if you want compliance scans without paying for embedding APIs.</p>
+    </div>
+
+    <!-- ── Summary ──────────────────────────────── -->
+    <h2>TL;DR</h2>
+    <div class="scenario-card">
+      <table class="decision-table" style="margin:0;">
+        <tbody>
+          <tr>
+            <td style="width:50%;"><strong>No <code>--framework</code> flag?</code></strong></td>
+            <td>Skip embeddings entirely. You're good.</td>
+          </tr>
+          <tr>
+            <td><strong>Using <code>--framework</code>?</strong></td>
+            <td>Pick HuggingFace (free, local) or Ollama (free, on your remote laptop).</td>
+          </tr>
+          <tr>
+            <td><strong>Want best quality?</strong></td>
+            <td>OpenAI <code>text-embedding-3-small</code> is fast and accurate, but costs money.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</body>
+</html>

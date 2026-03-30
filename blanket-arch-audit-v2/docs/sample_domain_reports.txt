@@ -1,0 +1,341 @@
+================================================================================
+  BlanketAudit — Sample Open Source Repositories by Domain
+================================================================================
+
+Use these high-profile open source repositories to test BlanketAudit across
+different domains. Each entry includes the repo, language, why it's a good
+candidate, and the recommended scan command.
+
+
+--------------------------------------------------------------------------------
+1. HEALTHCARE (hospitals, patient portals, EHR, telehealth, insurance)
+--------------------------------------------------------------------------------
+Frameworks: HIPAA, SOC2
+
+  a) OpenMRS — https://github.com/openmrs/openmrs-core
+     Language: Java
+     What: Enterprise medical record system used in 6,000+ facilities worldwide.
+     Why:  PHI handling, patient data models, role-based access, audit logging,
+           REST APIs for clinical data. Perfect HIPAA stress test.
+
+  b) GNU Health — https://github.com/gnuhealth-hmis/gnuhealth-hmis
+     Language: Python
+     What: Hospital management and health information system (WHO recognized).
+     Why:  Patient records, lab results, prescriptions, insurance claims.
+           Heavy data-at-rest concerns, access control patterns.
+
+  c) HAPI FHIR — https://github.com/hapifhir/hapi-fhir
+     Language: Java
+     What: Reference implementation of the HL7 FHIR healthcare data standard.
+     Why:  Healthcare interoperability APIs, patient resource handling,
+           authentication flows, data exchange between systems.
+
+  d) OpenEMR — https://github.com/openemr/openemr
+     Language: PHP
+     What: Most popular open source electronic health records and medical
+           practice management solution.
+     Why:  Billing, scheduling, prescriptions, patient portal, lab integration.
+           Massive codebase with real-world PHI handling patterns.
+
+  Command:
+    blanketaudit scan ./openmrs-core --domain healthcare --framework hipaa --framework soc2 --format pdf --format json --output ./audit-healthcare-openmrs
+
+
+--------------------------------------------------------------------------------
+2. FINANCE / BANKING (payment processing, trading, lending, fintech)
+--------------------------------------------------------------------------------
+Frameworks: PCI-DSS, SOC2, SOX
+
+  a) Apache Fineract — https://github.com/apache/fineract
+     Language: Java
+     What: Core banking platform for financial institutions (loans, savings,
+           accounting, client management).
+     Why:  Transaction processing, double-entry accounting, loan amortization,
+           financial data APIs. Ideal PCI-DSS and SOX audit target.
+
+  b) Hyperledger Fabric — https://github.com/hyperledger/fabric
+     Language: Go
+     What: Enterprise-grade distributed ledger framework for financial services.
+     Why:  Cryptographic key management, transaction validation, access control
+           policies, channel-based data isolation.
+
+  c) Killbill — https://github.com/killbill/killbill
+     Language: Java
+     What: Open source subscription billing and payment platform.
+     Why:  Payment gateway integrations, recurring billing, invoice generation,
+           PCI-scoped card data handling, webhook security.
+
+  d) Moov — https://github.com/moov-io/moov
+     Language: Go
+     What: Open source financial technology platform (ACH, wire transfers,
+           check imaging).
+     Why:  Banking protocol implementations, financial data validation,
+           transaction routing, compliance-heavy domain.
+
+  Command:
+    blanketaudit scan ./fineract --domain finance --framework pci-dss --framework soc2 --format pdf --format json --output ./audit-finance-fineract
+
+
+--------------------------------------------------------------------------------
+3. E-COMMERCE (online stores, marketplaces, checkout systems)
+--------------------------------------------------------------------------------
+Frameworks: PCI-DSS, GDPR
+
+  a) Saleor — https://github.com/saleor/saleor
+     Language: Python (Django/GraphQL)
+     What: High-performance headless e-commerce platform.
+     Why:  Payment processing, customer PII, checkout flows, webhook security,
+           GraphQL API surface. Great PCI-DSS + GDPR target.
+
+  b) Medusa — https://github.com/medusajs/medusa
+     Language: TypeScript (Node.js)
+     What: Open source headless commerce engine.
+     Why:  Cart/checkout APIs, payment provider integrations, customer data
+           handling, session management, plugin architecture.
+
+  c) Bagisto — https://github.com/bagisto/bagisto
+     Language: PHP (Laravel)
+     What: Full-featured e-commerce framework with multi-currency, multi-locale.
+     Why:  Payment gateways, customer accounts, order management, tax
+           calculation, inventory — broad attack surface.
+
+  d) Spree Commerce — https://github.com/spree/spree
+     Language: Ruby (Rails)
+     What: Mature open source e-commerce platform.
+     Why:  Credit card handling, user authentication, API endpoints, order
+           processing, admin panel security.
+
+  Command:
+    blanketaudit scan ./saleor --domain finance --framework pci-dss --framework gdpr --format pdf --format json --output ./audit-ecommerce-saleor
+
+
+--------------------------------------------------------------------------------
+4. SAAS / DEV TOOLS (internal tools, APIs, developer platforms)
+--------------------------------------------------------------------------------
+Frameworks: SOC2
+
+  a) Supabase — https://github.com/supabase/supabase
+     Language: TypeScript
+     What: Open source Firebase alternative (auth, database, storage, edge
+           functions).
+     Why:  Authentication system, row-level security, API key management,
+           storage policies, real-time subscriptions. SOC2 goldmine.
+
+  b) Gitlab CE — https://github.com/gitlabhq/gitlabhq
+     Language: Ruby
+     What: Complete DevOps platform (source control, CI/CD, issue tracking).
+     Why:  Secrets management, access control, pipeline security, token
+           handling, webhook authentication, admin APIs.
+
+  c) Appsmith — https://github.com/appsmithorg/appsmith
+     Language: Java + TypeScript
+     What: Low-code platform for building internal tools.
+     Why:  Database credential storage, API proxy, user permissions, datasource
+           connections, embedded JavaScript execution.
+
+  d) Hoppscotch — https://github.com/hoppscotch/hoppscotch
+     Language: TypeScript (Vue.js)
+     What: Open source API development ecosystem.
+     Why:  API key storage, OAuth flows, environment variable handling,
+           team collaboration, shared collections.
+
+  Command:
+    blanketaudit scan ./supabase --domain general --framework soc2 --format pdf --format json --output ./audit-saas-supabase
+
+
+--------------------------------------------------------------------------------
+5. GOVERNMENT / PUBLIC SECTOR
+--------------------------------------------------------------------------------
+Frameworks: SOC2, GDPR
+
+  a) CKAN — https://github.com/ckan/ckan
+     Language: Python
+     What: World's leading open source data portal platform (used by data.gov,
+           data.gov.uk, and dozens of governments).
+     Why:  Public dataset management, user access control, API authentication,
+           plugin security, data harvesting pipelines.
+
+  b) Decidim — https://github.com/decidim/decidim
+     Language: Ruby (Rails)
+     What: Participatory democracy platform used by 400+ cities and
+           organizations worldwide (Barcelona, Helsinki, NYC).
+     Why:  Citizen identity verification, voting integrity, proposal
+           management, admin access controls, PII handling.
+
+  c) OpenFisca — https://github.com/openfisca/openfisca-core
+     Language: Python
+     What: Platform for modeling tax and benefit systems (used by French,
+           Tunisian, and other governments).
+     Why:  Tax calculation rules, citizen data processing, API endpoints,
+           legislative rule engines.
+
+  d) Consul — https://github.com/consul/consul
+     Language: Ruby (Rails)
+     What: Citizen participation platform (budgeting, debates, voting) used
+           by Madrid and other cities.
+     Why:  Voter identity, ballot integrity, census data, admin panels,
+           citizen PII handling.
+
+  Command:
+    blanketaudit scan ./ckan --domain general --framework soc2 --framework gdpr --format pdf --format json --output ./audit-gov-ckan
+
+
+--------------------------------------------------------------------------------
+6. EDUCATION (student portals, LMS, EdTech)
+--------------------------------------------------------------------------------
+Frameworks: SOC2, GDPR
+
+  a) Moodle — https://github.com/moodle/moodle
+     Language: PHP
+     What: World's most widely used learning management system (300M+ users).
+     Why:  Student records, grade data, assignment submissions, user roles,
+           plugin system, SSO integration. FERPA-adjacent PII everywhere.
+
+  b) Canvas LMS — https://github.com/instructure/canvas-lms
+     Language: Ruby (Rails)
+     What: Enterprise learning management system by Instructure.
+     Why:  Student authentication, grade APIs, file storage, LTI integrations,
+           role-based permissions, notification system.
+
+  c) Open edX — https://github.com/openedx/edx-platform
+     Language: Python (Django)
+     What: Platform powering edX, used by MIT, Harvard, and 2,000+ orgs.
+     Why:  Student enrollment data, certificate generation, payment processing,
+           course content access control, grading subsystem.
+
+  d) Chamilo — https://github.com/chamilo/chamilo-lms
+     Language: PHP
+     What: E-learning and collaboration platform used by universities and
+           corporations.
+     Why:  User management, exam/quiz data, progress tracking, SCORM
+           integration, document management.
+
+  Command:
+    blanketaudit scan ./moodle --domain general --framework soc2 --framework gdpr --format pdf --format json --output ./audit-edu-moodle
+
+
+--------------------------------------------------------------------------------
+7. EU / GDPR-FOCUSED (any product handling EU user data)
+--------------------------------------------------------------------------------
+Frameworks: GDPR
+
+  a) Matomo — https://github.com/matomo-org/matomo
+     Language: PHP
+     What: Privacy-focused web analytics platform (Google Analytics alternative).
+     Why:  User tracking, consent management, data anonymization, IP handling,
+           data retention policies, cookie management. Built for GDPR.
+
+  b) PostHog — https://github.com/PostHog/posthog
+     Language: Python + TypeScript
+     What: Open source product analytics, session recording, feature flags.
+     Why:  User event collection, session replay (PII in recordings), data
+           pipelines, consent flows, data export/deletion APIs.
+
+  c) Plausible — https://github.com/plausible/analytics
+     Language: Elixir
+     What: Privacy-first web analytics (no cookies, GDPR-compliant by design).
+     Why:  Interesting audit target — claims GDPR compliance. Good test to
+           verify privacy claims match implementation.
+
+  d) CookieConsent — https://github.com/orestbida/cookieconsent
+     Language: TypeScript
+     What: Lightweight cookie consent management for GDPR/CCPA compliance.
+     Why:  Consent storage, preference persistence, third-party script
+           blocking, cross-domain consent sharing.
+
+  Command:
+    blanketaudit scan ./matomo --domain general --framework gdpr --format pdf --format json --output ./audit-gdpr-matomo
+
+
+--------------------------------------------------------------------------------
+8. MULTI-REPO / MICROSERVICES (scan multiple repos together)
+--------------------------------------------------------------------------------
+Best tested with repos that communicate via HTTP/gRPC:
+
+  a) eShopOnContainers — https://github.com/dotnet-architecture/eShopOnContainers
+     Language: C#
+     What: Microsoft's reference microservices architecture on .NET.
+     Why:  10+ services (catalog, ordering, basket, identity, payment),
+           inter-service HTTP/gRPC calls, API gateway, event bus.
+           Perfect cross-repo call graph test.
+
+  b) Microservices Demo (Google) — https://github.com/GoogleCloudPlatform/microservices-demo
+     Language: Go, Python, Java, C#, JavaScript (polyglot)
+     What: Online Boutique — 11-service e-commerce demo from Google Cloud.
+     Why:  gRPC inter-service calls, Kubernetes manifests, Dockerfiles,
+           multiple languages. Ideal multi-repo + infra audit.
+
+  c) Spring PetClinic Microservices — https://github.com/spring-petclinic/spring-petclinic-microservices
+     Language: Java
+     What: Classic Spring demo decomposed into microservices.
+     Why:  Service discovery, config server, API gateway, inter-service
+           REST calls, Docker Compose deployment.
+
+  d) Sock Shop — https://github.com/microservices-demo/microservices-demo
+     Language: Go, Java, Node.js (polyglot)
+     What: Weaveworks microservices reference application.
+     Why:  User service, cart, orders, payment, shipping — each a separate
+           repo with HTTP APIs. Real cross-repo dependency chains.
+
+  Command:
+    blanketaudit scan ./microservices-demo/src/adservice ./microservices-demo/src/cartservice ./microservices-demo/src/checkoutservice --domain finance --framework pci-dss --format pdf --format json --output ./audit-multi-boutique
+
+
+--------------------------------------------------------------------------------
+9. GENERAL / OPEN SOURCE (libraries, CLI tools, utilities)
+--------------------------------------------------------------------------------
+Frameworks: SOC2 (optional)
+
+  a) FastAPI — https://github.com/fastapi/fastapi
+     Language: Python
+     What: Modern, high-performance Python web framework.
+     Why:  Security utilities, OAuth2 implementations, dependency injection,
+           middleware patterns, input validation. Clean codebase for quality audit.
+
+  b) Nest.js — https://github.com/nestjs/nest
+     Language: TypeScript
+     What: Progressive Node.js framework for enterprise server-side apps.
+     Why:  Guards, interceptors, middleware, authentication modules, validation
+           pipes. Good architecture audit target.
+
+  c) Terraform AWS Modules — https://github.com/terraform-aws-modules/terraform-aws-vpc
+     Language: HCL (Terraform)
+     What: Production-grade Terraform modules for AWS infrastructure.
+     Why:  Infrastructure-as-code security, network ACLs, security groups,
+           IAM policies. Great for infra audit testing.
+
+  d) Prometheus — https://github.com/prometheus/prometheus
+     Language: Go
+     What: Cloud-native monitoring and alerting toolkit.
+     Why:  API security, configuration handling, TLS setup, authentication,
+           storage engine, query language parsing.
+
+  Command:
+    blanketaudit scan ./fastapi --domain general --format pdf --format json --output ./audit-general-fastapi
+
+
+================================================================================
+  QUICK REFERENCE — Top Pick Per Domain
+================================================================================
+
+  Domain              Repo                  Language   GitHub Stars
+  ------------------  --------------------  ---------  ------------
+  Healthcare          OpenMRS               Java       4k+
+  Finance/Banking     Apache Fineract       Java       2k+
+  E-Commerce          Saleor                Python     20k+
+  SaaS/Dev Tools      Supabase              TypeScript 75k+
+  Government          CKAN                  Python     4k+
+  Education           Moodle                PHP        5k+
+  GDPR-Focused        Matomo                PHP        20k+
+  Multi-Repo          Google Online Boutique Polyglot  17k+
+  General/OSS         FastAPI               Python     80k+
+
+================================================================================
+  NOTES
+================================================================================
+
+- Clone repos locally before scanning for best performance.
+- Use --dry-run first to estimate token cost before a full scan.
+- Multi-repo scans produce cross-repo call graphs and dependency analysis.
+- Some large repos (Moodle, GitLab, Canvas) may need --max-cost to cap spend.
+- All repos listed are permissively licensed (Apache 2.0, MIT, GPL, AGPL).

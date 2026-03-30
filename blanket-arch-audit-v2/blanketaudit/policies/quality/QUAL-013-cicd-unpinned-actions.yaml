@@ -4,6 +4,12 @@ category: quality
 severity: medium
 description: Detects GitHub Actions workflows using @main or @master instead of pinned versions or SHA
 frameworks: []
+file_patterns:
+  - '**/.github/workflows/*.yaml'
+  - '**/.github/workflows/*.yml'
+  - '**/.gitlab-ci.yml'
+  - '**/Jenkinsfile'
+  - '**/.circleci/**'
 static_checks:
   - tool: regex
     regex: 'uses:\s*\S+@(main|master|latest)\s*$'

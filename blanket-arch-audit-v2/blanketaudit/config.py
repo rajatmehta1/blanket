@@ -44,6 +44,7 @@ class LLMConfig(BaseModel):
     temperature: float = 0.0
     max_retries: int = 3
     timeout_seconds: int = 120
+    base_url: str = ""  # Custom base URL (e.g. remote Ollama: "http://192.168.1.50:11434")
     agent_model_overrides: dict[str, str] = Field(
         default_factory=dict,
         description="Per-agent model overrides, e.g. {'compliance': 'claude-opus-4-20250514'}",
