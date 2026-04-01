@@ -27,7 +27,6 @@ htmlcov/
 audit-report/
 
 # Secrets
-.env
 .env.local
 
 # Node
