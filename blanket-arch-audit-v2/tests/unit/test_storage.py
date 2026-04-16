@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.storage.memory_fallback import InMemoryGraph, InMemoryScanStore
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.storage.memory_fallback import InMemoryGraph, InMemoryScanStore
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -229,8 +229,8 @@ class TestSQLiteStore:
             import aiosqlite
         except ImportError:
             pytest.skip("aiosqlite not installed")
-        from blanketaudit.storage.sqlite_store import SQLiteStore
-        with patch("blanketaudit.storage.sqlite_store.get_settings", return_value=_settings()):
+        from blanketaudit2.storage.sqlite_store import SQLiteStore
+        with patch("blanketaudit2.storage.sqlite_store.get_settings", return_value=_settings()):
             s = SQLiteStore(db_path=tmp_path / "test.db")
             await s.connect()
         yield s
@@ -304,18 +304,18 @@ class TestSQLiteStore:
 class TestStorageFactory:
     @pytest.mark.asyncio
     async def test_get_graph_store_falls_back_to_memory(self):
-        with patch("blanketaudit.storage.get_settings", return_value=_settings(neo4j_password="")):
-            from blanketaudit.storage import get_graph_store
+        with patch("blanketaudit2.storage.get_settings", return_value=_settings(neo4j_password="")):
+            from blanketaudit2.storage import get_graph_store
             store = await get_graph_store()
         assert isinstance(store, InMemoryGraph)
         assert store.is_connected
 
     @pytest.mark.asyncio
     async def test_get_scan_store_falls_back_to_memory(self):
-        with patch("blanketaudit.storage.get_settings", return_value=_settings()), \
-             patch("blanketaudit.storage.sqlite_store.SQLiteStore.connect",
+        with patch("blanketaudit2.storage.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.storage.sqlite_store.SQLiteStore.connect",
                     side_effect=Exception("no sqlite")):
-            from blanketaudit.storage import get_scan_store
+            from blanketaudit2.storage import get_scan_store
             store = await get_scan_store()
         assert isinstance(store, InMemoryScanStore)
 
@@ -327,11 +327,11 @@ class TestStorageFactory:
             pytest.skip("aiosqlite not installed")
 
         s = _settings(sqlite_path=str(tmp_path / "test.db"))
-        with patch("blanketaudit.storage.get_settings", return_value=s), \
-             patch("blanketaudit.storage.sqlite_store.get_settings", return_value=s):
-            from blanketaudit.storage import get_scan_store
+        with patch("blanketaudit2.storage.get_settings", return_value=s), \
+             patch("blanketaudit2.storage.sqlite_store.get_settings", return_value=s):
+            from blanketaudit2.storage import get_scan_store
             store = await get_scan_store()
 
-        from blanketaudit.storage.sqlite_store import SQLiteStore
+        from blanketaudit2.storage.sqlite_store import SQLiteStore
         assert isinstance(store, SQLiteStore)
         await store.close()

@@ -21,7 +21,7 @@ jobs:
           pip install -e .
           pip install pytest pytest-asyncio ruff
       - name: Lint
-        run: ruff check blanketaudit/ tests/
+        run: ruff check blanketaudit2/ tests/
       - name: Test
         run: python -m pytest tests/unit/ -v --tb=short
       - name: Upload SARIF (on main)

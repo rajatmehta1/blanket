@@ -132,7 +132,7 @@ def get_tracer() -> Any:
         return _tracer
     try:
         from opentelemetry import trace
-        _tracer = trace.get_tracer("blanketaudit")
+        _tracer = trace.get_tracer("blanketaudit2")
     except ImportError:
         _tracer = _NoOpTracer()
     return _tracer
@@ -182,12 +182,12 @@ def setup_tracing(endpoint: str = "") -> None:
         )
         from opentelemetry.sdk.resources import Resource
 
-        resource = Resource.create({"service.name": "blanketaudit"})
+        resource = Resource.create({"service.name": "blanketaudit2"})
         provider = TracerProvider(resource=resource)
         exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
         provider.add_span_processor(BatchSpanProcessor(exporter))
         trace.set_tracer_provider(provider)
-        _tracer = trace.get_tracer("blanketaudit")
+        _tracer = trace.get_tracer("blanketaudit2")
         structlog.get_logger().info("tracing.configured", endpoint=endpoint)
     except ImportError:
         structlog.get_logger().warning(

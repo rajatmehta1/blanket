@@ -7,20 +7,20 @@ specific remediation steps.
 ## Quick Start
 
 ```bash
-pip install blanketaudit
+pip install blanketaudit2
 
 # Scan a local repo (static-only, free)
-blanketaudit scan ./my-project
+blanketaudit2 scan ./my-project
 
 # Scan with AI reasoning (requires API key)
 export ANTHROPIC_API_KEY=sk-ant-...
-blanketaudit scan ./my-project --domain healthcare --framework hipaa --framework soc2
+blanketaudit2 scan ./my-project --domain healthcare --framework hipaa --framework soc2
 
 # Dry-run cost estimate (no LLM spend)
-blanketaudit scan ./my-project --dry-run
+blanketaudit2 scan ./my-project --dry-run
 
 # Output formats
-blanketaudit scan ./my-project --format pdf --format sarif --output ./reports
+blanketaudit2 scan ./my-project --format pdf --format sarif --output ./reports
 ```
 
 ## Features
@@ -104,12 +104,12 @@ export BLANKETAUDIT_LLM__COMPLIANCE_MODEL=claude-opus-4-20250514
 ## CLI Commands
 
 ```bash
-blanketaudit scan [PATHS] [OPTIONS]     # Run audit scan
-blanketaudit policies --list            # List all 88 policies
-blanketaudit policies --validate        # Validate policy YAML files
-blanketaudit providers --check          # Test provider connectivity
-blanketaudit report SCAN_ID             # Regenerate report
-blanketaudit --version                  # Show version
+blanketaudit2 scan [PATHS] [OPTIONS]     # Run audit scan
+blanketaudit2 policies --list            # List all 88 policies
+blanketaudit2 policies --validate        # Validate policy YAML files
+blanketaudit2 providers --check          # Test provider connectivity
+blanketaudit2 report SCAN_ID             # Regenerate report
+blanketaudit2 --version                  # Show version
 ```
 
 ## CI/CD Integration
@@ -117,7 +117,7 @@ blanketaudit --version                  # Show version
 ### GitHub Action
 
 ```yaml
-- uses: tectoniclabs/blanketaudit-action@v1
+- uses: tectoniclabs/blanketaudit2-action@v1
   with:
     domain: healthcare
     frameworks: hipaa,soc2
@@ -129,7 +129,7 @@ blanketaudit --version                  # Show version
 ### JSON Output for Pipelines
 
 ```bash
-blanketaudit scan ./repo --json
+blanketaudit2 scan ./repo --json
 # Exit codes: 0=pass, 1=critical findings, 2=error
 ```
 
@@ -137,7 +137,7 @@ blanketaudit scan ./repo --json
 
 ```bash
 # CLI mode
-docker run -v ./my-project:/repo blanketaudit scan /repo
+docker run -v ./my-project:/repo blanketaudit2 scan /repo
 
 # API server
 docker compose up
@@ -151,7 +151,7 @@ docker compose -f docker-compose.onprem.yml up
 
 ```bash
 # Start API server
-uvicorn blanketaudit.api.app:app --host 0.0.0.0 --port 8000
+uvicorn blanketaudit2.api.app:app --host 0.0.0.0 --port 8000
 
 # Endpoints
 GET  /health                      # Provider status, circuit breaker
@@ -180,7 +180,7 @@ Tier 7: Delivery (filesystem, webhooks, SQLite history)
 
 ```bash
 git clone https://github.com/tectoniclabs/blanketaudit
-cd blanketaudit
+cd blanketaudit2
 pip install -e .
 pip install pytest pytest-asyncio ruff
 
@@ -188,7 +188,7 @@ pip install pytest pytest-asyncio ruff
 python -m pytest tests/ -k "not TestLLMJudge"
 
 # Lint
-ruff check blanketaudit/ tests/
+ruff check blanketaudit2/ tests/
 ```
 
 ## License

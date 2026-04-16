@@ -12,14 +12,14 @@ services:
       - BLANKETAUDIT_LLM__PROVIDER=none
       - BLANKETAUDIT_NEO4J_URI=bolt://neo4j:7687
       - BLANKETAUDIT_NEO4J_USER=neo4j
-      - BLANKETAUDIT_NEO4J_PASSWORD=blanketaudit
+      - BLANKETAUDIT_NEO4J_PASSWORD=blanketaudit2
       - BLANKETAUDIT_MILVUS_URI=http://milvus:19530
-      - BLANKETAUDIT_SQLITE_PATH=/data/blanketaudit.db
+      - BLANKETAUDIT_SQLITE_PATH=/data/blanketaudit2.db
       - BLANKETAUDIT_LOG_LEVEL=DEBUG
       - BLANKETAUDIT_LOG_JSON=false
     volumes:
       - scan-data:/data
-      - ./blanketaudit:/app/blanketaudit:ro
+      - ./blanketaudit2:/app/blanketaudit2:ro
     depends_on:
       - neo4j
       - milvus
@@ -30,7 +30,7 @@ services:
       - "7474:7474"
       - "7687:7687"
     environment:
-      - NEO4J_AUTH=neo4j/blanketaudit
+      - NEO4J_AUTH=neo4j/blanketaudit2
       - NEO4J_PLUGINS=["apoc"]
     volumes:
       - neo4j-data:/data

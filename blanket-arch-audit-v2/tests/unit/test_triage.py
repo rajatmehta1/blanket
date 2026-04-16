@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.triage — file scoring, tier assignment, batch assembly."""
+"""Tests for blanketaudit2.triage — file scoring, tier assignment, batch assembly."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from unittest.mock import patch
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.ingestion.models import FileMetadata, FileType
-from blanketaudit.triage.batch_assembler import BatchAssembler, estimate_tokens
-from blanketaudit.triage.file_scorer import FileScorer
-from blanketaudit.triage.tier_assigner import TierAssigner
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.ingestion.models import FileMetadata, FileType
+from blanketaudit2.triage.batch_assembler import BatchAssembler, estimate_tokens
+from blanketaudit2.triage.file_scorer import FileScorer
+from blanketaudit2.triage.tier_assigner import TierAssigner
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -232,7 +232,7 @@ class TestFileScorer:
 
 class TestTierAssigner:
     def _assigner(self, t1=60, t2=30):
-        with patch("blanketaudit.triage.tier_assigner.get_settings") as mock_gs:
+        with patch("blanketaudit2.triage.tier_assigner.get_settings") as mock_gs:
             mock_gs.return_value = _settings(tier1_threshold=t1, tier2_threshold=t2)
             return TierAssigner(tier1_threshold=t1, tier2_threshold=t2)
 
@@ -315,7 +315,7 @@ class TestEstimateTokens:
 
 class TestBatchAssembler:
     def _assembler(self, max_tokens=1000, reserve=200):
-        with patch("blanketaudit.triage.batch_assembler.get_settings") as mock_gs:
+        with patch("blanketaudit2.triage.batch_assembler.get_settings") as mock_gs:
             mock_gs.return_value = _settings()
             return BatchAssembler(max_batch_tokens=max_tokens, response_reserve=reserve)
 

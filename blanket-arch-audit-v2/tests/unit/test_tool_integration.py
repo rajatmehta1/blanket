@@ -13,20 +13,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.agents.tools.semgrep_tool import (
+from blanketaudit2.agents.tools.semgrep_tool import (
     SemgrepFinding,
     _map_sarif_level,
     _parse_sarif,
     check_semgrep_installed,
     run_semgrep,
 )
-from blanketaudit.agents.tools.gitleaks_tool import (
+from blanketaudit2.agents.tools.gitleaks_tool import (
     GitleaksFinding,
     _parse_gitleaks_json,
     check_gitleaks_installed,
     run_gitleaks,
 )
-from blanketaudit.agents.tools.osv_tool import (
+from blanketaudit2.agents.tools.osv_tool import (
     OSVFinding,
     _parse_osv_json,
     check_osv_installed,
@@ -135,14 +135,14 @@ class TestSemgrepParsing:
 class TestSemgrepExecution:
     @pytest.mark.asyncio
     async def test_not_installed_returns_empty(self):
-        with patch("blanketaudit.agents.tools.semgrep_tool.check_semgrep_installed",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.check_semgrep_installed",
                     return_value=False):
             result = await run_semgrep("/tmp/repo")
         assert result == []
 
     @pytest.mark.asyncio
     async def test_check_installed_false(self):
-        with patch("blanketaudit.agents.tools.semgrep_tool.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.asyncio.create_subprocess_exec",
                     side_effect=FileNotFoundError):
             assert await check_semgrep_installed() is False
 
@@ -152,11 +152,11 @@ class TestSemgrepExecution:
         mock_proc.returncode = 2  # Error (not 0 or 1)
         mock_proc.communicate = AsyncMock(return_value=(b"", b"error"))
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.check_semgrep_installed",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.check_semgrep_installed",
                     return_value=True), \
-             patch("blanketaudit.agents.tools.semgrep_tool.asyncio.create_subprocess_exec",
+             patch("blanketaudit2.agents.tools.semgrep_tool.asyncio.create_subprocess_exec",
                     return_value=mock_proc), \
-             patch("blanketaudit.agents.tools.semgrep_tool.asyncio.wait_for",
+             patch("blanketaudit2.agents.tools.semgrep_tool.asyncio.wait_for",
                     return_value=(b"", b"error")):
             mock_proc.communicate = AsyncMock(return_value=(b"", b"error"))
             result = await run_semgrep("/tmp/repo")
@@ -168,11 +168,11 @@ class TestSemgrepExecution:
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
         mock_proc.kill = MagicMock()
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.check_semgrep_installed",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.check_semgrep_installed",
                     return_value=True), \
-             patch("blanketaudit.agents.tools.semgrep_tool.asyncio.create_subprocess_exec",
+             patch("blanketaudit2.agents.tools.semgrep_tool.asyncio.create_subprocess_exec",
                     return_value=mock_proc), \
-             patch("blanketaudit.agents.tools.semgrep_tool.asyncio.wait_for",
+             patch("blanketaudit2.agents.tools.semgrep_tool.asyncio.wait_for",
                     side_effect=asyncio.TimeoutError):
             result = await run_semgrep("/tmp/repo", timeout=1)
         assert result == []
@@ -246,14 +246,14 @@ class TestGitleaksParsing:
 class TestGitleaksExecution:
     @pytest.mark.asyncio
     async def test_not_installed_returns_empty(self):
-        with patch("blanketaudit.agents.tools.gitleaks_tool.check_gitleaks_installed",
+        with patch("blanketaudit2.agents.tools.gitleaks_tool.check_gitleaks_installed",
                     return_value=False):
             result = await run_gitleaks("/tmp/repo")
         assert result == []
 
     @pytest.mark.asyncio
     async def test_check_installed_false(self):
-        with patch("blanketaudit.agents.tools.gitleaks_tool.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.agents.tools.gitleaks_tool.asyncio.create_subprocess_exec",
                     side_effect=FileNotFoundError):
             assert await check_gitleaks_installed() is False
 
@@ -263,11 +263,11 @@ class TestGitleaksExecution:
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
         mock_proc.kill = MagicMock()
 
-        with patch("blanketaudit.agents.tools.gitleaks_tool.check_gitleaks_installed",
+        with patch("blanketaudit2.agents.tools.gitleaks_tool.check_gitleaks_installed",
                     return_value=True), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.asyncio.create_subprocess_exec",
+             patch("blanketaudit2.agents.tools.gitleaks_tool.asyncio.create_subprocess_exec",
                     return_value=mock_proc), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.asyncio.wait_for",
+             patch("blanketaudit2.agents.tools.gitleaks_tool.asyncio.wait_for",
                     side_effect=asyncio.TimeoutError):
             result = await run_gitleaks("/tmp/repo", timeout=1)
         assert result == []
@@ -354,14 +354,14 @@ class TestOSVParsing:
 class TestOSVExecution:
     @pytest.mark.asyncio
     async def test_not_installed_returns_empty(self):
-        with patch("blanketaudit.agents.tools.osv_tool.check_osv_installed",
+        with patch("blanketaudit2.agents.tools.osv_tool.check_osv_installed",
                     return_value=False):
             result = await run_osv_scan("/tmp/repo")
         assert result == []
 
     @pytest.mark.asyncio
     async def test_check_installed_false(self):
-        with patch("blanketaudit.agents.tools.osv_tool.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.agents.tools.osv_tool.asyncio.create_subprocess_exec",
                     side_effect=FileNotFoundError):
             assert await check_osv_installed() is False
 
@@ -371,11 +371,11 @@ class TestOSVExecution:
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
         mock_proc.kill = MagicMock()
 
-        with patch("blanketaudit.agents.tools.osv_tool.check_osv_installed",
+        with patch("blanketaudit2.agents.tools.osv_tool.check_osv_installed",
                     return_value=True), \
-             patch("blanketaudit.agents.tools.osv_tool.asyncio.create_subprocess_exec",
+             patch("blanketaudit2.agents.tools.osv_tool.asyncio.create_subprocess_exec",
                     return_value=mock_proc), \
-             patch("blanketaudit.agents.tools.osv_tool.asyncio.wait_for",
+             patch("blanketaudit2.agents.tools.osv_tool.asyncio.wait_for",
                     side_effect=asyncio.TimeoutError):
             result = await run_osv_scan("/tmp/repo", timeout=1)
         assert result == []

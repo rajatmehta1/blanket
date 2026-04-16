@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from unittest.mock import MagicMock
 
-from blanketaudit.ingestion.extractors.base_extractor import BaseExtractor, ExtractionResult
+from blanketaudit2.ingestion.extractors.base_extractor import BaseExtractor, ExtractionResult
 
 
 # ── Helper parsers (skip if tree-sitter unavailable) ─────────
@@ -185,7 +185,7 @@ async def create_user(data: dict):
 
 class TestPythonExtractor:
     def _get_extractor(self):
-        from blanketaudit.ingestion.extractors.python_extractor import PythonExtractor
+        from blanketaudit2.ingestion.extractors.python_extractor import PythonExtractor
         return PythonExtractor(repo_name="test")
 
     def test_extracts_imports(self):
@@ -379,7 +379,7 @@ public interface UserRepository {
 
 class TestJavaExtractor:
     def _get_extractor(self):
-        from blanketaudit.ingestion.extractors.java_extractor import JavaExtractor
+        from blanketaudit2.ingestion.extractors.java_extractor import JavaExtractor
         return JavaExtractor(repo_name="test")
 
     def test_extracts_imports(self):
@@ -563,7 +563,7 @@ function complexFn(x: number) {
 
 class TestTypeScriptExtractor:
     def _get_extractor(self):
-        from blanketaudit.ingestion.extractors.typescript_extractor import TypeScriptExtractor
+        from blanketaudit2.ingestion.extractors.typescript_extractor import TypeScriptExtractor
         return TypeScriptExtractor(repo_name="test")
 
     def test_extracts_es6_imports(self):

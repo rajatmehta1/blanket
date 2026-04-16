@@ -159,7 +159,7 @@ class LLMJudge:
 
 
 def _scan_fixture(fixture_name: str) -> list[dict]:
-    from blanketaudit.policies.engine import PolicyEngine
+    from blanketaudit2.policies.engine import PolicyEngine
     path = FIXTURES_DIR / fixture_name
     contents: dict[str, str] = {}
     for f in path.rglob("*"):
@@ -169,7 +169,7 @@ def _scan_fixture(fixture_name: str) -> list[dict]:
             except OSError:
                 pass
 
-    policy_root = Path(__file__).parent.parent.parent / "blanketaudit" / "policies"
+    policy_root = Path(__file__).parent.parent.parent / "blanketaudit2" / "policies"
     all_candidates: list[dict] = []
     for cat in ("security", "compliance"):
         cat_dir = policy_root / cat
@@ -275,7 +275,7 @@ class TestLLMJudge:
 
     @pytest.mark.asyncio
     async def test_hipaa_llm_judge(self):
-        from blanketaudit.llm.provider import get_llm
+        from blanketaudit2.llm.provider import get_llm
         llm = get_llm()
         if llm is None:
             pytest.skip("No LLM configured")
@@ -290,7 +290,7 @@ class TestLLMJudge:
 
     @pytest.mark.asyncio
     async def test_clean_llm_judge(self):
-        from blanketaudit.llm.provider import get_llm
+        from blanketaudit2.llm.provider import get_llm
         llm = get_llm()
         if llm is None:
             pytest.skip("No LLM configured")

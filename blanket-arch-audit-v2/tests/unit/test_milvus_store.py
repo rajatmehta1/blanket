@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.storage.milvus_store.
+"""Tests for blanketaudit2.storage.milvus_store.
 
 Uses the in-memory fallback (no Milvus server needed) and the
 _SimpleMemoryStore for tests without any LangChain vector store deps.
@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.storage.milvus_store import (
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.storage.milvus_store import (
     ALL_COLLECTIONS,
     COLLECTION_CODE_CHUNKS,
     COLLECTION_COMPLIANCE_CLAUSES,
@@ -126,8 +126,8 @@ class TestMilvusStoreConnect:
     @pytest.mark.asyncio
     async def test_connect_no_embeddings_disables(self):
         """No embedding provider → store connects but is in fallback mode."""
-        with patch("blanketaudit.storage.milvus_store.get_settings", return_value=_settings()), \
-             patch("blanketaudit.storage.milvus_store.get_embeddings", return_value=None):
+        with patch("blanketaudit2.storage.milvus_store.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.storage.milvus_store.get_embeddings", return_value=None):
             store = MilvusStore()
             await store.connect()
         assert store.using_fallback is True
@@ -138,7 +138,7 @@ class TestMilvusStoreConnect:
     async def test_connect_with_embeddings_creates_collections(self):
         """With embeddings but no Milvus → falls back to in-memory."""
         mock_emb = _mock_embeddings()
-        with patch("blanketaudit.storage.milvus_store.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.storage.milvus_store.get_settings", return_value=_settings()):
             store = MilvusStore(embedding_override=mock_emb)
             await store.connect()
         assert store.is_connected is True
@@ -149,7 +149,7 @@ class TestMilvusStoreConnect:
     @pytest.mark.asyncio
     async def test_close_clears_stores(self):
         mock_emb = _mock_embeddings()
-        with patch("blanketaudit.storage.milvus_store.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.storage.milvus_store.get_settings", return_value=_settings()):
             store = MilvusStore(embedding_override=mock_emb)
             await store.connect()
             assert store.is_connected
@@ -163,7 +163,7 @@ class TestMilvusStoreOperations:
     @pytest.fixture
     async def store(self):
         mock_emb = _mock_embeddings()
-        with patch("blanketaudit.storage.milvus_store.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.storage.milvus_store.get_settings", return_value=_settings()):
             s = MilvusStore(embedding_override=mock_emb)
             await s.connect()
         yield s
@@ -206,7 +206,7 @@ class TestMilvusStoreDomainOps:
     @pytest.fixture
     async def store(self):
         mock_emb = _mock_embeddings()
-        with patch("blanketaudit.storage.milvus_store.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.storage.milvus_store.get_settings", return_value=_settings()):
             s = MilvusStore(embedding_override=mock_emb)
             await s.connect()
         yield s

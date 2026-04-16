@@ -10,13 +10,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.agents.base_agent import BaseAgent
-from blanketaudit.agents.security_agent import SecurityAgent, _reset_counter
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.exceptions import BudgetExceededError, CircuitOpenError
-from blanketaudit.llm.cost_tracker import TokenBudget
-from blanketaudit.llm.resilience import CircuitBreaker
-from blanketaudit.models.finding import AuditFinding
+from blanketaudit2.agents.base_agent import BaseAgent
+from blanketaudit2.agents.security_agent import SecurityAgent, _reset_counter
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.exceptions import BudgetExceededError, CircuitOpenError
+from blanketaudit2.llm.cost_tracker import TokenBudget
+from blanketaudit2.llm.resilience import CircuitBreaker
+from blanketaudit2.models.finding import AuditFinding
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -222,14 +222,14 @@ class TestSecurityAgentStatic:
 
     @pytest.mark.asyncio
     async def test_runs_all_three_tools(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = SecurityAgent(llm=None)
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep",
                     return_value=[_semgrep_result()]), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks",
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks",
                     return_value=[_gitleaks_result()]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan",
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan",
                     return_value=[_osv_result()]):
             findings = await agent.run_static_checks(_sample_state())
 
@@ -239,14 +239,14 @@ class TestSecurityAgentStatic:
 
     @pytest.mark.asyncio
     async def test_tool_failure_does_not_crash(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = SecurityAgent(llm=None)
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep",
                     side_effect=RuntimeError("semgrep broken")), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks",
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks",
                     return_value=[_gitleaks_result()]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan",
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan",
                     return_value=[]):
             findings = await agent.run_static_checks(_sample_state())
 
@@ -254,20 +254,20 @@ class TestSecurityAgentStatic:
 
     @pytest.mark.asyncio
     async def test_no_repos_returns_empty(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = SecurityAgent(llm=None)
         findings = await agent.run_static_checks({"repo_paths": []})
         assert findings == []
 
     @pytest.mark.asyncio
     async def test_finding_has_correct_structure(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = SecurityAgent(llm=None)
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep",
                     return_value=[_semgrep_result()]), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan", return_value=[]):
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan", return_value=[]):
             findings = await agent.run_static_checks(_sample_state())
 
         f = findings[0]
@@ -316,7 +316,7 @@ class TestSecurityAgentAI:
         }))
         cb = CircuitBreaker(failure_threshold=5)
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = SecurityAgent(llm=llm, circuit_breaker=cb)
 
         candidate = self._make_candidate()
@@ -338,7 +338,7 @@ class TestSecurityAgentAI:
         }))
         cb = CircuitBreaker(failure_threshold=5)
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = SecurityAgent(llm=llm, circuit_breaker=cb)
 
         candidate = self._make_candidate()
@@ -407,13 +407,13 @@ class TestSecurityAgentExecute:
     @pytest.mark.asyncio
     async def test_execute_static_only(self):
         """No LLM → static-only findings returned."""
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = SecurityAgent(llm=None)
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep",
                     return_value=[_semgrep_result()]), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan", return_value=[]):
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan", return_value=[]):
             result = await agent.execute(_sample_state())
 
         assert len(result) == 1
@@ -431,13 +431,13 @@ class TestSecurityAgentExecute:
         }))
         cb = CircuitBreaker(failure_threshold=5)
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = SecurityAgent(llm=llm, circuit_breaker=cb)
 
-        with patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep",
+        with patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep",
                     return_value=[_semgrep_result()]), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan", return_value=[]):
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan", return_value=[]):
             result = await agent.execute(_sample_state())
 
         assert len(result) == 1

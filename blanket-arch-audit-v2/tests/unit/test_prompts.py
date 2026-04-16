@@ -1,31 +1,31 @@
-"""Tests for blanketaudit.llm.prompts — verify all prompt templates format correctly."""
+"""Tests for blanketaudit2.llm.prompts — verify all prompt templates format correctly."""
 
 from __future__ import annotations
 
 import pytest
 
-from blanketaudit.llm.guardrails import INJECTION_DEFENSE_PREFIX
-from blanketaudit.llm.prompts.security import (
+from blanketaudit2.llm.guardrails import INJECTION_DEFENSE_PREFIX
+from blanketaudit2.llm.prompts.security import (
     SECURITY_ANALYSIS_PROMPT,
     SECURITY_SYSTEM_PROMPT,
 )
-from blanketaudit.llm.prompts.compliance import (
+from blanketaudit2.llm.prompts.compliance import (
     COMPLIANCE_ANALYSIS_PROMPT,
     COMPLIANCE_SYSTEM_PROMPT,
 )
-from blanketaudit.llm.prompts.architecture import (
+from blanketaudit2.llm.prompts.architecture import (
     ARCHITECTURE_ANALYSIS_PROMPT,
     ARCHITECTURE_SYSTEM_PROMPT,
 )
-from blanketaudit.llm.prompts.quality import (
+from blanketaudit2.llm.prompts.quality import (
     QUALITY_ANALYSIS_PROMPT,
     QUALITY_SYSTEM_PROMPT,
 )
-from blanketaudit.llm.prompts.enrichment import (
+from blanketaudit2.llm.prompts.enrichment import (
     ENRICHMENT_ANALYSIS_PROMPT,
     ENRICHMENT_SYSTEM_PROMPT,
 )
-from blanketaudit.llm.prompts.executive_summary import (
+from blanketaudit2.llm.prompts.executive_summary import (
     EXECUTIVE_SUMMARY_ANALYSIS_PROMPT,
     EXECUTIVE_SUMMARY_SYSTEM_PROMPT,
 )

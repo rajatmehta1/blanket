@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from blanketaudit.policies.engine import PolicyEngine
-from blanketaudit.policies.schema import Policy, validate_policy_dict
+from blanketaudit2.policies.engine import PolicyEngine
+from blanketaudit2.policies.schema import Policy, validate_policy_dict
 
-POLICY_ROOT = Path(__file__).parent.parent.parent / "blanketaudit" / "policies"
+POLICY_ROOT = Path(__file__).parent.parent.parent / "blanketaudit2" / "policies"
 
 
 # ── Helpers ──────────────────────────────────────────────────

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.agents.tools.ast_tools import (
+from blanketaudit2.agents.tools.ast_tools import (
     get_class_info,
     get_file_methods,
     get_imports,
@@ -17,7 +17,7 @@ from blanketaudit.agents.tools.ast_tools import (
     read_file_content,
     set_analysis_contexts,
 )
-from blanketaudit.agents.tools.coverage_tool import (
+from blanketaudit2.agents.tools.coverage_tool import (
     CoverageResult,
     CoverageSummary,
     find_coverage_reports,
@@ -26,14 +26,14 @@ from blanketaudit.agents.tools.coverage_tool import (
     parse_lcov,
     parse_jacoco_xml,
 )
-from blanketaudit.agents.tools.milvus_tools import (
+from blanketaudit2.agents.tools.milvus_tools import (
     add_code_chunk,
     compliance_rag,
     search_vuln_patterns,
     semantic_search,
     set_vector_store,
 )
-from blanketaudit.agents.tools.neo4j_tools import (
+from blanketaudit2.agents.tools.neo4j_tools import (
     find_call_chain,
     get_blast_radius,
     get_entry_points,
@@ -186,7 +186,7 @@ class TestMilvusTools:
 class TestASTTools:
     @pytest.fixture(autouse=True)
     def setup_contexts(self):
-        from blanketaudit.ingestion.models import (
+        from blanketaudit2.ingestion.models import (
             AnalysisContext, ClassInfo, ImportInfo, MethodInfo,
         )
         ctx = AnalysisContext(

@@ -1,10 +1,10 @@
-"""Tests for blanketaudit.llm.guardrails."""
+"""Tests for blanketaudit2.llm.guardrails."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 
-from blanketaudit.llm.guardrails import (
+from blanketaudit2.llm.guardrails import (
     INJECTION_DEFENSE_PREFIX,
     detect_output_anomalies,
     sanitize_code_for_prompt,

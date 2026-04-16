@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from blanketaudit.report.json_exporter import JSONExporter
-from blanketaudit.report.sarif_exporter import SARIFExporter
+from blanketaudit2.report.json_exporter import JSONExporter
+from blanketaudit2.report.sarif_exporter import SARIFExporter
 
 
 # ── Mock report ──────────────────────────────────────────────
@@ -147,7 +147,7 @@ class TestJSONExporter:
         path = exporter.export_summary(_mock_report(), tmp_path / "summary.json")
         assert path.exists()
         summary = json.loads(path.read_text(encoding="utf-8"))
-        assert summary["tool"] == "blanketaudit"
+        assert summary["tool"] == "blanketaudit2"
         assert summary["project"] == "MedPay"
 
     def test_summary_gate_fails_on_critical(self):

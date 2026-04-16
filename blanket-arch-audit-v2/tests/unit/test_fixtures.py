@@ -11,11 +11,11 @@ from pathlib import Path
 
 import pytest
 
-from blanketaudit.ingestion.file_indexer import FileIndexer
-from blanketaudit.ingestion.models import FileMetadata
-from blanketaudit.policies.engine import PolicyEngine
-from blanketaudit.triage.file_scorer import FileScorer
-from blanketaudit.triage.tier_assigner import TierAssigner
+from blanketaudit2.ingestion.file_indexer import FileIndexer
+from blanketaudit2.ingestion.models import FileMetadata
+from blanketaudit2.policies.engine import PolicyEngine
+from blanketaudit2.triage.file_scorer import FileScorer
+from blanketaudit2.triage.tier_assigner import TierAssigner
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -48,7 +48,7 @@ def _load_file_contents(name: str) -> dict[str, str]:
 def _run_policies(category: str, file_contents: dict[str, str]) -> list:
     """Run policies of a category against file contents."""
     engine = PolicyEngine()
-    policy_dir = Path(__file__).parent.parent.parent / "blanketaudit" / "policies" / category
+    policy_dir = Path(__file__).parent.parent.parent / "blanketaudit2" / "policies" / category
     if not policy_dir.exists():
         return []
     policies = engine.load_policies(policy_dir)
@@ -269,13 +269,13 @@ class TestInjectionAttackFixture:
 class TestCrossFixtureTriage:
     @pytest.fixture
     def _settings(self):
-        from blanketaudit.config import get_settings
+        from blanketaudit2.config import get_settings
         get_settings.cache_clear()
 
     def test_triage_scores_vulnerable_files_higher(self, _settings):
         """Files with security-relevant names should score higher."""
         from unittest.mock import patch
-        from blanketaudit.config import Settings
+        from blanketaudit2.config import Settings
         s = Settings(llm={"provider": "none"})
 
         hipaa_files = _index_fixture("fixture-hipaa-fail")

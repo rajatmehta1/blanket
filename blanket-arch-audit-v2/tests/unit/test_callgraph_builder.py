@@ -1,11 +1,11 @@
 """Tests for callgraph static_builder and entry_point_detector."""
 from __future__ import annotations
 import pytest
-from blanketaudit.callgraph.static_builder import (
+from blanketaudit2.callgraph.static_builder import (
     CallGraph, CallEdge, StaticCallGraphBuilder, SymbolTable, _build_import_map,
 )
-from blanketaudit.callgraph.entry_point_detector import EntryPointDetector
-from blanketaudit.ingestion.models import (
+from blanketaudit2.callgraph.entry_point_detector import EntryPointDetector
+from blanketaudit2.ingestion.models import (
     AnalysisContext, CallInfo, EntryPointInfo, ImportInfo, MethodInfo,
 )
 
@@ -198,9 +198,9 @@ class TestBuildImportMap:
         assert "sys" not in result
 
     def test_dotted_module_alias(self):
-        imports = [_import("main.py", "blanketaudit.config")]
+        imports = [_import("main.py", "blanketaudit2.config")]
         result = _build_import_map(imports, "main.py")
-        assert result["config"] == "blanketaudit.config"
+        assert result["config"] == "blanketaudit2.config"
 
     def test_multiple_names_from_one_module(self):
         imports = [_import("main.py", "typing", names=["List", "Dict", "Optional"])]

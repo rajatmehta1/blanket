@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.orchestrator.cost_estimator."""
+"""Tests for blanketaudit2.orchestrator.cost_estimator."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.ingestion.models import FileMetadata, FileType
-from blanketaudit.orchestrator.cost_estimator import (
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.ingestion.models import FileMetadata, FileType
+from blanketaudit2.orchestrator.cost_estimator import (
     CostEstimate,
     CostEstimator,
     _estimate_file_input_tokens,
@@ -81,14 +81,14 @@ class TestEstimateFileInputTokens:
 class TestCostEstimator:
     def _estimator(self, settings=None, cached=None):
         s = settings or _settings()
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s):
             return CostEstimator(
                 max_scan_cost_usd=s.cost.max_scan_cost_usd,
                 cached_file_paths=cached or set(),
             )
 
     def _run(self, estimator, files, tiers):
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings",
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings",
                     return_value=_settings()):
             return estimator.estimate(files, tiers)
 
@@ -162,7 +162,7 @@ class TestCostEstimator:
         })
         est = self._estimator(settings=s)
         files = [_file()]
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s):
             result = est.estimate(files, {"src/main.py": 1})
         assert result.model_routing["security"] == "claude-haiku-4-5-20251001"
 
@@ -204,7 +204,7 @@ class TestRecommendations:
             llm={"provider": "anthropic", "model": ""},
             cost={"max_scan_cost_usd": max_cost},
         )
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s):
             est = CostEstimator(max_scan_cost_usd=max_cost)
             return est._make_recommendation(total_usd)
 
@@ -226,7 +226,7 @@ class TestRecommendations:
 
     def test_no_llm_provider(self):
         s = _settings(llm={"provider": "none"})
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s):
             est = CostEstimator()
             rec = est._make_recommendation(0.0)
         assert "free" in rec.lower() or "static" in rec.lower()
@@ -243,7 +243,7 @@ class TestDisabledAgents:
             "architecture": {"enabled": False},
             "quality": {"enabled": False},
         })
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s):
             est = CostEstimator(max_scan_cost_usd=15.0)
             files = [_file()]
             result = est.estimate(files, {"src/main.py": 1})
@@ -257,7 +257,7 @@ class TestDisabledAgents:
             "architecture": {"enabled": False},
             "quality": {"enabled": False},
         })
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s):
             est = CostEstimator(max_scan_cost_usd=15.0)
             result = est.estimate([_file()], {"src/main.py": 1})
         assert result.total_estimated_usd == 0.0
@@ -269,7 +269,7 @@ class TestDisabledAgents:
 
 class TestFormatEstimateTable:
     def test_produces_output(self):
-        from blanketaudit.orchestrator.cost_estimator import AgentCostEstimate
+        from blanketaudit2.orchestrator.cost_estimator import AgentCostEstimate
         estimate = CostEstimate(
             total_estimated_usd=8.50,
             per_agent=[
@@ -296,7 +296,7 @@ class TestFormatEstimateTable:
         assert "Cached" in table
 
     def test_no_cached_files_hides_line(self):
-        from blanketaudit.orchestrator.cost_estimator import AgentCostEstimate
+        from blanketaudit2.orchestrator.cost_estimator import AgentCostEstimate
         estimate = CostEstimate(
             total_estimated_usd=0.0,
             per_agent=[],

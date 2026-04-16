@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.agents.quality_agent import (
+from blanketaudit2.agents.quality_agent import (
     DEFAULT_COMPLEXITY_THRESHOLDS,
     QualityAgent,
     _is_generated,
@@ -15,9 +15,9 @@ from blanketaudit.agents.quality_agent import (
     _get_threshold,
     _reset_counter,
 )
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.llm.resilience import CircuitBreaker
-from blanketaudit.models.finding import AuditFinding, Evidence
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.llm.resilience import CircuitBreaker
+from blanketaudit2.models.finding import AuditFinding, Evidence
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -157,7 +157,7 @@ class TestComplexityChecks:
 
     @pytest.mark.asyncio
     async def test_flags_high_complexity(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -170,7 +170,7 @@ class TestComplexityChecks:
 
     @pytest.mark.asyncio
     async def test_skips_below_threshold(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -181,7 +181,7 @@ class TestComplexityChecks:
 
     @pytest.mark.asyncio
     async def test_skips_test_files(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -192,7 +192,7 @@ class TestComplexityChecks:
 
     @pytest.mark.asyncio
     async def test_skips_generated_code(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -203,7 +203,7 @@ class TestComplexityChecks:
 
     @pytest.mark.asyncio
     async def test_custom_threshold(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(complexity_thresholds={"python": 10}, llm=None)
 
         state = _state_with_methods([
@@ -214,7 +214,7 @@ class TestComplexityChecks:
 
     @pytest.mark.asyncio
     async def test_go_higher_threshold(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -236,7 +236,7 @@ class TestLongFunctionChecks:
 
     @pytest.mark.asyncio
     async def test_flags_long_function(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -248,7 +248,7 @@ class TestLongFunctionChecks:
 
     @pytest.mark.asyncio
     async def test_skips_short_function(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([_method("short", "src/util.py", loc=10)])
@@ -257,7 +257,7 @@ class TestLongFunctionChecks:
 
     @pytest.mark.asyncio
     async def test_skips_test_file_long_function(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([_method("test_big", "tests/test_main.py", loc=100)])
@@ -266,7 +266,7 @@ class TestLongFunctionChecks:
 
     @pytest.mark.asyncio
     async def test_custom_loc_threshold(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(loc_threshold=30, llm=None)
 
         state = _state_with_methods([_method("medium", "src/app.py", loc=40)])
@@ -295,7 +295,7 @@ class TestQualityAI:
             "priority": "medium",
         }))
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = QualityAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis({}, [_candidate()])
@@ -311,7 +311,7 @@ class TestQualityAI:
             "explanation": "This complexity is inherent to the algorithm.",
         }))
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = QualityAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis({}, [_candidate()])
@@ -321,7 +321,7 @@ class TestQualityAI:
     async def test_invalid_json_keeps_candidate(self):
         llm = _mock_llm("Free text quality assessment.")
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = QualityAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis({}, [_candidate()])
@@ -347,7 +347,7 @@ class TestQualityAgentExecute:
 
     @pytest.mark.asyncio
     async def test_execute_static_only(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         state = _state_with_methods([
@@ -362,7 +362,7 @@ class TestQualityAgentExecute:
 
     @pytest.mark.asyncio
     async def test_execute_empty_state(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = QualityAgent(llm=None)
 
         result = await agent.execute({

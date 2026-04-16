@@ -7,16 +7,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.policies.knowledge_base.seeder import (
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.policies.knowledge_base.seeder import (
     ComplianceClause,
     KnowledgeBaseSeeder,
     load_all_clauses,
     load_clauses_from_yaml,
 )
-from blanketaudit.storage.milvus_store import MilvusStore
+from blanketaudit2.storage.milvus_store import MilvusStore
 
-KB_DIR = Path(__file__).parent.parent.parent / "blanketaudit" / "policies" / "knowledge_base"
+KB_DIR = Path(__file__).parent.parent.parent / "blanketaudit2" / "policies" / "knowledge_base"
 
 
 # ── Helpers ──────────────────────────────────────────────────

@@ -19,9 +19,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.llm.resilience import CircuitBreaker
-from blanketaudit.orchestrator.pipeline import AuditPipeline, SimplePipeline
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.llm.resilience import CircuitBreaker
+from blanketaudit2.orchestrator.pipeline import AuditPipeline, SimplePipeline
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 
@@ -68,13 +68,13 @@ def _patches():
     """Common patches for pipeline tests."""
     s = _settings()
     return {
-        "blanketaudit.orchestrator.pipeline.get_settings": MagicMock(return_value=s),
-        "blanketaudit.orchestrator.cost_estimator.get_settings": MagicMock(return_value=s),
-        "blanketaudit.triage.tier_assigner.get_settings": MagicMock(return_value=s),
-        "blanketaudit.triage.batch_assembler.get_settings": MagicMock(return_value=s),
-        "blanketaudit.agents.tools.semgrep_tool.run_semgrep": AsyncMock(return_value=[]),
-        "blanketaudit.agents.tools.gitleaks_tool.run_gitleaks": AsyncMock(return_value=[]),
-        "blanketaudit.agents.tools.osv_tool.run_osv_scan": AsyncMock(return_value=[]),
+        "blanketaudit2.orchestrator.pipeline.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.orchestrator.cost_estimator.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.triage.tier_assigner.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.triage.batch_assembler.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.agents.tools.semgrep_tool.run_semgrep": AsyncMock(return_value=[]),
+        "blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks": AsyncMock(return_value=[]),
+        "blanketaudit2.agents.tools.osv_tool.run_osv_scan": AsyncMock(return_value=[]),
     }
 
 
@@ -82,13 +82,13 @@ async def _run_pipeline(state: dict, settings_overrides: dict | None = None) -> 
     """Run the SimplePipeline with mocked external tools."""
     s = _settings(**(settings_overrides or {}))
     patches = {
-        "blanketaudit.orchestrator.pipeline.get_settings": MagicMock(return_value=s),
-        "blanketaudit.orchestrator.cost_estimator.get_settings": MagicMock(return_value=s),
-        "blanketaudit.triage.tier_assigner.get_settings": MagicMock(return_value=s),
-        "blanketaudit.triage.batch_assembler.get_settings": MagicMock(return_value=s),
-        "blanketaudit.agents.tools.semgrep_tool.run_semgrep": AsyncMock(return_value=[]),
-        "blanketaudit.agents.tools.gitleaks_tool.run_gitleaks": AsyncMock(return_value=[]),
-        "blanketaudit.agents.tools.osv_tool.run_osv_scan": AsyncMock(return_value=[]),
+        "blanketaudit2.orchestrator.pipeline.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.orchestrator.cost_estimator.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.triage.tier_assigner.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.triage.batch_assembler.get_settings": MagicMock(return_value=s),
+        "blanketaudit2.agents.tools.semgrep_tool.run_semgrep": AsyncMock(return_value=[]),
+        "blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks": AsyncMock(return_value=[]),
+        "blanketaudit2.agents.tools.osv_tool.run_osv_scan": AsyncMock(return_value=[]),
     }
 
     pipeline = AuditPipeline()
@@ -204,8 +204,8 @@ class TestIncrementalScan:
     @pytest.mark.asyncio
     async def test_diff_scanner_identifies_changes(self):
         """Verify DiffScanner partitions changed vs cached files."""
-        from blanketaudit.cache.diff_scanner import DiffScanner
-        from blanketaudit.ingestion.models import FileMetadata
+        from blanketaudit2.cache.diff_scanner import DiffScanner
+        from blanketaudit2.ingestion.models import FileMetadata
 
         scanner = DiffScanner()
         files = [
@@ -223,7 +223,7 @@ class TestIncrementalScan:
     @pytest.mark.asyncio
     async def test_reverse_dep_closure(self):
         """Changed file + its dependents should all be rescanned."""
-        from blanketaudit.cache.diff_scanner import DiffScanner
+        from blanketaudit2.cache.diff_scanner import DiffScanner
 
         scanner = DiffScanner()
         changed = {"lib.py"}
@@ -295,7 +295,7 @@ class TestBudgetAbort:
             "cost_estimate": {"within_budget": False},
             "dry_run": False,
         }
-        with patch("blanketaudit.orchestrator.pipeline.get_settings",
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings",
                     return_value=_settings(cost={"max_scan_cost_usd": 0.01, "abort_on_budget": True})):
             route = pipeline._check_budget(state)
         assert route == "abort"
@@ -307,7 +307,7 @@ class TestBudgetAbort:
             "cost_estimate": {"within_budget": True},
             "dry_run": False,
         }
-        with patch("blanketaudit.orchestrator.pipeline.get_settings",
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings",
                     return_value=_settings()):
             route = pipeline._check_budget(state)
         assert route == "proceed"
@@ -319,7 +319,7 @@ class TestBudgetAbort:
             "cost_estimate": {"within_budget": False},
             "dry_run": False,
         }
-        with patch("blanketaudit.orchestrator.pipeline.get_settings",
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings",
                     return_value=_settings(cost={"max_scan_cost_usd": 0.01, "abort_on_budget": False})):
             route = pipeline._check_budget(state)
         assert route == "proceed"
@@ -333,7 +333,7 @@ class TestBudgetAbort:
 class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_circuit_opens_after_failures(self):
-        from blanketaudit.exceptions import CircuitOpenError
+        from blanketaudit2.exceptions import CircuitOpenError
         cb = CircuitBreaker(failure_threshold=3, window_seconds=60, recovery_seconds=999)
 
         async def fail():
@@ -373,14 +373,14 @@ class TestCircuitBreaker:
     @pytest.mark.asyncio
     async def test_agent_falls_back_on_circuit_open(self):
         """When circuit is open, agent returns static-only findings."""
-        from blanketaudit.agents.base_agent import BaseAgent
+        from blanketaudit2.agents.base_agent import BaseAgent
 
         class TestAgent(BaseAgent):
             async def run_static_checks(self, state):
                 return ["static_finding"]
 
             async def run_ai_analysis(self, state, candidates):
-                from blanketaudit.exceptions import CircuitOpenError
+                from blanketaudit2.exceptions import CircuitOpenError
                 raise CircuitOpenError("open")
 
         agent = TestAgent("test", llm=_mock_llm())
@@ -403,7 +403,7 @@ class TestPromptInjectionResistance:
     @pytest.mark.asyncio
     async def test_injection_scanner_detects_attempts(self):
         """Guardrail scanner flags injection patterns."""
-        from blanketaudit.llm.guardrails import scan_files_for_injections
+        from blanketaudit2.llm.guardrails import scan_files_for_injections
 
         fixture_dir = FIXTURES / "fixture-injection-attack"
         contents: dict[str, str] = {}
@@ -428,9 +428,9 @@ class TestPromptInjectionResistance:
 
     def test_anomaly_detector_flags_zero_findings(self):
         """If a scan of a large codebase returns zero findings, flag it."""
-        from blanketaudit.llm.guardrails import detect_output_anomalies
+        from blanketaudit2.llm.guardrails import detect_output_anomalies
         assert detect_output_anomalies([], file_count=100) is True
 
     def test_anomaly_detector_ok_for_small_clean_repo(self):
-        from blanketaudit.llm.guardrails import detect_output_anomalies
+        from blanketaudit2.llm.guardrails import detect_output_anomalies
         assert detect_output_anomalies([], file_count=3) is False

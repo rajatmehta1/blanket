@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-from blanketaudit.config import Settings, get_settings
+from blanketaudit2.config import Settings, get_settings
 
 
 _YAML_TO_SETTINGS_MAP: dict[str, str] = {

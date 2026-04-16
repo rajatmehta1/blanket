@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.connectors — URL validation, connectors."""
+"""Tests for blanketaudit2.connectors — URL validation, connectors."""
 from __future__ import annotations
 
 import asyncio
@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.connectors.base import validate_url
-from blanketaudit.connectors.github_connector import GitHubConnector
-from blanketaudit.connectors.gitlab_connector import GitLabConnector
-from blanketaudit.connectors.bitbucket_connector import BitbucketConnector
-from blanketaudit.connectors.local_connector import LocalConnector
-from blanketaudit.exceptions import IngestionError
+from blanketaudit2.connectors.base import validate_url
+from blanketaudit2.connectors.github_connector import GitHubConnector
+from blanketaudit2.connectors.gitlab_connector import GitLabConnector
+from blanketaudit2.connectors.bitbucket_connector import BitbucketConnector
+from blanketaudit2.connectors.local_connector import LocalConnector
+from blanketaudit2.exceptions import IngestionError
 
 
 # ── URL Validation ──────────────────────────────────────────
@@ -87,9 +87,9 @@ class TestGitHubConnector:
         mock_proc.returncode = 0
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
 
-        with patch("blanketaudit.connectors.github_connector.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.connectors.github_connector.asyncio.create_subprocess_exec",
                     return_value=mock_proc) as mock_exec, \
-             patch("blanketaudit.connectors.github_connector.asyncio.wait_for",
+             patch("blanketaudit2.connectors.github_connector.asyncio.wait_for",
                     return_value=(b"", b"")):
             path = await c.clone(tmp_path)
             assert path.exists()
@@ -102,8 +102,8 @@ class TestGitHubConnector:
     @pytest.mark.asyncio
     async def test_clone_timeout_raises(self, tmp_path):
         c = GitHubConnector("https://github.com/org/repo")
-        with patch("blanketaudit.connectors.github_connector.asyncio.create_subprocess_exec") as mock_exec, \
-             patch("blanketaudit.connectors.github_connector.asyncio.wait_for",
+        with patch("blanketaudit2.connectors.github_connector.asyncio.create_subprocess_exec") as mock_exec, \
+             patch("blanketaudit2.connectors.github_connector.asyncio.wait_for",
                     side_effect=asyncio.TimeoutError):
             mock_proc = AsyncMock()
             mock_exec.return_value = mock_proc
@@ -117,9 +117,9 @@ class TestGitHubConnector:
         mock_proc.returncode = 128
         mock_proc.communicate = AsyncMock(return_value=(b"", b"fatal: repo not found"))
 
-        with patch("blanketaudit.connectors.github_connector.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.connectors.github_connector.asyncio.create_subprocess_exec",
                     return_value=mock_proc), \
-             patch("blanketaudit.connectors.github_connector.asyncio.wait_for",
+             patch("blanketaudit2.connectors.github_connector.asyncio.wait_for",
                     return_value=(b"", b"fatal: repo not found")):
             # wait_for returns the communicate result; returncode is checked after
             # Need to ensure returncode is 128 so it raises
@@ -236,7 +236,7 @@ class TestLocalConnector:
 
         c = LocalConnector(zip_path)
         # Patch the MAX_ZIP_SIZE_MB to a tiny value so the real zip exceeds it
-        with patch("blanketaudit.connectors.local_connector.MAX_ZIP_SIZE_MB", 0):
+        with patch("blanketaudit2.connectors.local_connector.MAX_ZIP_SIZE_MB", 0):
             with pytest.raises(IngestionError, match="too large"):
                 await c.clone(tmp_path)
 

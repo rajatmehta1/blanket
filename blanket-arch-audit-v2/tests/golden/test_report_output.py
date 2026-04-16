@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import pytest
 
-from blanketaudit.models.finding import (
+from blanketaudit2.models.finding import (
     AuditFinding, BlastRadius, CallChainStep, ComplianceRef, Evidence,
 )
-from blanketaudit.scoring.report_assembler import ReportAssembler
-from blanketaudit.report.pdf_generator import PDFReportGenerator
+from blanketaudit2.scoring.report_assembler import ReportAssembler
+from blanketaudit2.report.pdf_generator import PDFReportGenerator
 
 
 # ── MedPay fixture data ──────────────────────────────────────

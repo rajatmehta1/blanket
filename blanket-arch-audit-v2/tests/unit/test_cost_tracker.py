@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.llm.cost_tracker."""
+"""Tests for blanketaudit2.llm.cost_tracker."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.exceptions import BudgetExceededError
-from blanketaudit.llm.cost_tracker import (
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.exceptions import BudgetExceededError
+from blanketaudit2.llm.cost_tracker import (
     PRICING,
     CallRecord,
     CostTracker,
@@ -74,7 +74,7 @@ class TestCountTokens:
     def test_fallback_when_tiktoken_unavailable(self):
         with patch.dict("sys.modules", {"tiktoken": None}):
             # Clear the cached encodings so it tries to reimport.
-            from blanketaudit.llm import cost_tracker
+            from blanketaudit2.llm import cost_tracker
             old = cost_tracker._encodings.copy()
             cost_tracker._encodings.clear()
             try:
@@ -138,13 +138,13 @@ class TestTokenBudget:
 
 class TestCostTracker:
     def test_from_settings(self):
-        with patch("blanketaudit.llm.cost_tracker.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.cost_tracker.get_settings") as mock_gs:
             mock_gs.return_value = _settings(max_scan_cost_usd=25.0)
             tracker = CostTracker.from_settings()
         assert tracker.max_scan_cost_usd == 25.0
 
     def test_create_agent_budget(self):
-        with patch("blanketaudit.llm.cost_tracker.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.cost_tracker.get_settings") as mock_gs:
             mock_gs.return_value = _settings(per_agent_token_budget=200_000)
             tracker = CostTracker(max_scan_cost_usd=15.0)
             budget = tracker.create_agent_budget("security")
@@ -152,7 +152,7 @@ class TestCostTracker:
         assert "security" in tracker.agent_budgets
 
     def test_create_agent_budget_custom_limit(self):
-        with patch("blanketaudit.llm.cost_tracker.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.cost_tracker.get_settings") as mock_gs:
             mock_gs.return_value = _settings()
             tracker = CostTracker(max_scan_cost_usd=15.0)
             budget = tracker.create_agent_budget("compliance", max_tokens=1_000_000)
@@ -171,7 +171,7 @@ class TestCostTracker:
         assert abs(tracker.total_cost_usd - expected_cost) < 1e-9
 
     def test_record_call_updates_agent_budget(self):
-        with patch("blanketaudit.llm.cost_tracker.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.cost_tracker.get_settings") as mock_gs:
             mock_gs.return_value = _settings()
             tracker = CostTracker(max_scan_cost_usd=100.0)
             tracker.create_agent_budget("security", max_tokens=10_000)
@@ -218,7 +218,7 @@ class TestCostTracker:
         assert abs(sec_cost + comp_cost - tracker.total_cost_usd) < 1e-9
 
     def test_summary(self):
-        with patch("blanketaudit.llm.cost_tracker.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.cost_tracker.get_settings") as mock_gs:
             mock_gs.return_value = _settings()
             tracker = CostTracker(max_scan_cost_usd=15.0)
             tracker.create_agent_budget("security", max_tokens=10_000)

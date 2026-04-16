@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.models.finding import AuditFinding, ComplianceRef, Evidence
-from blanketaudit.models.scoring import HealthScore
-from blanketaudit.scoring.finding_merger import FindingMerger
-from blanketaudit.scoring.report_assembler import AggregationResult, FindingAggregator
-from blanketaudit.scoring.risk_scorer import RiskScorer
+from blanketaudit2.models.finding import AuditFinding, ComplianceRef, Evidence
+from blanketaudit2.models.scoring import HealthScore
+from blanketaudit2.scoring.finding_merger import FindingMerger
+from blanketaudit2.scoring.report_assembler import AggregationResult, FindingAggregator
+from blanketaudit2.scoring.risk_scorer import RiskScorer
 
 
 # ── Helpers ──────────────────────────────────────────────────

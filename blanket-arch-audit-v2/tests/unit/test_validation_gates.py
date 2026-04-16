@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import pytest
 
-from blanketaudit.models.finding import AuditFinding, ComplianceRef, Evidence
-from blanketaudit.validation.gate_confidence import ConfidenceGate
-from blanketaudit.validation.gate_corroboration import CorroborationGate
-from blanketaudit.validation.gate_evidence import EvidenceGate
-from blanketaudit.validation.gate_schema import SchemaGate
-from blanketaudit.validation.pipeline import ValidationPipeline
+from blanketaudit2.models.finding import AuditFinding, ComplianceRef, Evidence
+from blanketaudit2.validation.gate_confidence import ConfidenceGate
+from blanketaudit2.validation.gate_corroboration import CorroborationGate
+from blanketaudit2.validation.gate_evidence import EvidenceGate
+from blanketaudit2.validation.gate_schema import SchemaGate
+from blanketaudit2.validation.pipeline import ValidationPipeline
 
 
 # ── Fixture helpers ──────────────────────────────────────────

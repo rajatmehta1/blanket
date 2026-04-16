@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.llm.guardrails import INJECTION_DEFENSE_PREFIX
-from blanketaudit.llm.prompts.enrichment import (
+from blanketaudit2.llm.guardrails import INJECTION_DEFENSE_PREFIX
+from blanketaudit2.llm.prompts.enrichment import (
     ENRICHMENT_ANALYSIS_PROMPT,
     ENRICHMENT_OUTPUT_SCHEMA,
     ENRICHMENT_SYSTEM_PROMPT,
@@ -39,11 +39,11 @@ class TestAllPromptsRequireFields:
     """Every agent system prompt must mention all required output fields."""
 
     PROMPTS = [
-        ("security", "blanketaudit.llm.prompts.security", "SECURITY_SYSTEM_PROMPT"),
-        ("compliance", "blanketaudit.llm.prompts.compliance", "COMPLIANCE_SYSTEM_PROMPT"),
-        ("architecture", "blanketaudit.llm.prompts.architecture", "ARCHITECTURE_SYSTEM_PROMPT"),
-        ("quality", "blanketaudit.llm.prompts.quality", "QUALITY_SYSTEM_PROMPT"),
-        ("enrichment", "blanketaudit.llm.prompts.enrichment", "ENRICHMENT_SYSTEM_PROMPT"),
+        ("security", "blanketaudit2.llm.prompts.security", "SECURITY_SYSTEM_PROMPT"),
+        ("compliance", "blanketaudit2.llm.prompts.compliance", "COMPLIANCE_SYSTEM_PROMPT"),
+        ("architecture", "blanketaudit2.llm.prompts.architecture", "ARCHITECTURE_SYSTEM_PROMPT"),
+        ("quality", "blanketaudit2.llm.prompts.quality", "QUALITY_SYSTEM_PROMPT"),
+        ("enrichment", "blanketaudit2.llm.prompts.enrichment", "ENRICHMENT_SYSTEM_PROMPT"),
     ]
 
     @pytest.mark.parametrize("name,module,attr", PROMPTS)
@@ -172,15 +172,15 @@ def _mock_llm_with_full_response():
 class TestSecurityAgentOutputFields:
     @pytest.mark.asyncio
     async def test_ai_response_has_all_fields(self):
-        from blanketaudit.agents.security_agent import SecurityAgent, _reset_counter
-        from blanketaudit.models.finding import AuditFinding, Evidence
-        from blanketaudit.llm.resilience import CircuitBreaker
+        from blanketaudit2.agents.security_agent import SecurityAgent, _reset_counter
+        from blanketaudit2.models.finding import AuditFinding, Evidence
+        from blanketaudit2.llm.resilience import CircuitBreaker
 
         _reset_counter(0)
         llm = _mock_llm_with_full_response()
         cb = CircuitBreaker(failure_threshold=5)
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = SecurityAgent(llm=llm, circuit_breaker=cb)
 
         candidate = AuditFinding(
@@ -215,9 +215,9 @@ class TestSecurityAgentOutputFields:
 class TestComplianceAgentOutputFields:
     @pytest.mark.asyncio
     async def test_ai_response_has_compliance_refs(self):
-        from blanketaudit.agents.compliance_agent import ComplianceAgent, _reset_counter
-        from blanketaudit.models.finding import AuditFinding, Evidence, ComplianceRef
-        from blanketaudit.llm.resilience import CircuitBreaker
+        from blanketaudit2.agents.compliance_agent import ComplianceAgent, _reset_counter
+        from blanketaudit2.models.finding import AuditFinding, Evidence, ComplianceRef
+        from blanketaudit2.llm.resilience import CircuitBreaker
 
         _reset_counter(0)
         llm = AsyncMock()
@@ -238,7 +238,7 @@ class TestComplianceAgentOutputFields:
         llm.provider = "test"
         cb = CircuitBreaker(failure_threshold=5)
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ComplianceAgent(llm=llm, circuit_breaker=cb)
 
         candidate = AuditFinding(
@@ -275,13 +275,13 @@ class TestAuditFindingRequiredFields:
     """Verify the AuditFinding model enforces all required fields."""
 
     def test_all_fields_present_in_model(self):
-        from blanketaudit.models.finding import AuditFinding
+        from blanketaudit2.models.finding import AuditFinding
         fields = AuditFinding.model_fields
         for field in REQUIRED_FINDING_FIELDS:
             assert field in fields, f"AuditFinding missing field: {field}"
 
     def test_ai_explanation_separate_from_description(self):
-        from blanketaudit.models.finding import AuditFinding
+        from blanketaudit2.models.finding import AuditFinding
         fields = AuditFinding.model_fields
         assert "ai_explanation" in fields
         assert "description" in fields
@@ -289,14 +289,14 @@ class TestAuditFindingRequiredFields:
         assert fields["ai_explanation"] is not fields["description"]
 
     def test_fix_code_separate_from_remediation(self):
-        from blanketaudit.models.finding import AuditFinding
+        from blanketaudit2.models.finding import AuditFinding
         fields = AuditFinding.model_fields
         assert "fix_code" in fields
         assert "remediation" in fields
         assert fields["fix_code"] is not fields["remediation"]
 
     def test_compliance_refs_is_structured(self):
-        from blanketaudit.models.finding import AuditFinding, ComplianceRef
+        from blanketaudit2.models.finding import AuditFinding, ComplianceRef
         f = AuditFinding.model_fields
         # compliance_refs should accept ComplianceRef objects, not strings
         from typing import get_args
@@ -304,5 +304,5 @@ class TestAuditFindingRequiredFields:
         assert "compliance_refs" in f
 
     def test_dollar_impact_field_exists(self):
-        from blanketaudit.models.finding import AuditFinding
+        from blanketaudit2.models.finding import AuditFinding
         assert "dollar_impact" in AuditFinding.model_fields

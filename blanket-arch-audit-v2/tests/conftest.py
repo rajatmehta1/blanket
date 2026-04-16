@@ -8,7 +8,7 @@ from typing import Generator
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
+from blanketaudit2.config import Settings, get_settings
 
 
 @pytest.fixture()

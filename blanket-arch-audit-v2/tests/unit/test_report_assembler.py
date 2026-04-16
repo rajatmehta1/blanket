@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from blanketaudit.models.finding import AuditFinding, ComplianceRef, Evidence
-from blanketaudit.models.report import InfraFinding
-from blanketaudit.models.scoring import HealthScore
-from blanketaudit.scoring.compliance_matrix_builder import ComplianceMatrixBuilder
-from blanketaudit.scoring.infra_finding_builder import InfraFindingBuilder
-from blanketaudit.scoring.remediation_planner import RemediationPlanner
-from blanketaudit.scoring.report_assembler import ReportAssembler
+from blanketaudit2.models.finding import AuditFinding, ComplianceRef, Evidence
+from blanketaudit2.models.report import InfraFinding
+from blanketaudit2.models.scoring import HealthScore
+from blanketaudit2.scoring.compliance_matrix_builder import ComplianceMatrixBuilder
+from blanketaudit2.scoring.infra_finding_builder import InfraFindingBuilder
+from blanketaudit2.scoring.remediation_planner import RemediationPlanner
+from blanketaudit2.scoring.report_assembler import ReportAssembler
 
 
 # ── Helpers ──────────────────────────────────────────────────

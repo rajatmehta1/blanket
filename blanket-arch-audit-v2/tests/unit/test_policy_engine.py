@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.policies — schema, engine, conflict resolver."""
+"""Tests for blanketaudit2.policies — schema, engine, conflict resolver."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from blanketaudit.models.finding import AuditFinding, Evidence
-from blanketaudit.policies.conflict_resolver import ConflictResolver, PRIORITY_ORDER
-from blanketaudit.policies.engine import PolicyEngine, StaticCandidate
-from blanketaudit.policies.schema import (
+from blanketaudit2.models.finding import AuditFinding, Evidence
+from blanketaudit2.policies.conflict_resolver import ConflictResolver, PRIORITY_ORDER
+from blanketaudit2.policies.engine import PolicyEngine, StaticCandidate
+from blanketaudit2.policies.schema import (
     AIAnalysis,
     ASTPattern,
     ASTPatternCondition,

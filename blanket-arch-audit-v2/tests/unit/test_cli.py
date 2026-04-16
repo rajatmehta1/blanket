@@ -10,7 +10,7 @@ import pytest
 typer = pytest.importorskip("typer")
 from typer.testing import CliRunner
 
-from blanketaudit.cli.main import app, EXIT_OK, EXIT_ERROR, EXIT_FINDINGS, _is_ci
+from blanketaudit2.cli.main import app, EXIT_OK, EXIT_ERROR, EXIT_FINDINGS, _is_ci
 
 runner = CliRunner()
 
@@ -24,7 +24,7 @@ class TestVersionHelp:
     def test_version(self):
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "blanketaudit" in result.output
+        assert "blanketaudit2" in result.output
         assert "0.1.0" in result.output
 
     def test_help(self):
@@ -51,8 +51,8 @@ class TestVersionHelp:
 
 class TestScanCommand:
     def test_scan_no_args_shows_error(self):
-        with patch("blanketaudit.cli.config_loader.load_config") as mock_load, \
-             patch("blanketaudit.metrics.setup_observability"):
+        with patch("blanketaudit2.cli.config_loader.load_config") as mock_load, \
+             patch("blanketaudit2.metrics.setup_observability"):
             mock_load.return_value = MagicMock(
                 log_level="INFO", log_json=False, domain="general",
                 active_frameworks=[], model_dump=MagicMock(return_value={}),
@@ -81,9 +81,9 @@ class TestScanCommand:
             "health_score": {"overall": 100, "grade": "A", "severity_counts": {}},
         }
 
-        with patch("blanketaudit.cli.config_loader.load_config") as mock_load, \
-             patch("blanketaudit.metrics.setup_observability"), \
-             patch("blanketaudit.cli.main._run_scan", return_value=mock_result):
+        with patch("blanketaudit2.cli.config_loader.load_config") as mock_load, \
+             patch("blanketaudit2.metrics.setup_observability"), \
+             patch("blanketaudit2.cli.main._run_scan", return_value=mock_result):
             mock_load.return_value = MagicMock(
                 log_level="INFO", log_json=False, domain="general",
                 active_frameworks=[], model_dump=MagicMock(return_value={}),
@@ -113,9 +113,9 @@ class TestScanCommand:
                         "scan_manifest": {"scan_id": "s1"}},
         }
 
-        with patch("blanketaudit.cli.config_loader.load_config") as mock_load, \
-             patch("blanketaudit.metrics.setup_observability"), \
-             patch("blanketaudit.cli.main._run_scan", return_value=mock_result):
+        with patch("blanketaudit2.cli.config_loader.load_config") as mock_load, \
+             patch("blanketaudit2.metrics.setup_observability"), \
+             patch("blanketaudit2.cli.main._run_scan", return_value=mock_result):
             mock_load.return_value = MagicMock(
                 log_level="INFO", log_json=False, domain="general",
                 active_frameworks=[], model_dump=MagicMock(return_value={}),
@@ -151,9 +151,9 @@ class TestScanCommand:
             "report": {},
         }
 
-        with patch("blanketaudit.cli.config_loader.load_config") as mock_load, \
-             patch("blanketaudit.metrics.setup_observability"), \
-             patch("blanketaudit.cli.main._run_scan", return_value=mock_result):
+        with patch("blanketaudit2.cli.config_loader.load_config") as mock_load, \
+             patch("blanketaudit2.metrics.setup_observability"), \
+             patch("blanketaudit2.cli.main._run_scan", return_value=mock_result):
             mock_load.return_value = MagicMock(
                 log_level="INFO", log_json=False, domain="general",
                 active_frameworks=[], model_dump=MagicMock(return_value={}),

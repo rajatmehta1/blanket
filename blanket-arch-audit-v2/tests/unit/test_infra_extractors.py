@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import pytest
 
-from blanketaudit.ingestion.extractors.docker_extractor import DockerExtractor
-from blanketaudit.ingestion.extractors.k8s_extractor import K8sExtractor
-from blanketaudit.ingestion.extractors.cicd_extractor import CICDExtractor
-from blanketaudit.ingestion.extractors.terraform_extractor import TerraformExtractor
+from blanketaudit2.ingestion.extractors.docker_extractor import DockerExtractor
+from blanketaudit2.ingestion.extractors.k8s_extractor import K8sExtractor
+from blanketaudit2.ingestion.extractors.cicd_extractor import CICDExtractor
+from blanketaudit2.ingestion.extractors.terraform_extractor import TerraformExtractor
 
 # ══════════════════════════════════════════════════════════════
 # Docker extractor tests

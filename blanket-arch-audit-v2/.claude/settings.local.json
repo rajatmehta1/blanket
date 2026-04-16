@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(python -c \"from blanketaudit.config import get_settings, Settings, LLMProvider, EmbeddingProvider; print\\(''config OK''\\); print\\(f''Providers: {[p.value for p in LLMProvider]}''\\)\")",
-      "Bash(python -c \"import structlog; print\\(structlog.__version__\\); print\\([x for x in dir\\(structlog\\) if ''level'' in x.lower\\(\\) or ''filter'' in x.lower\\(\\)]\\)\")"
+      "Bash(python -c \"import structlog; print\\(structlog.__version__\\); print\\([x for x in dir\\(structlog\\) if ''level'' in x.lower\\(\\) or ''filter'' in x.lower\\(\\)]\\)\")",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(where msys2)",
+      "Read(//c//**)",
+      "Read(//c/tools/**)"
     ]
   }
 }

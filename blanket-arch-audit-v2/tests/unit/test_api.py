@@ -9,8 +9,8 @@ import pytest
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from blanketaudit.api.app import app
-from blanketaudit.config import Settings, get_settings
+from blanketaudit2.api.app import app
+from blanketaudit2.config import Settings, get_settings
 
 
 def _settings() -> Settings:

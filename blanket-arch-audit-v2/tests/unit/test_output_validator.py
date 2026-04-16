@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.llm.output_validator."""
+"""Tests for blanketaudit2.llm.output_validator."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import BaseModel
 
-from blanketaudit.llm.output_validator import (
+from blanketaudit2.llm.output_validator import (
     OutputValidator,
     _extract_json,
     parse_llm_output,

@@ -7,16 +7,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.agents.architecture_agent import (
+from blanketaudit2.agents.architecture_agent import (
     ArchitectureAgent,
     _is_generated,
     _is_monorepo_cross_package,
     _reset_counter,
     infer_layer,
 )
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.llm.resilience import CircuitBreaker
-from blanketaudit.models.finding import AuditFinding, Evidence
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.llm.resilience import CircuitBreaker
+from blanketaudit2.models.finding import AuditFinding, Evidence
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -162,7 +162,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_detects_circular_deps(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {
@@ -187,7 +187,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_detects_layer_violation(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {
@@ -211,7 +211,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_skips_generated_code_in_cycles(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {
@@ -235,7 +235,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_skips_monorepo_cross_package_violations(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {
@@ -259,7 +259,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_detects_god_class(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {
@@ -286,7 +286,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_skips_generated_god_class(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {
@@ -310,7 +310,7 @@ class TestArchitectureStaticChecks:
 
     @pytest.mark.asyncio
     async def test_empty_state(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
         findings = await agent.run_static_checks({
             "repo_paths": [], "files": [], "analysis_contexts": [],
@@ -338,7 +338,7 @@ class TestArchitectureAI:
             "effort_hours": 4.0,
         }))
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ArchitectureAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis({}, [_candidate()])
@@ -358,7 +358,7 @@ class TestArchitectureAI:
             "effort_hours": 0,
         }))
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ArchitectureAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis({}, [_candidate()])
@@ -368,7 +368,7 @@ class TestArchitectureAI:
     async def test_invalid_json_keeps_candidate(self):
         llm = _mock_llm("Free-form architecture analysis text.")
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ArchitectureAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis({}, [_candidate()])
@@ -395,7 +395,7 @@ class TestArchitectureAgentExecute:
 
     @pytest.mark.asyncio
     async def test_execute_static_only(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ArchitectureAgent(llm=None)
 
         state = {

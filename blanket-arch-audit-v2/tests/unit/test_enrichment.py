@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from blanketaudit.models.finding import AuditFinding, BlastRadius, CallChainStep, ComplianceRef, Evidence
-from blanketaudit.scoring.blast_radius import BlastRadiusComputer
-from blanketaudit.scoring.call_chain_tracer import CallChainTracer
-from blanketaudit.scoring.dollar_impact_estimator import (
+from blanketaudit2.models.finding import AuditFinding, BlastRadius, CallChainStep, ComplianceRef, Evidence
+from blanketaudit2.scoring.blast_radius import BlastRadiusComputer
+from blanketaudit2.scoring.call_chain_tracer import CallChainTracer
+from blanketaudit2.scoring.dollar_impact_estimator import (
     PENALTY_DATA,
     DollarImpactEstimator,
 )

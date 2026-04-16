@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from blanketaudit.policies.engine import PolicyEngine
+from blanketaudit2.policies.engine import PolicyEngine
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 GOLDEN_DIR = Path(__file__).parent
@@ -50,7 +50,7 @@ def _scan_fixture(fixture_name: str) -> list[dict]:
     contents = _load_file_contents(fixture_name)
     all_candidates: list[dict] = []
 
-    policy_root = Path(__file__).parent.parent.parent / "blanketaudit" / "policies"
+    policy_root = Path(__file__).parent.parent.parent / "blanketaudit2" / "policies"
     for category in ("security", "compliance", "architecture", "quality"):
         cat_dir = policy_root / category
         if not cat_dir.exists():

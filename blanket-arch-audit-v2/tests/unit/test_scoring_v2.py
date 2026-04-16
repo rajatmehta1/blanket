@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import pytest
 
-from blanketaudit.models.finding import AuditFinding, ComplianceRef, Evidence
-from blanketaudit.models.scoring import HealthScore
-from blanketaudit.scoring.remediation_planner import RemediationPlanner
-from blanketaudit.scoring.risk_scorer import RiskScorer, _grade, _score_from_findings
+from blanketaudit2.models.finding import AuditFinding, ComplianceRef, Evidence
+from blanketaudit2.models.scoring import HealthScore
+from blanketaudit2.scoring.remediation_planner import RemediationPlanner
+from blanketaudit2.scoring.risk_scorer import RiskScorer, _grade, _score_from_findings
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -508,14 +508,14 @@ class TestRemediationPlannerV2:
 
 class TestPriorityScoring:
     def test_critical_higher_than_high(self):
-        from blanketaudit.scoring.remediation_planner import _priority_key
+        from blanketaudit2.scoring.remediation_planner import _priority_key
         critical = _finding(severity="critical")
         high = _finding(severity="high")
         assert _priority_key(critical) > _priority_key(high)
 
     def test_blast_radius_boosts_priority(self):
-        from blanketaudit.scoring.remediation_planner import _priority_key
-        from blanketaudit.models.finding import BlastRadius
+        from blanketaudit2.scoring.remediation_planner import _priority_key
+        from blanketaudit2.models.finding import BlastRadius
         no_blast = _finding(severity="high")
         with_blast = _finding(severity="high")
         with_blast = with_blast.model_copy(update={"blast_radius": BlastRadius(
@@ -525,7 +525,7 @@ class TestPriorityScoring:
         assert _priority_key(with_blast) > _priority_key(no_blast)
 
     def test_compliance_refs_boost_priority(self):
-        from blanketaudit.scoring.remediation_planner import _priority_key
+        from blanketaudit2.scoring.remediation_planner import _priority_key
         no_compliance = _finding(severity="high", compliance_refs=[])
         with_compliance = _finding(severity="high", compliance_refs=[_ref("HIPAA")])
         assert _priority_key(with_compliance) > _priority_key(no_compliance)
@@ -533,8 +533,8 @@ class TestPriorityScoring:
     def test_high_blast_high_can_beat_critical_no_blast(self):
         """A high-severity finding with 20 entry points should have higher
         priority than a critical with 1 entry point."""
-        from blanketaudit.scoring.remediation_planner import _priority_key
-        from blanketaudit.models.finding import BlastRadius
+        from blanketaudit2.scoring.remediation_planner import _priority_key
+        from blanketaudit2.models.finding import BlastRadius
         critical_small = _finding(severity="critical")
         # Critical base = 100, blast=1 → 100
         high_big = _finding(severity="high")
@@ -547,7 +547,7 @@ class TestPriorityScoring:
 
     def test_sorting_uses_priority(self):
         """Findings within the same severity tier are sorted by priority."""
-        from blanketaudit.models.finding import BlastRadius
+        from blanketaudit2.models.finding import BlastRadius
         scorer = RiskScorer()
         planner = RemediationPlanner(scorer=scorer)
 

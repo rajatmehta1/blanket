@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.llm.resilience — retry, circuit breaker, rate limiter."""
+"""Tests for blanketaudit2.llm.resilience — retry, circuit breaker, rate limiter."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.exceptions import CircuitOpenError, LLMError
-from blanketaudit.llm.resilience import (
+from blanketaudit2.exceptions import CircuitOpenError, LLMError
+from blanketaudit2.llm.resilience import (
     APIRateLimiter,
     CircuitBreaker,
     CircuitState,

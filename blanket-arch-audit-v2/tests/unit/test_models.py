@@ -5,7 +5,7 @@ import pytest
 from datetime import datetime
 from pydantic import ValidationError
 
-from blanketaudit.models.finding import (
+from blanketaudit2.models.finding import (
     AuditFinding,
     ArchitectureFindings,
     BlastRadius,
@@ -16,18 +16,18 @@ from blanketaudit.models.finding import (
     QualityFindings,
     SecurityFindings,
 )
-from blanketaudit.models.scoring import CategoryScore, HealthScore
-from blanketaudit.models.manifest import ScanManifest
-from blanketaudit.models.compliance import ComplianceControlStatus, ComplianceMatrix
-from blanketaudit.models.callgraph import (
+from blanketaudit2.models.scoring import CategoryScore, HealthScore
+from blanketaudit2.models.manifest import ScanManifest
+from blanketaudit2.models.compliance import ComplianceControlStatus, ComplianceMatrix
+from blanketaudit2.models.callgraph import (
     CallGraphSummary,
     CrossRepoEdge,
     DeadCodeSummary,
     EntryPointSummary,
 )
-from blanketaudit.models.roadmap import RemediationPhase, RemediationTask
-from blanketaudit.models.report import AuditReport, ExecutiveSummary, InfraFinding
-from blanketaudit.ingestion.models import (
+from blanketaudit2.models.roadmap import RemediationPhase, RemediationTask
+from blanketaudit2.models.report import AuditReport, ExecutiveSummary, InfraFinding
+from blanketaudit2.ingestion.models import (
     AnalysisContext,
     CallInfo,
     ClassInfo,

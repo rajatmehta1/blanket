@@ -1,4 +1,4 @@
-# GitHub Action: tectoniclabs/blanketaudit-action@v1
+# GitHub Action: tectoniclabs/blanketaudit2-action@v1
 name: "BlanketAudit"
 description: "AI-powered architecture audit — security, compliance, quality"
 branding:
@@ -58,7 +58,7 @@ runs:
   steps:
     - name: Install BlanketAudit
       shell: bash
-      run: pip install blanketaudit
+      run: pip install blanketaudit2
 
     - name: Run Audit
       id: audit

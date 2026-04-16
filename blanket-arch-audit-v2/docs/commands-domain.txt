@@ -16,7 +16,9 @@ Key concerns: PHI exposure, encryption at rest/transit, access control, audit lo
 Frameworks: PCI-DSS, SOC2, SOX
 Key concerns: cardholder data, transaction integrity, fraud prevention, key mgmt
 
-  blanketaudit scan ./repo --domain finance --framework pci-dss --framework soc2 --format pdf --format json --output ./audit-finance
+
+
+
 
 --------------------------------------------------------------------------------
 3. E-COMMERCE (online stores, marketplaces, checkout systems)
@@ -73,7 +75,7 @@ Add multiple paths or --repo flags for cross-repo call graph analysis.
 Frameworks: SOC2 (optional, lightweight)
 Key concerns: secrets, code quality, dependency CVEs, dead code
 
-  blanketaudit scan ./repo --domain general --format pdf --format json --output ./audit-general
+  blanketaudit scan C:\jmd\harpreet\apps\fingertips_premarket --domain general --format pdf --format json --output ./fingertips-premarket-general
 
 --------------------------------------------------------------------------------
 10. DRY RUN (cost estimate only, no actual scan — works with any domain)

@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.cache — diff scanner, content cache, scan manifest."""
+"""Tests for blanketaudit2.cache — diff scanner, content cache, scan manifest."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.cache.content_cache import ContentCache
-from blanketaudit.cache.diff_scanner import DiffScanner
-from blanketaudit.cache.scan_manifest import ScanManifestRecorder, _sha256_str
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.ingestion.models import FileMetadata, ImportInfo
-from blanketaudit.models.manifest import ScanManifest
+from blanketaudit2.cache.content_cache import ContentCache
+from blanketaudit2.cache.diff_scanner import DiffScanner
+from blanketaudit2.cache.scan_manifest import ScanManifestRecorder, _sha256_str
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.ingestion.models import FileMetadata, ImportInfo
+from blanketaudit2.models.manifest import ScanManifest
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -47,7 +47,7 @@ class TestDiffScannerChangedFiles:
         mock_proc.communicate = AsyncMock(
             return_value=(b"src/main.py\nsrc/auth.py\nREADME.md\n", b"")
         )
-        with patch("blanketaudit.cache.diff_scanner.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.cache.diff_scanner.asyncio.create_subprocess_exec",
                     return_value=mock_proc):
             changed = await scanner.get_changed_files("/tmp/repo", "abc123")
         assert changed == {"src/main.py", "src/auth.py", "README.md"}
@@ -58,7 +58,7 @@ class TestDiffScannerChangedFiles:
         mock_proc = AsyncMock()
         mock_proc.returncode = 0
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
-        with patch("blanketaudit.cache.diff_scanner.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.cache.diff_scanner.asyncio.create_subprocess_exec",
                     return_value=mock_proc):
             changed = await scanner.get_changed_files("/tmp/repo", "abc123")
         assert changed == set()
@@ -69,7 +69,7 @@ class TestDiffScannerChangedFiles:
         mock_proc = AsyncMock()
         mock_proc.returncode = 128
         mock_proc.communicate = AsyncMock(return_value=(b"", b"fatal: bad revision"))
-        with patch("blanketaudit.cache.diff_scanner.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.cache.diff_scanner.asyncio.create_subprocess_exec",
                     return_value=mock_proc):
             changed = await scanner.get_changed_files("/tmp/repo", "bad_sha")
         assert changed == set()
@@ -77,7 +77,7 @@ class TestDiffScannerChangedFiles:
     @pytest.mark.asyncio
     async def test_git_not_found_returns_empty(self):
         scanner = DiffScanner()
-        with patch("blanketaudit.cache.diff_scanner.asyncio.create_subprocess_exec",
+        with patch("blanketaudit2.cache.diff_scanner.asyncio.create_subprocess_exec",
                     side_effect=FileNotFoundError("git not found")):
             changed = await scanner.get_changed_files("/tmp/repo", "abc")
         assert changed == set()
@@ -205,7 +205,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_miss_returns_none(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         result = await cache.get("nonexistent")
@@ -213,7 +213,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_put_then_get(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         findings = [{"id": "BLK-001", "title": "SQLi"}]
@@ -223,7 +223,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_ttl_expiry(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache(ttl_hours=0)  # 0 hours = expires immediately
         cache._use_memory = True
         cache._ttl_seconds = 0  # Force immediate expiry
@@ -234,7 +234,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_invalidate_expired(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         cache._ttl_seconds = 0
@@ -245,7 +245,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_clear(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         await cache.put("k1", [])
@@ -255,7 +255,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_size(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         cache._ttl_seconds = 3600
@@ -267,7 +267,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_overwrite_existing_key(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         cache._ttl_seconds = 3600
@@ -278,7 +278,7 @@ class TestContentCacheMemory:
 
     @pytest.mark.asyncio
     async def test_get_cached_keys(self):
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache()
         cache._use_memory = True
         cache._ttl_seconds = 3600
@@ -299,7 +299,7 @@ class TestContentCacheSQLite:
             pytest.skip("aiosqlite not installed")
 
         db_path = tmp_path / "test_cache.db"
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache(db_path=db_path, ttl_hours=1)
         await cache.connect()
 
@@ -330,7 +330,7 @@ class TestContentCacheSQLite:
             pytest.skip("aiosqlite not installed")
 
         db_path = tmp_path / "test_cache_ttl.db"
-        with patch("blanketaudit.cache.content_cache.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.cache.content_cache.get_settings", return_value=_settings()):
             cache = ContentCache(db_path=db_path, ttl_hours=0)
         cache._ttl_seconds = 0  # Immediate expiry
         await cache.connect()
@@ -351,7 +351,7 @@ class TestContentCacheSQLite:
 class TestScanManifestRecorder:
     def _recorder(self):
         s = _settings()
-        with patch("blanketaudit.cache.scan_manifest.get_settings", return_value=s):
+        with patch("blanketaudit2.cache.scan_manifest.get_settings", return_value=s):
             return ScanManifestRecorder(settings=s)
 
     def test_record_sync_creates_manifest(self):
@@ -446,7 +446,7 @@ class TestScanManifestRecorder:
         (policy_dir / "comp.yaml").write_text("id: COMP-001\n")
 
         recorder = self._recorder()
-        with patch("blanketaudit.cache.scan_manifest._get_tool_version",
+        with patch("blanketaudit2.cache.scan_manifest._get_tool_version",
                     return_value="1.0.0"):
             manifest = await recorder.record(
                 repo_commits={"api": "abc"},

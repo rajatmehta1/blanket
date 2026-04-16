@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from blanketaudit.report.svg_charts import SVGChartRenderer
-from blanketaudit.report.syntax_highlighter import SyntaxHighlighter
-from blanketaudit.report.pdf_generator import PDFReportGenerator
-from blanketaudit.report.html_generator import HTMLGenerator
+from blanketaudit2.report.svg_charts import SVGChartRenderer
+from blanketaudit2.report.syntax_highlighter import SyntaxHighlighter
+from blanketaudit2.report.pdf_generator import PDFReportGenerator
+from blanketaudit2.report.html_generator import HTMLGenerator
 
 
 # ── Mock AuditReport dict ────────────────────────────────────
@@ -320,7 +320,7 @@ app.get('/api/users/:id', async (req: Request, res: Response) => {
     # ── highlight_finding ────────────────────────────────────
 
     def test_highlight_finding_with_model(self):
-        from blanketaudit.models.finding import AuditFinding, Evidence
+        from blanketaudit2.models.finding import AuditFinding, Evidence
         finding = AuditFinding(
             id="BLK-001", policy_id="SEC-001",
             title="SQLi", description="d", severity="critical",

@@ -11,9 +11,9 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.orchestrator.pipeline import AuditPipeline, SimplePipeline
-from blanketaudit.orchestrator.state import AuditState
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.orchestrator.pipeline import AuditPipeline, SimplePipeline
+from blanketaudit2.orchestrator.state import AuditState
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -78,7 +78,7 @@ class TestAuditState:
         assert state["project_name"] == "Test"
 
     def test_merge_lists_reducer(self):
-        from blanketaudit.orchestrator.state import _merge_lists
+        from blanketaudit2.orchestrator.state import _merge_lists
         assert _merge_lists([1, 2], [3, 4]) == [1, 2, 3, 4]
         assert _merge_lists([], [1]) == [1]
         assert _merge_lists(None, [1]) == [1]
@@ -96,7 +96,7 @@ class TestIngestNode:
         pipeline = AuditPipeline()
         state = _initial_state(repo)
 
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=_settings()):
             result = await pipeline.ingest_node(state)
 
         assert "files" in result
@@ -121,12 +121,12 @@ class TestTriageNode:
 
         # Run ingest first to get files
         state = _initial_state(repo)
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=_settings()):
             ingest_result = await pipeline.ingest_node(state)
         state.update(ingest_result)
 
-        with patch("blanketaudit.triage.tier_assigner.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.batch_assembler.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.triage.tier_assigner.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.batch_assembler.get_settings", return_value=_settings()):
             result = await pipeline.triage_node(state)
 
         assert "file_scores" in result
@@ -138,8 +138,8 @@ class TestTriageNode:
     @pytest.mark.asyncio
     async def test_handles_empty_files(self):
         pipeline = AuditPipeline()
-        with patch("blanketaudit.triage.tier_assigner.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.batch_assembler.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.triage.tier_assigner.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.batch_assembler.get_settings", return_value=_settings()):
             result = await pipeline.triage_node({"files": []})
         assert result["file_scores"] == {}
 
@@ -151,15 +151,15 @@ class TestEstimateNode:
         pipeline = AuditPipeline()
 
         state = _initial_state(repo)
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=_settings()):
             ingest = await pipeline.ingest_node(state)
         state.update(ingest)
-        with patch("blanketaudit.triage.tier_assigner.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.batch_assembler.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.triage.tier_assigner.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.batch_assembler.get_settings", return_value=_settings()):
             triage = await pipeline.triage_node(state)
         state.update(triage)
 
-        with patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=_settings()):
             result = await pipeline.estimate_node(state)
 
         assert "cost_estimate" in result
@@ -172,7 +172,7 @@ class TestBudgetCheck:
     def test_proceed_when_within_budget(self):
         pipeline = AuditPipeline()
         state = {"cost_estimate": {"within_budget": True}, "dry_run": False}
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=_settings()):
             assert pipeline._check_budget(state) == "proceed"
 
     def test_abort_on_dry_run(self):
@@ -183,14 +183,14 @@ class TestBudgetCheck:
     def test_abort_when_over_budget(self):
         pipeline = AuditPipeline()
         state = {"cost_estimate": {"within_budget": False}, "dry_run": False}
-        with patch("blanketaudit.orchestrator.pipeline.get_settings",
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings",
                     return_value=_settings(cost={"max_scan_cost_usd": 1.0, "abort_on_budget": True})):
             assert pipeline._check_budget(state) == "abort"
 
     def test_proceed_when_over_but_no_abort(self):
         pipeline = AuditPipeline()
         state = {"cost_estimate": {"within_budget": False}, "dry_run": False}
-        with patch("blanketaudit.orchestrator.pipeline.get_settings",
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings",
                     return_value=_settings(cost={"max_scan_cost_usd": 1.0, "abort_on_budget": False})):
             assert pipeline._check_budget(state) == "proceed"
 
@@ -202,9 +202,9 @@ class TestStaticNode:
         state = {"repo_paths": [{"local_path": "/tmp/repo", "repo_name": "r"}]}
 
         # Mock all tools to return empty (not installed)
-        with patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep", return_value=[]), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan", return_value=[]):
+        with patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep", return_value=[]), \
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan", return_value=[]):
             result = await pipeline.static_node(state)
 
         assert "static_findings" in result
@@ -287,13 +287,13 @@ class TestSimplePipelineEnd2End:
 
         state = _initial_state(repo)
 
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=_settings()), \
-             patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.tier_assigner.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.batch_assembler.get_settings", return_value=_settings()), \
-             patch("blanketaudit.agents.tools.semgrep_tool.run_semgrep", return_value=[]), \
-             patch("blanketaudit.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
-             patch("blanketaudit.agents.tools.osv_tool.run_osv_scan", return_value=[]):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.tier_assigner.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.batch_assembler.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.agents.tools.semgrep_tool.run_semgrep", return_value=[]), \
+             patch("blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks", return_value=[]), \
+             patch("blanketaudit2.agents.tools.osv_tool.run_osv_scan", return_value=[]):
             result = await pipeline.run(state)
 
         assert result["status"] == "completed"
@@ -310,10 +310,10 @@ class TestSimplePipelineEnd2End:
 
         state = _initial_state(repo, dry_run=True)
 
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=_settings()), \
-             patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.tier_assigner.get_settings", return_value=_settings()), \
-             patch("blanketaudit.triage.batch_assembler.get_settings", return_value=_settings()):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.tier_assigner.get_settings", return_value=_settings()), \
+             patch("blanketaudit2.triage.batch_assembler.get_settings", return_value=_settings()):
             result = await pipeline.run(state)
 
         assert result["status"] == "aborted"
@@ -331,10 +331,10 @@ class TestSimplePipelineEnd2End:
         s = _settings(cost={"max_scan_cost_usd": 0.0001, "abort_on_budget": True})
         state = _initial_state(repo)
 
-        with patch("blanketaudit.orchestrator.pipeline.get_settings", return_value=s), \
-             patch("blanketaudit.orchestrator.cost_estimator.get_settings", return_value=s), \
-             patch("blanketaudit.triage.tier_assigner.get_settings", return_value=s), \
-             patch("blanketaudit.triage.batch_assembler.get_settings", return_value=s):
+        with patch("blanketaudit2.orchestrator.pipeline.get_settings", return_value=s), \
+             patch("blanketaudit2.orchestrator.cost_estimator.get_settings", return_value=s), \
+             patch("blanketaudit2.triage.tier_assigner.get_settings", return_value=s), \
+             patch("blanketaudit2.triage.batch_assembler.get_settings", return_value=s):
             result = await pipeline.run(state)
 
         # With provider=none, cost is 0 which is within any budget

@@ -4,12 +4,12 @@ from __future__ import annotations
 import pytest
 from collections import defaultdict
 
-from blanketaudit.callgraph.static_builder import CallGraph, CallEdge
-from blanketaudit.callgraph.cross_repo_matcher import (
+from blanketaudit2.callgraph.static_builder import CallGraph, CallEdge
+from blanketaudit2.callgraph.cross_repo_matcher import (
     CrossRepoMatcher, CrossRepoMatch, _normalize_path, _detect_http_call,
 )
-from blanketaudit.callgraph.graph_analyzer import GraphAnalyzer, TaintPath
-from blanketaudit.ingestion.models import (
+from blanketaudit2.callgraph.graph_analyzer import GraphAnalyzer, TaintPath
+from blanketaudit2.ingestion.models import (
     AnalysisContext, CallInfo, EntryPointInfo, MethodInfo,
 )
 

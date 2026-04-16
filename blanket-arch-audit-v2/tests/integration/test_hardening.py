@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-SRC = Path(__file__).parent.parent.parent / "blanketaudit"
+SRC = Path(__file__).parent.parent.parent / "blanketaudit2"
 
 
 def _python_files(root: Path = SRC) -> list[Path]:
@@ -35,7 +35,7 @@ class TestLLMIsolation:
     ]
 
     def test_no_direct_provider_imports(self):
-        """No file outside blanketaudit/llm/ imports provider SDKs directly."""
+        """No file outside blanketaudit2/llm/ imports provider SDKs directly."""
         violations = []
         llm_dir = SRC / "llm"
         for f in _python_files():
@@ -169,10 +169,10 @@ class TestCleanup:
         assert "atexit.register" in src
 
     def test_register_cleanup_exists(self):
-        from blanketaudit.llm.guardrails import register_cleanup, clear_cleanup_dirs
+        from blanketaudit2.llm.guardrails import register_cleanup, clear_cleanup_dirs
         clear_cleanup_dirs()
         register_cleanup("/tmp/test")
-        from blanketaudit.llm.guardrails import get_registered_cleanup_dirs
+        from blanketaudit2.llm.guardrails import get_registered_cleanup_dirs
         assert len(get_registered_cleanup_dirs()) == 1
         clear_cleanup_dirs()
 
@@ -210,7 +210,7 @@ class TestScanManifest:
         assert "record_manifest" in src
 
     def test_manifest_model_has_all_fields(self):
-        from blanketaudit.models.manifest import ScanManifest
+        from blanketaudit2.models.manifest import ScanManifest
         fields = ScanManifest.model_fields
         required = {"scan_id", "timestamp", "policy_versions", "prompt_versions",
                      "model_ids", "tool_versions", "repo_commits", "config_hash"}
@@ -226,49 +226,49 @@ class TestGracefulDegradation:
     @pytest.mark.asyncio
     async def test_graph_store_falls_back(self):
         from unittest.mock import patch
-        from blanketaudit.config import get_settings
+        from blanketaudit2.config import get_settings
         get_settings.cache_clear()
         s = Settings(llm={"provider": "none"}, neo4j_password="")
-        with patch("blanketaudit.storage.get_settings", return_value=s):
-            from blanketaudit.storage import get_graph_store
-            from blanketaudit.storage.memory_fallback import InMemoryGraph
+        with patch("blanketaudit2.storage.get_settings", return_value=s):
+            from blanketaudit2.storage import get_graph_store
+            from blanketaudit2.storage.memory_fallback import InMemoryGraph
             store = await get_graph_store()
             assert isinstance(store, InMemoryGraph)
 
     @pytest.mark.asyncio
     async def test_scan_store_falls_back(self):
         from unittest.mock import patch
-        from blanketaudit.storage.memory_fallback import InMemoryScanStore
-        with patch("blanketaudit.storage.sqlite_store.SQLiteStore.connect",
+        from blanketaudit2.storage.memory_fallback import InMemoryScanStore
+        with patch("blanketaudit2.storage.sqlite_store.SQLiteStore.connect",
                     side_effect=Exception("no sqlite")):
-            from blanketaudit.storage import get_scan_store
+            from blanketaudit2.storage import get_scan_store
             store = await get_scan_store()
             assert isinstance(store, InMemoryScanStore)
 
     def test_llm_none_returns_none(self):
         from unittest.mock import patch
-        from blanketaudit.config import get_settings, Settings
+        from blanketaudit2.config import get_settings, Settings
         get_settings.cache_clear()
         s = Settings(llm={"provider": "none"})
-        with patch("blanketaudit.llm.provider.get_settings", return_value=s):
-            from blanketaudit.llm.provider import get_llm
+        with patch("blanketaudit2.llm.provider.get_settings", return_value=s):
+            from blanketaudit2.llm.provider import get_llm
             assert get_llm() is None
 
     def test_embeddings_none_returns_none(self):
         from unittest.mock import patch
-        from blanketaudit.config import get_settings, Settings
+        from blanketaudit2.config import get_settings, Settings
         get_settings.cache_clear()
         s = Settings(embedding={"provider": "none"}, llm={"provider": "none"})
-        with patch("blanketaudit.llm.embeddings.get_settings", return_value=s):
-            from blanketaudit.llm.embeddings import get_embeddings
+        with patch("blanketaudit2.llm.embeddings.get_settings", return_value=s):
+            from blanketaudit2.llm.embeddings import get_embeddings
             assert get_embeddings() is None
 
     @pytest.mark.asyncio
     async def test_full_pipeline_no_external_deps(self):
         """Pipeline completes with all external services disabled."""
-        from blanketaudit.orchestrator.pipeline import AuditPipeline, SimplePipeline
+        from blanketaudit2.orchestrator.pipeline import AuditPipeline, SimplePipeline
         from unittest.mock import patch, AsyncMock, MagicMock
-        from blanketaudit.config import Settings
+        from blanketaudit2.config import Settings
 
         s = Settings(llm={"provider": "none"}, embedding={"provider": "none"}, neo4j_password="")
         pipeline = AuditPipeline()
@@ -285,13 +285,13 @@ class TestGracefulDegradation:
         }
 
         patches = {
-            "blanketaudit.orchestrator.pipeline.get_settings": MagicMock(return_value=s),
-            "blanketaudit.orchestrator.cost_estimator.get_settings": MagicMock(return_value=s),
-            "blanketaudit.triage.tier_assigner.get_settings": MagicMock(return_value=s),
-            "blanketaudit.triage.batch_assembler.get_settings": MagicMock(return_value=s),
-            "blanketaudit.agents.tools.semgrep_tool.run_semgrep": AsyncMock(return_value=[]),
-            "blanketaudit.agents.tools.gitleaks_tool.run_gitleaks": AsyncMock(return_value=[]),
-            "blanketaudit.agents.tools.osv_tool.run_osv_scan": AsyncMock(return_value=[]),
+            "blanketaudit2.orchestrator.pipeline.get_settings": MagicMock(return_value=s),
+            "blanketaudit2.orchestrator.cost_estimator.get_settings": MagicMock(return_value=s),
+            "blanketaudit2.triage.tier_assigner.get_settings": MagicMock(return_value=s),
+            "blanketaudit2.triage.batch_assembler.get_settings": MagicMock(return_value=s),
+            "blanketaudit2.agents.tools.semgrep_tool.run_semgrep": AsyncMock(return_value=[]),
+            "blanketaudit2.agents.tools.gitleaks_tool.run_gitleaks": AsyncMock(return_value=[]),
+            "blanketaudit2.agents.tools.osv_tool.run_osv_scan": AsyncMock(return_value=[]),
         }
 
         import contextlib
@@ -306,4 +306,4 @@ class TestGracefulDegradation:
 
 
 # Import needed for the degradation test
-from blanketaudit.config import Settings
+from blanketaudit2.config import Settings

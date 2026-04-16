@@ -8,14 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from blanketaudit.agents.compliance_agent import (
+from blanketaudit2.agents.compliance_agent import (
     ComplianceAgent,
     _PROCESS_LEVEL_CONTROLS,
     _reset_counter,
 )
-from blanketaudit.config import Settings, get_settings
-from blanketaudit.llm.resilience import CircuitBreaker
-from blanketaudit.models.finding import AuditFinding, ComplianceRef, Evidence
+from blanketaudit2.config import Settings, get_settings
+from blanketaudit2.llm.resilience import CircuitBreaker
+from blanketaudit2.models.finding import AuditFinding, ComplianceRef, Evidence
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -170,7 +170,7 @@ class TestComplianceAIClassification:
             "remediation": "Mask PHI before logging.",
         }))
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ComplianceAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis(
@@ -196,7 +196,7 @@ class TestComplianceAIClassification:
             "remediation": "",
         }))
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ComplianceAgent(llm=llm, circuit_breaker=cb)
 
         # COMP-HIPAA-006 is a process-level control (BAA)
@@ -216,7 +216,7 @@ class TestComplianceAIClassification:
     async def test_invalid_json_keeps_candidate(self):
         llm = _mock_llm("This is not valid JSON at all, just text explanation.")
         cb = CircuitBreaker(failure_threshold=5)
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ComplianceAgent(llm=llm, circuit_breaker=cb)
 
         result = await agent.run_ai_analysis(
@@ -243,7 +243,7 @@ class TestComplianceAIClassification:
         llm.provider = "test"
         cb = CircuitBreaker(failure_threshold=5)
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=llm):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=llm):
             agent = ComplianceAgent(llm=llm, circuit_breaker=cb)
 
         candidate = _candidate()
@@ -278,7 +278,7 @@ class TestComplianceStaticChecks:
             'def process(patient):\n    logger.info("Processing patient %s", patient.ssn)\n'
         )
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ComplianceAgent(llm=None)
 
         state = {
@@ -301,7 +301,7 @@ class TestComplianceStaticChecks:
             'def hello():\n    return "Hello, World!"\n'
         )
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ComplianceAgent(llm=None)
 
         state = {
@@ -316,7 +316,7 @@ class TestComplianceStaticChecks:
 
     @pytest.mark.asyncio
     async def test_no_repos_returns_empty(self):
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ComplianceAgent(llm=None)
         findings = await agent.run_static_checks({"repo_paths": [], "frameworks": []})
         assert findings == []
@@ -338,7 +338,7 @@ class TestComplianceAgentExecute:
         repo.mkdir()
         (repo / "service.py").write_text('password = "secret"\n')
 
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent", return_value=None):
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent", return_value=None):
             agent = ComplianceAgent(llm=None)
 
         state = {
@@ -356,7 +356,7 @@ class TestComplianceAgentExecute:
     @pytest.mark.asyncio
     async def test_uses_higher_capability_model(self):
         """Verify compliance agent requests the higher-capability model."""
-        with patch("blanketaudit.agents.base_agent.get_llm_for_agent") as mock_get:
+        with patch("blanketaudit2.agents.base_agent.get_llm_for_agent") as mock_get:
             mock_get.return_value = None
             agent = ComplianceAgent()
             _ = agent.llm

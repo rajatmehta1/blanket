@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.metrics — logging, tracing, Prometheus."""
+"""Tests for blanketaudit2.metrics — logging, tracing, Prometheus."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import structlog
 
-from blanketaudit.metrics import (
+from blanketaudit2.metrics import (
     _NoOpSpan,
     _NoOpTracer,
     _add_scan_context,
@@ -199,7 +199,7 @@ class TestTimedSpan:
 class TestSetupTracing:
     def test_no_op_when_endpoint_empty(self):
         # Should not raise even if OTel SDK is not fully configured
-        from blanketaudit.metrics import setup_tracing
+        from blanketaudit2.metrics import setup_tracing
         setup_tracing(endpoint="")  # No-op
 
 
@@ -212,7 +212,7 @@ class TestPrometheusMetrics:
     def test_ensure_metrics_creates_all(self):
         """All expected metric names should be present."""
         pytest.importorskip("prometheus_client")
-        from blanketaudit.metrics import _metrics
+        from blanketaudit2.metrics import _metrics
         _metrics.clear()
         m = _ensure_metrics()
         expected = {

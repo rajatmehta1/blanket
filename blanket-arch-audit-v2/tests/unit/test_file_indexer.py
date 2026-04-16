@@ -1,16 +1,16 @@
-"""Tests for blanketaudit.ingestion.file_indexer."""
+"""Tests for blanketaudit2.ingestion.file_indexer."""
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
 
-from blanketaudit.ingestion.file_indexer import (
+from blanketaudit2.ingestion.file_indexer import (
     FileIndexer,
     _classify_file_type,
     _detect_language,
 )
-from blanketaudit.ingestion.models import FileType
+from blanketaudit2.ingestion.models import FileType
 
 
 # ── Language Detection ──────────────────────────────────────

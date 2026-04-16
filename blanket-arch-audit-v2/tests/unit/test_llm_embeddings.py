@@ -1,4 +1,4 @@
-"""Tests for blanketaudit.llm.embeddings — Embedding provider abstraction."""
+"""Tests for blanketaudit2.llm.embeddings — Embedding provider abstraction."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from blanketaudit.config import EmbeddingProvider, Settings, get_settings
-from blanketaudit.exceptions import LLMError
-from blanketaudit.llm.embeddings import _DEFAULT_MODELS, get_embeddings
+from blanketaudit2.config import EmbeddingProvider, Settings, get_settings
+from blanketaudit2.exceptions import LLMError
+from blanketaudit2.llm.embeddings import _DEFAULT_MODELS, get_embeddings
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -25,7 +25,7 @@ def _make_settings(**emb_overrides) -> Settings:
 
 class TestGetEmbeddingsNone:
     def test_returns_none_for_provider_none(self):
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs:
             mock_gs.return_value = _make_settings(provider="none")
             assert get_embeddings() is None
 
@@ -36,7 +36,7 @@ class TestGetEmbeddingsOpenAI:
         mock_instance = MagicMock()
         MockEmb.return_value = mock_instance
 
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs:
             mock_gs.return_value = _make_settings(
                 provider="openai", model="text-embedding-3-small"
             )
@@ -56,7 +56,7 @@ class TestGetEmbeddingsOllama:
         mock_module = MagicMock()
         mock_module.OllamaEmbeddings = MockEmb
 
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs, \
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs, \
              patch.dict("sys.modules", {"langchain_community": MagicMock(), "langchain_community.embeddings": mock_module}):
             mock_gs.return_value = _make_settings(
                 provider="ollama", model="nomic-embed-text"
@@ -77,7 +77,7 @@ class TestGetEmbeddingsHuggingFace:
         mock_module = MagicMock()
         mock_module.HuggingFaceEmbeddings = MockEmb
 
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs, \
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs, \
              patch.dict("sys.modules", {"langchain_community": MagicMock(), "langchain_community.embeddings": mock_module}):
             mock_gs.return_value = _make_settings(
                 provider="huggingface", model="all-MiniLM-L6-v2"
@@ -93,7 +93,7 @@ class TestGetEmbeddingsDefaults:
     @patch("langchain_openai.OpenAIEmbeddings", autospec=False)
     def test_empty_model_uses_provider_default(self, MockEmb):
         MockEmb.return_value = MagicMock()
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs:
             mock_gs.return_value = _make_settings(provider="openai", model="")
             get_embeddings()
 
@@ -102,7 +102,7 @@ class TestGetEmbeddingsDefaults:
     @patch("langchain_openai.OpenAIEmbeddings", autospec=False)
     def test_model_override_takes_precedence(self, MockEmb):
         MockEmb.return_value = MagicMock()
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs:
             mock_gs.return_value = _make_settings(
                 provider="openai", model="text-embedding-3-small"
             )
@@ -113,7 +113,7 @@ class TestGetEmbeddingsDefaults:
 
 class TestGetEmbeddingsMissingPackage:
     def test_raises_llm_error_on_import_error(self):
-        with patch("blanketaudit.llm.embeddings.get_settings") as mock_gs:
+        with patch("blanketaudit2.llm.embeddings.get_settings") as mock_gs:
             mock_gs.return_value = _make_settings(provider="openai")
 
             with patch.dict("sys.modules", {"langchain_openai": None}):
